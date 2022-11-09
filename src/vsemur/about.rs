@@ -1,5 +1,4 @@
 pub mod version {
-    //pub static MAJOR: u128 = env!("CARGO_PKG_VERSION_MAJOR").parse::<u128>().unwrap();
     pub static MAJOR: &str = env!("CARGO_PKG_VERSION_MAJOR");
     pub static MINOR: &str = env!("CARGO_PKG_VERSION_MINOR");
     pub static PATCH: &str = env!("CARGO_PKG_VERSION_PATCH");
