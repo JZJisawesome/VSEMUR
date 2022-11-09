@@ -14,7 +14,7 @@ fn main() {
         return
     }
 
-    let state: vsemur::State;
+    let state: vsemur::State = vsemur::State::new();
 
     println!("Hello, world! (cli)");//TODO other things here
 }
