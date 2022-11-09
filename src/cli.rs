@@ -14,5 +14,7 @@ fn main() {
         return
     }
 
+    let state: vsemur::State;
+
     println!("Hello, world! (cli)");//TODO other things here
 }
