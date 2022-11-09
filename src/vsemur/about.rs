@@ -1,4 +1,5 @@
 pub mod version {
+    pub static STRING: &str = env!("CARGO_PKG_VERSION");
     pub static MAJOR: &str = env!("CARGO_PKG_VERSION_MAJOR");
     pub static MINOR: &str = env!("CARGO_PKG_VERSION_MINOR");
     pub static PATCH: &str = env!("CARGO_PKG_VERSION_PATCH");
@@ -15,8 +16,8 @@ pub mod version {
         return PATCH.parse::<u128>().unwrap();
     }
 
-    pub fn string() -> String {
-        return format!("libvsemur v{}.{}.{}", MAJOR, MINOR, PATCH);
+    pub fn pretty_string() -> String {
+        return format!("libvsemur v{} ({} Build)", env!("CARGO_PKG_VERSION"), if cfg!(debug_assertions) {"Debug"} else {"Release"});
     }
 }
 
@@ -86,6 +87,4 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ";
 
-pub fn license() -> &'static str {
-    return "";//TODO
-}
+pub static DEBUG: bool = cfg!(debug_assertions);

@@ -1,7 +1,8 @@
 
 fn main() {
     //Print version info
-    println!("{}\n\n", vsemur::about::version::string());
+    println!("VSEMU Command-Line Interface");
+    println!("Powered by: {}\n", vsemur::about::version::pretty_string());
 
     //Handle command line arguments
     if std::env::args().len() != 2 {
@@ -15,6 +16,17 @@ fn main() {
     }
 
     let state: vsemur::State = vsemur::State::new();
+    //TODO load rom
+
+    loop {
+        match vsemur::tick(&state) {
+            vsemur::ReturnCode::OK => { continue; }
+            vsemur::ReturnCode::FAIL => {
+                println!("Error: vsemur::tick() failed");
+                return;//TODO return error code
+            }
+        }
+    }
 
     println!("Hello, world! (cli)");//TODO other things here
 }

@@ -1,10 +1,31 @@
 
 //TODO other functions
+//TODO support ZSTD-compressed roms
 
 //Thanks https://stackoverflow.com/questions/67307526/is-it-possible-to-get-the-cargo-environment-variable-information-for-one-crate-u
 //pub use vsemur::version;
 pub mod about;
 mod lifetime;
+mod logging;
+
+
+
+pub struct State {
+    num_ticks: u128,
+    regs: Registers,
+    buttons: Buttons,
+    //TODO how to allocate memory in rust w/o pointers?
+}
+
+pub enum ReturnCode {OK, FAIL}//TODO error codes/success
+
+pub fn tick(state: &State) -> ReturnCode {
+    //TODO
+    return ReturnCode::FAIL;
+}
+
+
+
 
 struct ControllerButtons {
     red: bool,
@@ -48,15 +69,10 @@ struct Registers {
     pc: u32,//Only need 22 bits
 }
 
-pub struct State {
-    num_ticks: u128,
-    regs: Registers,
-    buttons: Buttons,
-    //TODO how to allocate memory in rust w/o pointers?
-}
-
 impl State {
     pub fn new(/*todo args*/) -> State {
+        logging::log!(0, 0, "Initialized new vsemur::State");
+
         return State {
             num_ticks: 0,
             regs: Registers {
