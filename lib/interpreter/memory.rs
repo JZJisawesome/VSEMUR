@@ -37,7 +37,7 @@ pub(super) fn fetch(state: &State, inst: &mut Inst) -> bool {
     debug_assert!(state.mem_loaded);
 
     debug_assert!(state.regs.pc < ((crate::interpreter::MEM_SIZE_WORDS as u32) - 1));//We need to fetch at least 1 word
-    log!(state.t, 1, "Fetch started from PC: {:#08X} (Page {} Address {})", state.regs.pc, state.regs.pc >> 16, state.regs.pc & 0xFFFF);
+    log!(state.t, 1, "Fetch started from PC: {:#04X}_{:04X}", state.regs.pc >> 16, state.regs.pc & 0xFFFF);
 
     inst.wg[0] = state.mem[state.regs.pc as usize];
     log!(state.t, 2, "Wordgroup 0: {:#06X} | {:#018b}", inst.wg[0], inst.wg[0]);

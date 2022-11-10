@@ -20,7 +20,8 @@ use std::io::Read;
 const MAX_BIOS_SIZE_WORDS: usize = 1 << 22;//FIXME figure out what this actually is
 const MAX_ROM_SIZE_WORDS: usize = 1 << 22;//FIXME figure out what this actually is
 const MEM_SIZE_WORDS: usize = 1 << 22;
-const INT_VECTOR_BASE_ADDR: u32 = 0xFFF5;//Page 47 is useful :)
+const INT_VECTOR_BASE_ADDR: usize = 0xFFF5;//Page 47 is useful :)
+const RESET_VECTOR_ADDR: usize = 0xFFF7;//Page 47 is useful :)
 
 /* Macros */
 
@@ -118,10 +119,11 @@ impl State {
     pub fn new() -> State {
         log!(0, 0, "Initialized VSEMUR State");
 
+        //TODO return uninited State, since we init it in reset instead
         return State {
             t: 0,
             regs: Registers {
-                sp: 0,//TODO this will be different
+                sp: 0,
                 r: [0, 0, 0, 0],
                 bp: 0,
                 sr: SR {
@@ -133,7 +135,7 @@ impl State {
                     s: false,
                     c: false
                 },
-                pc: 0,//TODO this will be different
+                pc: 0,
             },
             buttons: Buttons {
                 p1: ControllerButtons {
@@ -190,13 +192,45 @@ impl State {
             return ReturnCode::RESET_FAIL;
         }
 
-        //TODO set pc with pointer at FFF7
+        self.t = 0;
+        log!(self.t, 0, "Resetting emulated system");
+
+
+        log!(self.t, 1, "Reset memory");
 
         //TEMPORARY for now just copy the bios to the memory
         self.mem.clone_from(&self.bios);
+        self.mem_loaded = true;
+
+
+        log!(self.t, 1, "Resetting CPU registers");
+
+        log!(self.t, 2, "Zero out all registers to begin with");
+        self.regs = Registers {
+            sp: 0,
+            r: [0, 0, 0, 0],
+            bp: 0,
+            sr: SR {
+                ds: 0,
+                cs: 0,
+
+                n: false,
+                z: false,
+                s: false,
+                c: false
+            },
+            pc: 0,
+        };
+
+        log!(self.t, 2, "Set initial PC");
+        debug_assert!(RESET_VECTOR_ADDR < MEM_SIZE_WORDS);
+        log!(self.t, 3, "Read reset vector at address {:#04X}_{:04X}", RESET_VECTOR_ADDR >> 16, RESET_VECTOR_ADDR & 0xFFFF);
+        self.regs.pc = self.mem[RESET_VECTOR_ADDR] as u32;//FIXME what about the page?
+        log!(self.t, 3, "Initial PC is {:#04X}_{:04X}", self.regs.pc >> 16, self.regs.pc & 0xFFFF);
+
 
         //unimplemented!();//TODO implement (load mem with bios and rom, set registers, etc)
-        self.mem_loaded = true;
+        log!(self.t, 0, "Reset complete");
         return ReturnCode::RESET_OK;
     }
 
@@ -222,11 +256,12 @@ impl State {
 
         //TODO rendering, sound, etc
 
+        log!(self.t, 0, "Tick {} ends", self.t);
         return ReturnCode::TICK_OK;
     }
 
     pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
-        let load_result = load_file(path, &mut self.bios, MAX_BIOS_SIZE_WORDS * 2);
+        let load_result = load_file(path, &mut self.bios, MAX_BIOS_SIZE_WORDS);
         if matches!(load_result, ReturnCode::LOAD_OK) {
             self.bios_loaded = true;
         }
@@ -238,7 +273,7 @@ impl State {
     }
 
     pub fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
-        let load_result = load_file(path, &mut self.rom, MAX_ROM_SIZE_WORDS * 2);
+        let load_result = load_file(path, &mut self.rom, MAX_ROM_SIZE_WORDS);
         if matches!(load_result, ReturnCode::LOAD_OK) {
             self.rom_loaded = true;
         }
@@ -271,13 +306,20 @@ fn load_file(path: &str, buffer: &mut [u16], buffer_size: usize) -> ReturnCode {
         return ReturnCode::LOAD_FAIL_OPEN;
     }
     let metadata = metadata_wrapper.unwrap();
-    if metadata.len() > buffer_size.try_into().unwrap() {
+    if metadata.len() > (buffer_size * 2) as u64 {//Ensure it is not too big of a file
+        return ReturnCode::LOAD_FAIL_SIZE;
+    }
+    if (metadata.len() & 0b1) == 0b1 {//Ensure the file is a multiple of 2
         return ReturnCode::LOAD_FAIL_SIZE;
     }
 
+    log!(0, 0, "Loading file \"{}\": {} words | {} bytes", path, metadata.len() / 2, metadata.len());
+
     //Read in its contents into the buffer
-    //file.read(buffer);//FIXME get this to work
+    let mut byte_buffer: Box<[u8]> = vec![0u8; buffer_size * 2].into_boxed_slice();//TODO avoid overhead of zeroing out contents, as well as overhead of needing to copy to buffer instead of reading to it directly
+    file.read(&mut byte_buffer);
+    for i in 0..buffer_size {
+        buffer[i] = ((byte_buffer[(i * 2) + 1] as u16) << 8) | (byte_buffer[i * 2] as u16);
+    }
     return ReturnCode::LOAD_OK;
 }
-
-fn testing123() {}
