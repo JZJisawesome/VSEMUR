@@ -7,7 +7,7 @@
 
 /* Imports */
 
-use crate::logging::log;
+use crate::logging::*;
 use crate::interpreter::State;
 use crate::interpreter::Inst;
 
@@ -33,6 +33,9 @@ use crate::interpreter::Inst;
 
 /* Functions */
 
-pub(super) fn execute(state: &mut State, inst: &Inst) {
+pub(super) fn execute(state: &mut State, inst: &Inst, secondary_group: u8) {
+    debug_assert!(secondary_group < 8);
+    log!(state.t, 2, "Decoding instruction by upper nibble: 0b1110");
+
     unimplemented!();
 }

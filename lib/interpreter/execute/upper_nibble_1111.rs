@@ -33,10 +33,9 @@ use crate::interpreter::Inst;
 
 /* Functions */
 
-pub(super) fn execute(state: &mut State, inst: &Inst) {
-    let secondary_group = (inst.wg[0] >> 6) & 0b111;
+pub(super) fn execute(state: &mut State, inst: &Inst, secondary_group: u8) {
     debug_assert!(secondary_group < 8);
-    log!(state.t, 2, "Secondary group: {:#05b}", secondary_group);
+    log!(state.t, 2, "Decoding instruction by upper nibble: 0b1111");
 
     log_noln!(state.t, 3, "Instruction: ");
     match secondary_group {
@@ -77,7 +76,7 @@ fn secondary_group_000(state: &mut State, inst: &Inst) {
         }
     }
 
-    state.regs.pc += 2;
+    state.regs.pc += 1;
 }
 
 fn secondary_group_001(state: &mut State, inst: &Inst) {
@@ -124,7 +123,7 @@ fn secondary_group_101(state: &mut State, inst: &Inst) {
                 }
 
                 //Next instruction
-                state.regs.pc += 2;
+                state.regs.pc += 1;
             },
             0b001 => {
                 unimplemented!();
@@ -154,21 +153,21 @@ fn secondary_group_101(state: &mut State, inst: &Inst) {
             0b010 => {
                 log_finln!("DIVS");
                 unimplemented!();//TODO
-                state.regs.pc += 2;
+                state.regs.pc += 1;
             },
             0b011 => {
                 log_finln!("DIVQ");
                 unimplemented!();//TODO
-                state.regs.pc += 2;
+                state.regs.pc += 1;
             },
             0b100 => {
                 log_finln!("EXP");
                 unimplemented!();//TODO
-                state.regs.pc += 2;
+                state.regs.pc += 1;
             },
             0b101 => {
                 log_finln!("NOP");
-                state.regs.pc += 2;//Do nothing, just go to the next instruction
+                state.regs.pc += 1;//Do nothing, just go to the next instruction
             },
             _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
                 log_finln!("(invalid)");

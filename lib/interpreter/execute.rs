@@ -41,18 +41,27 @@ pub(super) fn execute(state: &mut State, inst: &Inst) -> bool {
     debug_assert!(state.mem_loaded);
 
     let upper_nibble = inst.wg[0] >> 12;
+    let secondary_group = (inst.wg[0] >> 6) & 0b111;
     debug_assert!(upper_nibble < 16);
-    log!(state.t, 1, "Execute started with upper nibble: {:#06b}", upper_nibble);
+    debug_assert!(secondary_group < 8);
+    log!(state.t, 1, "Execute started on instruction type: {:#06b}xxx{:03b}xxxxxx", upper_nibble, secondary_group);
+
+    if (inst.wg[0] == 0xFFFF) || (inst.wg[0] == 0x0000) {//All zero or all one instructions are not valid
+        log!(state.t, 2, "Instruction: (invalid)");
+        return true;
+    }
 
     match upper_nibble {
         0xF => {
-            upper_nibble_1111::execute(state, inst);
+            upper_nibble_1111::execute(state, inst, secondary_group as u8);
         },
         0xE => {
-            upper_nibble_1110::execute(state, inst);
+            upper_nibble_1110::execute(state, inst, secondary_group as u8);
         },
-        nibble => {
-            other_upper_nibbles::execute(state, inst, nibble as u8);
+        upper_nibble => {
+            //For nibbles other than 0xF and 0xE, it is easier to decode the instruction by looking at the secondary group first
+            //This is what MAME does, so it's what we'll do too
+            other_upper_nibbles::execute(state, inst, upper_nibble as u8, secondary_group as u8);
         },
     }
 
