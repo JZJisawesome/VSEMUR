@@ -18,3 +18,9 @@ name = "vsemur-gui"
 path = "src/gui.rs"
 
 [dependencies]
+
+[profile.release]
+strip = true
+overflow-checks = false
+panic = "abort"
+lto = true

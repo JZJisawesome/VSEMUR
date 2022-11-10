@@ -79,7 +79,17 @@ fn main() {
                     panic!("\x1b[31mError: Tick failed\x1b[0m");
                 }
             }
-            vsemur::interpreter::ReturnCode::TICK_EXIT_NORMAL => {
+            vsemur::interpreter::ReturnCode::TICK_FAIL_FETCH => {//This should never occur
+                if cfg!(debug_assertions) {
+                    panic!("\x1b[31mError: Tick failed (fetch)\x1b[0m");
+                }
+            }
+            vsemur::interpreter::ReturnCode::TICK_FAIL_EXECUTE => {//This should never occur
+                if cfg!(debug_assertions) {
+                    panic!("\x1b[31mError: Tick failed (execute)\x1b[0m");
+                }
+            }
+            vsemur::interpreter::ReturnCode::TICK_EXIT_NORMAL=> {
                 eprintln!("Normal exit. Bye!");
                 return;
             }

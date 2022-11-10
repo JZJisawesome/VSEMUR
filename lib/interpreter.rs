@@ -37,6 +37,7 @@ pub struct State {
     buttons: Buttons,
     bios_loaded: bool,
     rom_loaded: bool,
+    mem_loaded: bool,
     bios: Box<[u8]>,
     rom: Box<[u8]>,
     mem: Box<[u8]>,
@@ -46,6 +47,8 @@ pub struct State {
 pub enum ReturnCode {
     TICK_OK,
     TICK_FAIL,
+    TICK_FAIL_FETCH,
+    TICK_FAIL_EXECUTE,
     TICK_EXIT_NORMAL,
 
     RESET_OK,
@@ -93,11 +96,11 @@ struct SR {
 }
 
 struct Registers {
-    sp: u32,//Only need 22 bits
+    sp: u16,
     r: [u16;4],
     bp: u16,
     sr: SR,
-    pc: u32,//Only need 22 bits
+    pc: u16,
 }
 
 struct Inst {
@@ -171,6 +174,7 @@ impl State {
             */
             bios_loaded: false,
             rom_loaded: false,
+            mem_loaded: false,
             bios: vec![0u8; MAX_BIOS_SIZE_BYTES].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
             rom: vec![0u8; MAX_ROM_SIZE_BYTES].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
             mem: vec![0u8; MEM_SIZE_BYTES].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
@@ -180,18 +184,33 @@ impl State {
 
     pub fn reset(self: &mut Self) -> ReturnCode {
         if !self.bios_loaded || !self.rom_loaded {
-            return ReturnCode::RESET_FAIL
+            return ReturnCode::RESET_FAIL;
         }
 
-        //unimplemented!();//TODO implement
+        //unimplemented!();//TODO implement (load mem with bios and rom, set registers, etc)
+        self.mem_loaded = true;
         return ReturnCode::RESET_OK;
     }
 
     pub fn tick(self: &mut Self) -> ReturnCode {
+        if !self.mem_loaded {
+            return ReturnCode::TICK_FAIL;
+        }
+
+        //Increment the number of ticks
         self.t += 1;
         log!(self.t, 0, "Tick {} begins", self.t);
-        memory::fetch(&self);
-        return ReturnCode::TICK_FAIL;//TODO implement
+
+        //Fetch from memory
+        let mut inst = Inst{wg: [0, 0]};
+        if !memory::fetch(self, &mut inst) {
+            return ReturnCode::TICK_FAIL_FETCH;
+        }
+
+        //Execute the instruction we fetched
+        //execute::execute(self,);
+
+        return ReturnCode::TICK_OK;//TODO implement
     }
 
     pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
@@ -202,12 +221,8 @@ impl State {
         return load_result;
     }
 
-    pub fn load_bios_mem(self: &mut Self, bios_mem: &mut [u8]) -> ReturnCode {
+    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u8]) -> ReturnCode {
         unimplemented!();//TODO implement
-        //TODO assert it is the correct size
-        //Merely copies the bios into a seperate buffer field in memory; does not load it into the emulated system's memory (that is done on reset)
-        //self.bios_loaded = true;
-        //return ReturnCode::LOAD_FAIL;
     }
 
     pub fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
@@ -218,12 +233,13 @@ impl State {
         return load_result;
     }
 
-    pub fn load_rom_mem(self: &mut Self, rom_mem: &mut [u8]) -> ReturnCode {
-        unimplemented!();//TODO implement
-        //TODO assert it is the correct size
-        //Merely copies the rom into a seperate buffer field in memory; does not load it into the emulated system's memory (that is done on reset)
-        //self.rom_loaded = true;
-        //return ReturnCode::LOAD_FAIL;
+    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u8]) -> ReturnCode {
+        if rom_mem.len() > MAX_ROM_SIZE_BYTES {
+            return ReturnCode::LOAD_FAIL_SIZE;
+        }
+        unimplemented!();//TODO rom_mem copy into self.rom
+        self.rom_loaded = true;
+        return ReturnCode::LOAD_OK;
     }
 }
 
@@ -251,3 +267,5 @@ fn load_file(path: &str, buffer: &mut [u8], buffer_size: usize) -> ReturnCode {
     file.read(buffer);
     return ReturnCode::LOAD_OK;
 }
+
+fn testing123() {}
