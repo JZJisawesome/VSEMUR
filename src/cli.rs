@@ -55,25 +55,38 @@ fn main() {
         },
     }
 
+    //Initialize state and load bios and rom
     let mut state: vsemur::interpreter::State = vsemur::interpreter::State::new();
-    if !matches!(state.load_bios_file(&std::env::args().nth(1).unwrap()), vsemur::interpreter::ReturnCode::OK) {
+    if !matches!(state.load_bios_file(&std::env::args().nth(1).unwrap()), vsemur::interpreter::ReturnCode::LOAD_OK) {
         eprintln!("\x1b[31mError: Failed to load bios from disk\x1b[0m\n");
         return;
     }
-    if !matches!(state.load_rom_file(&std::env::args().nth(2).unwrap()), vsemur::interpreter::ReturnCode::OK) {
+    if !matches!(state.load_rom_file(&std::env::args().nth(2).unwrap()), vsemur::interpreter::ReturnCode::LOAD_OK) {
         eprintln!("\x1b[31mError: Failed to load rom from disk\x1b[0m\n");
         return;
     }
 
+    //Power-on reset
+    let reset_result = state.reset();
+    debug_assert!(matches!(reset_result, vsemur::interpreter::ReturnCode::RESET_OK));
+
+    //Main emulation loop
     loop {
         match state.tick() {
-            vsemur::interpreter::ReturnCode::OK => { continue; }
-            vsemur::interpreter::ReturnCode::FAIL => {//This should never occur
-                panic!("\x1b[31mError: Tick failed\x1b[0m");
+            vsemur::interpreter::ReturnCode::TICK_OK => { continue; }
+            vsemur::interpreter::ReturnCode::TICK_FAIL => {//This should never occur
+                if cfg!(debug_assertions) {
+                    panic!("\x1b[31mError: Tick failed\x1b[0m");
+                }
             }
-            vsemur::interpreter::ReturnCode::EXIT_NORMAL => {
+            vsemur::interpreter::ReturnCode::TICK_EXIT_NORMAL => {
                 eprintln!("Normal exit. Bye!");
                 return;
+            }
+            _ => {
+                if cfg!(debug_assertions) {
+                    panic!("\x1b[31mError: Tick returned invalid code\x1b[0m");
+                }
             }
         }
     }

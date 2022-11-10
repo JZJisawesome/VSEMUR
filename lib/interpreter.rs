@@ -4,24 +4,58 @@
  * Emulates a VSmile system one .tick() at a time!
  *
 */
+
+/* Imports */
+
 mod execute;
 mod memory;
 
-
 use crate::logging::log;
 
+use std::fs::File;
+use std::io::Read;
+
+/* Constants */
+
+const MAX_BIOS_SIZE_BYTES: usize = std::mem::size_of::<u16>() * (1 << 22);
+const MAX_ROM_SIZE_BYTES: usize = std::mem::size_of::<u16>() * (1 << 22);
+const MEM_SIZE_BYTES: usize = std::mem::size_of::<u16>() * (1 << 22);
+
+/* Macros */
+
+//TODO (also pub(crate) use the_macro statements here too)
+
+/* Static Variables */
+
+//TODO
+
+/* Types */
 
 pub struct State {
     t: u128,
     regs: Registers,
     buttons: Buttons,
+    bios_loaded: bool,
+    rom_loaded: bool,
+    bios: Box<[u8]>,
+    rom: Box<[u8]>,
+    mem: Box<[u8]>,
     //TODO how to allocate memory in rust w/o pointers?
 }
 
-pub enum ReturnCode {OK, FAIL, EXIT_NORMAL}//TODO error codes/success
+pub enum ReturnCode {
+    TICK_OK,
+    TICK_FAIL,
+    TICK_EXIT_NORMAL,
 
+    RESET_OK,
+    RESET_FAIL,
 
-const MEMORY_SIZE_BYTES: usize = std::mem::size_of::<u16>() * (1 << 22);
+    LOAD_OK,
+    LOAD_FAIL_OPEN,
+    LOAD_FAIL_SIZE,
+
+}//TODO error codes/success
 
 
 struct ControllerButtons {
@@ -65,6 +99,12 @@ struct Registers {
     sr: SR,
     pc: u32,//Only need 22 bits
 }
+
+struct Inst {
+    pub(crate) wg: [u16; 2],
+}
+
+/* Associated Functions and Methods */
 
 //Only functions called by external users are associated functions/methods
 //Everything else goes into other modules and are not associated
@@ -123,47 +163,91 @@ impl State {
                     right: false,
                 },
             },
+            /*
+            //FIXME use this instead once it is stable
+            bios: box [0; MAX_BIOS_SIZE_BYTES],//TODO avoid zero-initializing for speed
+            rom: box [0; MAX_ROM_SIZE_BYTES],//TODO avoid zero-initializing for speed
+            mem: box [0; MEM_SIZE_BYTES],//TODO avoid zero-initializing for speed
+            */
+            bios_loaded: false,
+            rom_loaded: false,
+            bios: vec![0u8; MAX_BIOS_SIZE_BYTES].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
+            rom: vec![0u8; MAX_ROM_SIZE_BYTES].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
+            mem: vec![0u8; MEM_SIZE_BYTES].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
             //TODO other fields
         };
     }
 
     pub fn reset(self: &mut Self) -> ReturnCode {
+        if !self.bios_loaded || !self.rom_loaded {
+            return ReturnCode::RESET_FAIL
+        }
+
         //unimplemented!();//TODO implement
-        return ReturnCode::FAIL;
+        return ReturnCode::RESET_OK;
     }
 
     pub fn tick(self: &mut Self) -> ReturnCode {
         self.t += 1;
         log!(self.t, 0, "Tick {} begins", self.t);
         memory::fetch(&self);
-        return ReturnCode::FAIL;
+        return ReturnCode::TICK_FAIL;//TODO implement
     }
 
     pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
-        //unimplemented!();//TODO implement
-        //Merely copies the bios into a seperate buffer field in memory; does not load it into the emulated system's memory (that is done on reset)
-        return ReturnCode::FAIL;
+        let load_result = load_file(path, &mut self.bios, MAX_BIOS_SIZE_BYTES);
+        if matches!(load_result, ReturnCode::LOAD_OK) {
+            self.bios_loaded = true;
+        }
+        return load_result;
     }
 
-    pub fn load_bios_mem(self: &mut Self/* TODO take pointer to memory or something similar*/) -> ReturnCode {
-        //unimplemented!();//TODO implement
+    pub fn load_bios_mem(self: &mut Self, bios_mem: &mut [u8]) -> ReturnCode {
+        unimplemented!();//TODO implement
+        //TODO assert it is the correct size
         //Merely copies the bios into a seperate buffer field in memory; does not load it into the emulated system's memory (that is done on reset)
-        return ReturnCode::FAIL;
+        //self.bios_loaded = true;
+        //return ReturnCode::LOAD_FAIL;
     }
 
     pub fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
-        //unimplemented!();//TODO implement
-        //Merely copies the bios into a seperate buffer field in memory; does not load it into the emulated system's memory (that is done on reset)
-        return ReturnCode::FAIL;
+        let load_result = load_file(path, &mut self.rom, MAX_ROM_SIZE_BYTES);
+        if matches!(load_result, ReturnCode::LOAD_OK) {
+            self.rom_loaded = true;
+        }
+        return load_result;
     }
 
-    pub fn load_rom_mem(self: &mut Self/* TODO take pointer to memory or something similar*/) -> ReturnCode {
-        //unimplemented!();//TODO implement
-        //Merely copies the bios into a seperate buffer field in memory; does not load it into the emulated system's memory (that is done on reset)
-        return ReturnCode::FAIL;
+    pub fn load_rom_mem(self: &mut Self, rom_mem: &mut [u8]) -> ReturnCode {
+        unimplemented!();//TODO implement
+        //TODO assert it is the correct size
+        //Merely copies the rom into a seperate buffer field in memory; does not load it into the emulated system's memory (that is done on reset)
+        //self.rom_loaded = true;
+        //return ReturnCode::LOAD_FAIL;
     }
 }
 
-struct Inst {
-    pub(crate) wg: [u16; 2],
+/* Functions */
+
+fn load_file(path: &str, buffer: &mut [u8], buffer_size: usize) -> ReturnCode {
+    //Open the file
+    let file_wrapper = File::open(path);
+    if matches!(file_wrapper, Err(_)) {
+        return ReturnCode::LOAD_FAIL_OPEN;
+    }
+    let mut file = file_wrapper.unwrap();
+
+    //Ensure it is not larger than expected
+    let metadata_wrapper = file.metadata();
+    if matches!(metadata_wrapper, Err(_)) {
+        return ReturnCode::LOAD_FAIL_OPEN;
+    }
+    let metadata = metadata_wrapper.unwrap();
+    if metadata.len() > buffer_size.try_into().unwrap() {
+        return ReturnCode::LOAD_FAIL_SIZE;
+    }
+
+    //Read in its contents into the buffer
+    file.read(buffer);
+    return ReturnCode::LOAD_OK;
 }
