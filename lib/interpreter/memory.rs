@@ -40,11 +40,11 @@ pub(super) fn fetch(state: &State, inst: &mut Inst) -> bool {
     debug_assert!(state.regs.pc < ((crate::interpreter::MEM_SIZE_BYTES as u32) - 1));//We need to fetch at least 2 bytes
 
     inst.wg[0] = ((state.mem[(state.regs.pc + 1) as usize] as u16) << 8) | (state.mem[state.regs.pc as usize] as u16);
-    log!(state.t, 2, "Wordgroup 0={:#06X}", inst.wg[0]);
+    log!(state.t, 2, "Wordgroup 0: {:#06X} | {:#018b}", inst.wg[0], inst.wg[0]);
 
     if state.regs.pc < ((crate::interpreter::MEM_SIZE_BYTES as u32) - 3) {//There are another 2 bytes we can fetch (execute will decide if they're useful or not)
         inst.wg[1] = ((state.mem[(state.regs.pc + 3) as usize] as u16) << 8) | (state.mem[(state.regs.pc + 2) as usize] as u16);
-        log!(state.t, 2, "Wordgroup 1={:#06X}", inst.wg[1]);
+        log!(state.t, 2, "Wordgroup 1: {:#06X} | {:#018b}", inst.wg[1], inst.wg[1]);
     }
 
     return true;

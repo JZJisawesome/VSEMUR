@@ -34,6 +34,5 @@ use crate::interpreter::Inst;
 /* Functions */
 
 pub(super) fn execute(state: &mut State, inst: &Inst) {
-
-    state.regs.pc += 2;//TESTING
+    unimplemented!();
 }

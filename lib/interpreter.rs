@@ -20,6 +20,7 @@ use std::io::Read;
 const MAX_BIOS_SIZE_BYTES: usize = std::mem::size_of::<u16>() * (1 << 22);
 const MAX_ROM_SIZE_BYTES: usize = std::mem::size_of::<u16>() * (1 << 22);
 const MEM_SIZE_BYTES: usize = std::mem::size_of::<u16>() * (1 << 22);
+const INT_VECTOR_BASE_ADDR: u32 = 0xFFF5;//Page 47 is useful :)
 
 /* Macros */
 
@@ -85,10 +86,12 @@ struct Buttons {
     p2: ControllerButtons,
 }
 
-struct SR {
+struct SR {//16 bits in all
+    //6 bits each
     ds: u8,
     cs: u8,
 
+    //1 bit each
     n: bool,
     z: bool,
     s: bool,
@@ -186,6 +189,8 @@ impl State {
         if !self.bios_loaded || !self.rom_loaded {
             return ReturnCode::RESET_FAIL;
         }
+
+        //TODO set pc with pointer at FFF7
 
         //TEMPORARY for now just copy the bios to the memory
         self.mem.clone_from(&self.bios);

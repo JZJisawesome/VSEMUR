@@ -42,7 +42,7 @@ pub(super) fn execute(state: &mut State, inst: &Inst) -> bool {
 
     let upper_nibble = inst.wg[0] >> 12;
     debug_assert!(upper_nibble < 16);
-    log!(state.t, 1, "Execute started with upper nibble {:#06b}", upper_nibble);
+    log!(state.t, 1, "Execute started with upper nibble: {:#06b}", upper_nibble);
 
     match upper_nibble {
         0xF => {
