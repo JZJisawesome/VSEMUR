@@ -1,7 +1,7 @@
 
 fn main() {
     //Print version info
-    println!("VSEMU GUI");
+    println!("VSEMUR GUI");
     println!("Powered by: {}\n\n", vsemur::about::version::pretty_string());
 
     //Handle command line arguments

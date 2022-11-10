@@ -19,7 +19,9 @@ pub struct State {
 
 pub enum ReturnCode {OK, FAIL}//TODO error codes/success
 
-pub fn tick(state: &State) -> ReturnCode {
+pub fn tick(state: &mut State) -> ReturnCode {
+    state.num_ticks += 1;
+    logging::log!(state.num_ticks, 0, "Tick {} begins", state.num_ticks);
     //TODO
     return ReturnCode::FAIL;
 }
@@ -71,7 +73,7 @@ struct Registers {
 
 impl State {
     pub fn new(/*todo args*/) -> State {
-        logging::log!(0, 0, "Initialized new vsemur::State");
+        logging::log!(0, 0, "Initialized VSEMUR State");
 
         return State {
             num_ticks: 0,
