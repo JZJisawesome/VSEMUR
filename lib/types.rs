@@ -1,30 +1,13 @@
-
-//TODO other functions
-//TODO support ZSTD-compressed roms
-
-//Thanks https://stackoverflow.com/questions/67307526/is-it-possible-to-get-the-cargo-environment-variable-information-for-one-crate-u
-//pub use vsemur::version;
-pub mod about;
-mod lifetime;
-mod logging;
-
-
+use crate::logging::log;
 
 pub struct State {
-    num_ticks: u128,
+    pub(crate) num_ticks: u128,
     regs: Registers,
     buttons: Buttons,
     //TODO how to allocate memory in rust w/o pointers?
 }
 
-pub enum ReturnCode {OK, FAIL}//TODO error codes/success
-
-pub fn tick(state: &mut State) -> ReturnCode {
-    state.num_ticks += 1;
-    logging::log!(state.num_ticks, 0, "Tick {} begins", state.num_ticks);
-    //TODO
-    return ReturnCode::FAIL;
-}
+pub enum ReturnCode {OK, FAIL, EXIT_NORMAL}//TODO error codes/success
 
 
 
@@ -73,7 +56,7 @@ struct Registers {
 
 impl State {
     pub fn new(/*todo args*/) -> State {
-        logging::log!(0, 0, "Initialized VSEMUR State");
+        log!(0, 0, "Initialized VSEMUR State");
 
         return State {
             num_ticks: 0,
@@ -129,4 +112,8 @@ impl State {
             //TODO other fields
         };
     }
+}
+
+pub(crate) struct Inst {
+    pub(crate) wg: [u16; 2],
 }

@@ -21,9 +21,12 @@ fn main() {
     loop {
         match vsemur::tick(&mut state) {
             vsemur::ReturnCode::OK => { continue; }
-            vsemur::ReturnCode::FAIL => {
-                eprintln!("\x1b[31mError: vsemur::tick() failed\x1b[0m");
-                return;//TODO return error code
+            vsemur::ReturnCode::FAIL => {//This should never occur
+                panic!("\x1b[31mError: Tick failed\x1b[0m");
+            }
+            vsemur::ReturnCode::EXIT_NORMAL => {
+                eprintln!("Normal exit. Bye!");
+                return;
             }
         }
     }

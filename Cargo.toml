@@ -7,7 +7,7 @@ edition = "2021"
 
 [lib]
 name = "vsemur"
-path = "src/vsemur/mod.rs"
+path = "lib/lib.rs"
 
 [[bin]]
 name = "vsemur-cli"
