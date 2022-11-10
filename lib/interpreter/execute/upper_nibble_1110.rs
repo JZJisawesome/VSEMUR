@@ -35,7 +35,6 @@ use crate::interpreter::Inst;
 
 pub(super) fn execute(state: &mut State, inst: &Inst, secondary_group: u8) {
     debug_assert!(secondary_group < 8);
-    log!(state.t, 2, "Decoding instruction by upper nibble: 0b1110");
 
     unimplemented!();
 }

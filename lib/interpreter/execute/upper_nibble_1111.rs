@@ -35,9 +35,8 @@ use crate::interpreter::Inst;
 
 pub(super) fn execute(state: &mut State, inst: &Inst, secondary_group: u8) {
     debug_assert!(secondary_group < 8);
-    log!(state.t, 2, "Decoding instruction by upper nibble: 0b1111");
 
-    log_noln!(state.t, 3, "Instruction: ");
+    log_noln!(state.t, 4, "Instruction type: ");
     match secondary_group {
         0b000 => { secondary_group_000(state, inst); },
         0b001 => { secondary_group_001(state, inst); },
@@ -58,7 +57,7 @@ fn secondary_group_000(state: &mut State, inst: &Inst) {
         //DS becomes the lower 6 bits of the 0th wordgroup
         let new_ds: u8 = (inst.wg[0] & 0b111111) as u8;
         state.regs.sr.ds = new_ds;
-        log_noln!(state.t, 4, "DS becomes {}", new_ds);
+        log_noln!(state.t, 5, "DS becomes {}", new_ds);
     } else {
         //Look at the bits 5:4 to decide what it is
         match (inst.wg[0] >> 4) & 0b11 {
@@ -102,24 +101,27 @@ fn secondary_group_101(state: &mut State, inst: &Inst) {
         match (inst.wg[0] >> 3) & 0b11 {
             0b000 => {
                 log_finln!("INT SET");
-                log!(state.t, 4, "Low bits: {:#04b}", inst.wg[0] & 0b11);
+                log!(state.t, 5, "Low bits: {:#04b}", inst.wg[0] & 0b11);
+                log_noln!(state.t, 6, "Instruction: INT ");
 
                 //Check the IRQ bit
                 if (inst.wg[0] & 0b1) == 0b1 {
                     state.irq_enabled = true;
-                    log!(state.t, 5, "Enabled IRQ");
+                    log_finln!("IRQ");
                 } else {
                     state.irq_enabled = false;
-                    log!(state.t, 5, "Disabled IRQ");
                 }
 
                 //Check the FIQ bit
                 if ((inst.wg[0] >> 1) & 0b1) == 0b1 {
                     state.fiq_enabled = true;
-                    log!(state.t, 5, "Enabled FIQ");
+                    log_finln!("{}FIQ", if state.irq_enabled { ", " } else { "" });
                 } else {
                     state.fiq_enabled = false;
-                    log!(state.t, 5, "Disabled FIQ");
+                }
+
+                if cfg!(debug_assertions) && !state.irq_enabled && !state.fiq_enabled {
+                    log_finln!("OFF");
                 }
 
                 //Next instruction

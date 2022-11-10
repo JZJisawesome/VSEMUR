@@ -36,9 +36,8 @@ use crate::interpreter::Inst;
 pub(super) fn execute(state: &mut State, inst: &Inst, upper_nibble: u8, secondary_group: u8) {
     debug_assert!(upper_nibble < 16);
     debug_assert!(secondary_group < 8);
-    log!(state.t, 2, "Decoding instruction by secondary group: {:#05b}", secondary_group);
 
-    log_noln!(state.t, 3, "Instruction: ");
+    log_noln!(state.t, 4, "Instruction type: ");
     match secondary_group {
         0b000 => { secondary_group_000(state, inst, upper_nibble); },
         0b001 => { secondary_group_001(state, inst, upper_nibble); },
@@ -69,6 +68,21 @@ fn secondary_group_011(state: &mut State, inst: &Inst, upper_nibble: u8) {
 }
 
 fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
+    match (inst.wg[0] >> 4) & 0b11 {
+        0b00 => {
+            log_finln!("IMM16");
+            //TODO create some sort of alu_operation function, passing the two operands, the upper_nibble and the state to modify
+            unimplemented!();
+        },
+        0b01 => {
+            log_finln!("Direct16");
+            unimplemented!();
+        },
+        _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+            log_finln!("(invalid)");
+        },
+    }
+
     unimplemented!();
 }
 
