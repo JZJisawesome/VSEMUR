@@ -1,3 +1,19 @@
+/* logging.rs
+ * By: John Jekel
+ *
+ * Logging facilities for libvsemur
+ *
+*/
+
+/* Imports */
+
+//TODO (include "use" and "mod" here)
+
+/* Constants */
+
+//TODO
+
+/* Macros */
 
 //Thanks https://stackoverflow.com/questions/34373169/how-do-i-create-a-rust-macro-with-optional-parameters-using-repetitions
 macro_rules! log {
@@ -54,3 +70,19 @@ macro_rules! log {
     };
 }
 pub(crate) use log;
+
+/* Static Variables */
+
+//TODO
+
+/* Types */
+
+//TODO
+
+/* Associated Functions and Methods */
+
+//TODO
+
+/* Functions */
+
+//TODO

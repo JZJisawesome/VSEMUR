@@ -1,4 +1,9 @@
-
+/* interpreter.rs: VSEMUR Interpreter
+ * By: John Jekel
+ *
+ * Emulates a VSmile system one .tick() at a time!
+ *
+*/
 mod execute;
 mod memory;
 
