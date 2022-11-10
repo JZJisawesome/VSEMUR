@@ -1,7 +1,13 @@
+
+mod execute;
+mod memory;
+
+
 use crate::logging::log;
 
+
 pub struct State {
-    pub(crate) num_ticks: u128,
+    t: u128,
     regs: Registers,
     buttons: Buttons,
     //TODO how to allocate memory in rust w/o pointers?
@@ -10,6 +16,7 @@ pub struct State {
 pub enum ReturnCode {OK, FAIL, EXIT_NORMAL}//TODO error codes/success
 
 
+const MEMORY_SIZE_BYTES: usize = std::mem::size_of::<u16>() * (1 << 22);
 
 
 struct ControllerButtons {
@@ -54,12 +61,14 @@ struct Registers {
     pc: u32,//Only need 22 bits
 }
 
+//Only functions called by external users are associated functions/methods
+//Everything else goes into other modules and are not associated
 impl State {
-    pub fn new(/*todo args*/) -> State {
+    pub fn new() -> State {
         log!(0, 0, "Initialized VSEMUR State");
 
         return State {
-            num_ticks: 0,
+            t: 0,
             regs: Registers {
                 sp: 0,//TODO this will be different
                 r: [0, 0, 0, 0],
@@ -112,8 +121,44 @@ impl State {
             //TODO other fields
         };
     }
+
+    pub fn reset(self: &mut Self) -> ReturnCode {
+        //unimplemented!();//TODO implement
+        return ReturnCode::FAIL;
+    }
+
+    pub fn tick(self: &mut Self) -> ReturnCode {
+        self.t += 1;
+        log!(self.t, 0, "Tick {} begins", self.t);
+        memory::fetch(&self);
+        return ReturnCode::FAIL;
+    }
+
+    pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
+        //unimplemented!();//TODO implement
+        //Merely copies the bios into a seperate buffer field in memory; does not load it into the emulated system's memory (that is done on reset)
+        return ReturnCode::FAIL;
+    }
+
+    pub fn load_bios_mem(self: &mut Self/* TODO take pointer to memory or something similar*/) -> ReturnCode {
+        //unimplemented!();//TODO implement
+        //Merely copies the bios into a seperate buffer field in memory; does not load it into the emulated system's memory (that is done on reset)
+        return ReturnCode::FAIL;
+    }
+
+    pub fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
+        //unimplemented!();//TODO implement
+        //Merely copies the bios into a seperate buffer field in memory; does not load it into the emulated system's memory (that is done on reset)
+        return ReturnCode::FAIL;
+    }
+
+    pub fn load_rom_mem(self: &mut Self/* TODO take pointer to memory or something similar*/) -> ReturnCode {
+        //unimplemented!();//TODO implement
+        //Merely copies the bios into a seperate buffer field in memory; does not load it into the emulated system's memory (that is done on reset)
+        return ReturnCode::FAIL;
+    }
 }
 
-pub(crate) struct Inst {
+struct Inst {
     pub(crate) wg: [u16; 2],
 }

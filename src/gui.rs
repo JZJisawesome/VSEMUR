@@ -1,19 +1,27 @@
 
 fn main() {
     //Print version info
-    println!("VSEMUR GUI");
-    println!("Powered by: {}\n\n", vsemur::about::version::pretty_string());
+    eprintln!("VSEMUR GUI");
+    eprintln!("Powered by: {}\n", vsemur::about::version::pretty_string());
 
     //Handle command line arguments
-    if std::env::args().len() != 2 {
-        println!("Error: Expected 1 argument (path to rom or --version)\n");
-        return;
-    }
-    let arg: String = std::env::args().nth(1).unwrap();
-    if arg == "--version" {
-        println!("{}", vsemur::about::LICENSE);
-        return
+    let arg: String;
+    match std::env::args().len() {
+        2 => {
+            if std::env::args().nth(1).unwrap() == "--version" {
+                eprintln!("{}", vsemur::about::LICENSE);
+                return;
+            } else {
+                eprintln!("\x1b[31mError: Invalid argument\x1b[0m\n");
+                return;
+            }
+        },
+        3 => {},//Continue to the next part of main()
+        _ => {
+            eprintln!("\x1b[31mError: Expected 1 or 2 arguments (path to bios, path to rom; or --version)\x1b[0m\n");
+            return;
+        },
     }
 
-    println!("Hello, world! (cli)");//TODO other things here
+    eprintln!("Hello, world! (gui)");//TODO other things here
 }

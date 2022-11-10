@@ -53,5 +53,4 @@ macro_rules! log {
         }
     };
 }
-
 pub(crate) use log;
