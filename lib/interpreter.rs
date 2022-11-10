@@ -37,6 +37,9 @@ pub struct State {
     t: u128,
     regs: Registers,
     buttons: Buttons,
+    irq_enabled: bool,
+    fiq_enabled: bool,
+
     bios_loaded: bool,
     rom_loaded: bool,
     mem_loaded: bool,
@@ -171,6 +174,9 @@ impl State {
                     right: false,
                 },
             },
+            irq_enabled: false,
+            fiq_enabled: false,
+
             /*
             //FIXME use this instead once it is stable
             bios: box [0; MAX_BIOS_SIZE_WORDS],//TODO avoid zero-initializing for speed
@@ -196,7 +202,7 @@ impl State {
         log!(self.t, 0, "Resetting emulated system");
 
 
-        log!(self.t, 1, "Reset memory");
+        log!(self.t, 1, "Resetting memory");
 
         //TEMPORARY for now just copy the bios to the memory
         self.mem.clone_from(&self.bios);
@@ -221,6 +227,8 @@ impl State {
             },
             pc: 0,
         };
+        self.irq_enabled = false;
+        self.fiq_enabled = false;
 
         log!(self.t, 2, "Set initial PC");
         debug_assert!(RESET_VECTOR_ADDR < MEM_SIZE_WORDS);
