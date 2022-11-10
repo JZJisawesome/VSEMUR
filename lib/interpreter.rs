@@ -17,9 +17,9 @@ use std::io::Read;
 
 /* Constants */
 
-const MAX_BIOS_SIZE_BYTES: usize = std::mem::size_of::<u16>() * (1 << 22);
-const MAX_ROM_SIZE_BYTES: usize = std::mem::size_of::<u16>() * (1 << 22);
-const MEM_SIZE_BYTES: usize = std::mem::size_of::<u16>() * (1 << 22);
+const MAX_BIOS_SIZE_WORDS: usize = 1 << 22;//FIXME figure out what this actually is
+const MAX_ROM_SIZE_WORDS: usize = 1 << 22;//FIXME figure out what this actually is
+const MEM_SIZE_WORDS: usize = 1 << 22;
 const INT_VECTOR_BASE_ADDR: u32 = 0xFFF5;//Page 47 is useful :)
 
 /* Macros */
@@ -39,9 +39,9 @@ pub struct State {
     bios_loaded: bool,
     rom_loaded: bool,
     mem_loaded: bool,
-    bios: Box<[u8]>,
-    rom: Box<[u8]>,
-    mem: Box<[u8]>,
+    bios: Box<[u16]>,
+    rom: Box<[u16]>,
+    mem: Box<[u16]>,
     //TODO how to allocate memory in rust w/o pointers?
 }
 
@@ -171,16 +171,16 @@ impl State {
             },
             /*
             //FIXME use this instead once it is stable
-            bios: box [0; MAX_BIOS_SIZE_BYTES],//TODO avoid zero-initializing for speed
-            rom: box [0; MAX_ROM_SIZE_BYTES],//TODO avoid zero-initializing for speed
-            mem: box [0; MEM_SIZE_BYTES],//TODO avoid zero-initializing for speed
+            bios: box [0; MAX_BIOS_SIZE_WORDS],//TODO avoid zero-initializing for speed
+            rom: box [0; MAX_ROM_SIZE_WORDS],//TODO avoid zero-initializing for speed
+            mem: box [0; MEM_SIZE_WORDS],//TODO avoid zero-initializing for speed
             */
             bios_loaded: false,
             rom_loaded: false,
             mem_loaded: false,
-            bios: vec![0u8; MAX_BIOS_SIZE_BYTES].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
-            rom: vec![0u8; MAX_ROM_SIZE_BYTES].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
-            mem: vec![0u8; MEM_SIZE_BYTES].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
+            bios: vec![0u16; MAX_BIOS_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
+            rom: vec![0u16; MAX_ROM_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
+            mem: vec![0u16; MEM_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
             //TODO other fields
         };
     }
@@ -226,27 +226,27 @@ impl State {
     }
 
     pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
-        let load_result = load_file(path, &mut self.bios, MAX_BIOS_SIZE_BYTES);
+        let load_result = load_file(path, &mut self.bios, MAX_BIOS_SIZE_WORDS * 2);
         if matches!(load_result, ReturnCode::LOAD_OK) {
             self.bios_loaded = true;
         }
         return load_result;
     }
 
-    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u8]) -> ReturnCode {
+    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> ReturnCode {
         unimplemented!();//TODO implement
     }
 
     pub fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
-        let load_result = load_file(path, &mut self.rom, MAX_ROM_SIZE_BYTES);
+        let load_result = load_file(path, &mut self.rom, MAX_ROM_SIZE_WORDS * 2);
         if matches!(load_result, ReturnCode::LOAD_OK) {
             self.rom_loaded = true;
         }
         return load_result;
     }
 
-    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u8]) -> ReturnCode {
-        if rom_mem.len() > MAX_ROM_SIZE_BYTES {
+    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> ReturnCode {
+        if rom_mem.len() > MAX_ROM_SIZE_WORDS {
             return ReturnCode::LOAD_FAIL_SIZE;
         }
         unimplemented!();//TODO rom_mem copy into self.rom
@@ -257,7 +257,7 @@ impl State {
 
 /* Functions */
 
-fn load_file(path: &str, buffer: &mut [u8], buffer_size: usize) -> ReturnCode {
+fn load_file(path: &str, buffer: &mut [u16], buffer_size: usize) -> ReturnCode {
     //Open the file
     let file_wrapper = File::open(path);
     if matches!(file_wrapper, Err(_)) {
@@ -276,7 +276,7 @@ fn load_file(path: &str, buffer: &mut [u8], buffer_size: usize) -> ReturnCode {
     }
 
     //Read in its contents into the buffer
-    file.read(buffer);
+    //file.read(buffer);//FIXME get this to work
     return ReturnCode::LOAD_OK;
 }
 
