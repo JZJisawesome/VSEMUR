@@ -96,11 +96,11 @@ struct SR {
 }
 
 struct Registers {
-    sp: u16,
+    sp: u32,//Lower 16 bits is the register, upper 6 is the page
     r: [u16;4],
     bp: u16,
     sr: SR,
-    pc: u16,
+    pc: u32,//Lower 16 bits is the register, upper 6 is the page
 }
 
 struct Inst {
@@ -187,6 +187,9 @@ impl State {
             return ReturnCode::RESET_FAIL;
         }
 
+        //TEMPORARY for now just copy the bios to the memory
+        self.mem.clone_from(&self.bios);
+
         //unimplemented!();//TODO implement (load mem with bios and rom, set registers, etc)
         self.mem_loaded = true;
         return ReturnCode::RESET_OK;
@@ -208,9 +211,13 @@ impl State {
         }
 
         //Execute the instruction we fetched
-        //execute::execute(self,);
+        if !execute::execute(self, &inst) {
+            return ReturnCode::TICK_FAIL_EXECUTE;
+        }
 
-        return ReturnCode::TICK_OK;//TODO implement
+        //TODO rendering, sound, etc
+
+        return ReturnCode::TICK_OK;
     }
 
     pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
