@@ -82,13 +82,20 @@ fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 
 fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     log_finln!("CALL");
-    let new_cs: u8 = (inst_word & 0b111111) as u8;
-    let new_pc: u16 = super::get_wg1(cpu, mem);
-    log!(t, 5, "We need to get wordgroup 1: {:#06X} | {:#018b}", new_pc, new_pc);
-    log!(t, 6, "CS page, PC address: {:#04X}_{:04X}", new_cs, new_pc);
 
-    //TODO must also push onto the stack PC and SR before the next step
-    unimplemented!();
+    //Determine the new cs and pc
+    let new_cs: u8 = (inst_word & 0b111111) as u8;
+    let new_pc: u16 = super::get_wg2(cpu, mem);
+    log!(t, 5, "Get word group 2: {:#06X} | {:#018b}", new_pc, new_pc);
+    log!(t, 6, "New CS page, PC address: {:#04X}_{:04X}", new_cs, new_pc);
+
+    //Increment the current PC before pushing to the stack
+    cpu.inc_pc_by(2);
+    log!(t, 5, "Inc. the current CS page, PC address to {:#04X}_{:04X}", cpu.get_cs(), cpu.pc);
+    log!(t, 5, "Push the current PC {:#06X} to the stack @ SP {:#06X}", cpu.pc, cpu.sp);
+    super::push(cpu, mem, cpu.pc);
+    log!(t, 5, "Push the current SR {:#06X} to the stack @ SP {:#06X}", cpu.sr, cpu.sp);
+    super::push(cpu, mem, cpu.sr);
 
     cpu.set_cs(new_cs);
     cpu.pc = new_pc;

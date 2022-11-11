@@ -87,14 +87,14 @@ impl CPUState {
         debug_assert!(self.get_cs() < 0b111111);
         log!(t, 1, "CPU: Fetch started from CS page, PC address: {:#04X}_{:04X}", self.get_cs(), self.pc);
         let inst_word: u16 = mem.read_page_addr(self.get_cs(), self.pc);
-        log!(t, 2, "Instruction Word:             {:#06X} | {:#018b}", inst_word, inst_word);
+        log!(t, 2, "Instruction word group 1:     {:#06X} | {:#018b}", inst_word, inst_word);
 
         //Execute it
         execute::execute(t, self, mem, inst_word);
 
         //TODO handle interrupts, etc
 
-        log!(t, 1, "CPU: CS page, PC is now {:#04X}_{:04X}", self.get_cs(), self.pc);
+        log!(t, 1, "CPU: CS page, PC is now {:#04X}_{:04X} | SP is now {:#04X}", self.get_cs(), self.pc, self.sp);
     }
 
     //Make PC access easier (also handles the CS register if it needs to be incremented too)

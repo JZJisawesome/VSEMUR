@@ -79,16 +79,19 @@ pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
 }
 
 //We may need the word after the current instruction (wordgroup 1)
-fn get_wg1(cpu: &CPUState, mem: &mut MemoryState) -> u16 {
+fn get_wg2(cpu: &CPUState, mem: &mut MemoryState) -> u16 {
     let address_after_pc_tuple = super::inc_page_addr_by(cpu.get_cs(), cpu.pc, 1);
     return mem.read_page_addr(address_after_pc_tuple.0, address_after_pc_tuple.1);
 }
 
-//TODO create push and pop convinence functions
-/*fn push(cpu: &CPUState, mem: &mut MemoryState, num: ???, values: ???) {
-
+fn push(cpu: &mut CPUState, mem: &mut MemoryState, value: u16) {
+    //HACK We assume the SP will always point to page 0, so we never update the ds register here
+    mem.write_page_addr(value, 0x00, cpu.sp);
+    cpu.sp -= 1;
 }
-fn pop(cpu: &CPUState, mem: &mut MemoryState, num: ???) -> ??? {
 
+fn pop(cpu: &mut CPUState, mem: &MemoryState) -> u16 {
+    //HACK We assume the SP will always point to page 0, so we never update the ds register here
+    cpu.sp += 1;
+    return mem.read_page_addr(0x00, cpu.sp);
 }
-*/

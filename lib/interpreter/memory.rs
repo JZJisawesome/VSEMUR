@@ -111,7 +111,7 @@ impl MemoryState {
         return self.bios_loaded && self.rom_loaded && self.mem_loaded;
     }
 
-    //TODO memory access functions
+    //TODO memory access functions (will need to implement the memory map of the processor)
     pub(super) fn read_addr(self: &Self, addr: u32) -> u16 {
         debug_assert!((addr as usize) < MEM_SIZE_WORDS);
         return self.mem[addr as usize];
@@ -120,6 +120,15 @@ impl MemoryState {
     //TODO memory access functions
     pub(super) fn read_page_addr(self: &Self, page: u8, addr: u16) -> u16 {
         return self.read_addr(((page as u32) << 16) | (addr as u32));
+    }
+
+    pub(super) fn write_addr(self: &mut Self, data: u16, addr: u32) {
+        debug_assert!((addr as usize) < MEM_SIZE_WORDS);
+        self.mem[addr as usize] = data;
+    }
+
+    pub(super) fn write_page_addr(self: &mut Self, data: u16, page: u8, addr: u16) {
+        return self.write_addr(data, ((page as u32) << 16) | (addr as u32));
     }
 }
 
