@@ -109,14 +109,14 @@ impl MemoryState {
     }
 
     //TODO memory access functions
-    pub(super) fn read_addr(self: &Self, addr: usize) -> u16 {
-        debug_assert!(addr < MEM_SIZE_WORDS);
-        return self.mem[addr];
+    pub(super) fn read_addr(self: &Self, addr: u32) -> u16 {
+        debug_assert!((addr as usize) < MEM_SIZE_WORDS);
+        return self.mem[addr as usize];
     }
 
     //TODO memory access functions
     pub(super) fn read_page_addr(self: &Self, page: u8, addr: u16) -> u16 {
-        return self.read_addr(((page as usize) << 16) | (addr as usize));
+        return self.read_addr(((page as u32) << 16) | (addr as u32));
     }
 }
 
