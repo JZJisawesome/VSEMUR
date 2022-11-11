@@ -8,8 +8,8 @@
 /* Imports */
 
 use crate::logging::*;
-use crate::interpreter::State;
-use crate::interpreter::Inst;
+use crate::interpreter::memory::MemoryState;
+use super::CPUState;
 
 /* Constants */
 
@@ -33,7 +33,9 @@ use crate::interpreter::Inst;
 
 /* Functions */
 
-pub(super) fn execute(state: &mut State, inst: &Inst, upper_nibble: u8, secondary_group: u8) {
+pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+    let upper_nibble = inst_word >> 12;
+    let secondary_group = (inst_word >> 6) & 0b111;
     debug_assert!(upper_nibble < 16);
     debug_assert!(secondary_group < 8);
 

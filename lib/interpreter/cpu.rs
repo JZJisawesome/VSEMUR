@@ -7,6 +7,8 @@
 
 /* Imports */
 
+mod execute;
+
 use crate::logging::log;
 use super::memory::MemoryState;
 use super::MEM_SIZE_WORDS;
@@ -123,8 +125,9 @@ impl CPUState {
         log!(t, 2, "Instruction Word: {:#06X} | {:#018b}", inst_word, inst_word);
 
         //Execute it
-        //execute::execute(t, self, inst_word, )
-        unimplemented!();//TODO
+        execute::execute(t, self, mem, inst_word);
+
+        //TODO handle interrupts, etc
     }
 }
 
