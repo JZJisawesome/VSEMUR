@@ -59,9 +59,9 @@ pub enum ReturnCode {
 //Everything else goes into other modules and are not associated
 impl State {
     pub fn new() -> State {
-        log!(0, 0, "Initializing VSEMUR State");
+        log!(0, 0, "\x1b[1;97mInitializing VSEMUR State\x1b[0m");
 
-        return State {
+        let new_state = State {
             t: 0,
             cpu: cpu::CPUState::new(),
             render: render::RenderState::new(),
@@ -69,11 +69,15 @@ impl State {
             input: input::InputState::new(),
             mem: memory::MemoryState::new(),
         };
+
+        log!(0, 0, "Initialization complete");
+
+        return new_state
     }
 
     pub fn reset(self: &mut Self) -> ReturnCode {
         self.t = 0;
-        log!(self.t, 0, "Resetting emulated system");
+        log!(self.t, 0, "\x1b[1;97mResetting emulated system\x1b[0m");
 
         //Memory must be reset first since other parts may depend on values in it at reset
         if !self.mem.reset() {//BIOS or ROM wasn't loaded

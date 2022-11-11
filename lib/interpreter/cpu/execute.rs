@@ -44,7 +44,7 @@ pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
     let secondary_group = (inst_word >> 6) & 0b111;
     debug_assert!(upper_nibble < 16);
     debug_assert!(secondary_group < 8);
-    log!(t, 1, "Execute started on instruction of form:  {:#06b}xxx{:03b}xxxxxx", upper_nibble, secondary_group);
+    log!(t, 1, "CPU: Execute instruction of the form:    {:#06b}xxx{:03b}xxxxxx", upper_nibble, secondary_group);
 
     if (inst_word == 0xFFFF) || (inst_word == 0x0000) {//All zero or all one instructions are not valid
         log!(t, 2, "Instruction type: (invalid)");
@@ -76,7 +76,20 @@ pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
         },
     }
 
-    log!(t, 2, "CS page, PC is now {:#04X}_{:04X}", cpu.regs.sr.cs, cpu.regs.pc);
     return true;
 }
 
+//We may need the word after the current instruction (wordgroup 1)
+fn get_wg1(cpu: &CPUState, mem: &mut MemoryState) -> u16 {
+    let address_after_pc_tuple = super::inc_page_addr_by(cpu.get_cs(), cpu.pc, 1);
+    return mem.read_page_addr(address_after_pc_tuple.0, address_after_pc_tuple.1);
+}
+
+//TODO create push and pop convinence functions
+/*fn push(cpu: &CPUState, mem: &mut MemoryState, num: ???, values: ???) {
+
+}
+fn pop(cpu: &CPUState, mem: &mut MemoryState, num: ???) -> ??? {
+
+}
+*/

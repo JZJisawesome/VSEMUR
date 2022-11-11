@@ -52,7 +52,7 @@ struct ControllerButtons {
 
 impl InputState {
     pub(super) fn new() -> InputState {
-        log!(0, 1, "Initializizing Input State");
+        log!(0, 1, "Initializing input state");
 
         return InputState {
             p1: ControllerButtons {

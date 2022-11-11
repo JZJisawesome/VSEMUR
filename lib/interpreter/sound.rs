@@ -31,7 +31,7 @@ pub(super) struct SoundState {
 
 impl SoundState {
     pub(super) fn new() -> SoundState {
-        log!(0, 1, "Initializizing Sound State");
+        log!(0, 1, "Initializing sound state");
 
         //TODO implement
         return SoundState {};
@@ -39,7 +39,7 @@ impl SoundState {
     }
 
     pub(super) fn reset(self: &mut Self) {
-        log!(0, 1, "Resetting sound system");
+        log!(0, 1, "Resetting sound state");
         //unimplemented!();//TODO
     }
 

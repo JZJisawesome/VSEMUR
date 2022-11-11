@@ -52,12 +52,13 @@ pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
 }
 
 fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+    //TODO what about multiply
     //Check if bits 11:9 are all set
     if ((inst_word >> 9) & 0b111) == 0b111 {
         log_finln!("DSI6");
         //DS becomes the lower 6 bits of the instruction word
         let new_ds: u8 = (inst_word & 0b111111) as u8;
-        cpu.regs.sr.ds = new_ds;
+        cpu.set_ds(new_ds);
         log_noln!(t, 5, "DS becomes {}", new_ds);
     } else {
         //Look at the bits 5:4 to decide what it is
@@ -76,20 +77,21 @@ fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         }
     }
 
-    cpu.regs.pc += 1;
+    cpu.inc_pc();
 }
 
 fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     log_finln!("CALL");
     let new_cs: u8 = (inst_word & 0b111111) as u8;
-    //let new_pc: u16 = inst.wg[1];//TODO get next instruction word from memory
-    //log!(t, 5, "CS page, PC address: {:#04X}_{:04X}", new_cs, new_pc);
+    let new_pc: u16 = super::get_wg1(cpu, mem);
+    log!(t, 5, "We need to get wordgroup 1: {:#06X} | {:#018b}", new_pc, new_pc);
+    log!(t, 6, "CS page, PC address: {:#04X}_{:04X}", new_cs, new_pc);
 
     //TODO must also push onto the stack PC and SR before the next step
     unimplemented!();
 
-    cpu.regs.sr.cs = new_cs;
-    //cpu.regs.pc = new_pc;
+    cpu.set_cs(new_cs);
+    cpu.pc = new_pc;
 }
 
 fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
@@ -135,7 +137,7 @@ fn secondary_group_101(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
                 }
 
                 //Next instruction
-                cpu.regs.pc += 1;
+                cpu.inc_pc();
             },
             0b001 => {
                 unimplemented!();
@@ -165,21 +167,21 @@ fn secondary_group_101(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             0b010 => {
                 log_finln!("DIVS");
                 unimplemented!();//TODO
-                cpu.regs.pc += 1;
+                cpu.inc_pc();
             },
             0b011 => {
                 log_finln!("DIVQ");
                 unimplemented!();//TODO
-                cpu.regs.pc += 1;
+                cpu.inc_pc();
             },
             0b100 => {
                 log_finln!("EXP");
                 unimplemented!();//TODO
-                cpu.regs.pc += 1;
+                cpu.inc_pc();
             },
             0b101 => {
                 log_finln!("NOP");
-                cpu.regs.pc += 1;//Do nothing, just go to the next instruction
+                cpu.inc_pc();//Do nothing, just go to the next instruction
             },
             _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
                 log_finln!("(invalid)");

@@ -7,7 +7,7 @@
 
 /* Imports */
 
-//mod execute;
+mod execute;
 
 use crate::logging::log;
 use super::memory::MemoryState;
@@ -46,7 +46,7 @@ struct Inst {
 
 impl CPUState {
     pub(super) fn new() -> CPUState {
-        log!(0, 1, "Initializizing CPU State");
+        log!(0, 1, "Initializing CPU");
         return CPUState {
             sp: 0,
             r: [0, 0, 0, 0],
@@ -85,16 +85,19 @@ impl CPUState {
 
         //Fetch instruction from memory
         debug_assert!(self.get_cs() < 0b111111);
-        log!(t, 1, "Fetch started from CS page, PC address: {:#04X}_{:04X}", self.get_cs(), self.pc);
+        log!(t, 1, "CPU: Fetch started from CS page, PC address: {:#04X}_{:04X}", self.get_cs(), self.pc);
         let inst_word: u16 = mem.read_page_addr(self.get_cs(), self.pc);
-        log!(t, 2, "Instruction Word: {:#06X} | {:#018b}", inst_word, inst_word);
+        log!(t, 2, "Instruction Word:             {:#06X} | {:#018b}", inst_word, inst_word);
 
         //Execute it
-        //execute::execute(t, self, mem, inst_word);
+        execute::execute(t, self, mem, inst_word);
 
         //TODO handle interrupts, etc
+
+        log!(t, 1, "CPU: CS page, PC is now {:#04X}_{:04X}", self.get_cs(), self.pc);
     }
 
+    //Make PC access easier (also handles the CS register if it needs to be incremented too)
     fn inc_pc_by(self: &mut Self, increment_amount: u32) {
         //TODO error checking
         let result: (u8, u16) = inc_page_addr_by(self.get_cs(), self.pc, increment_amount);
@@ -161,6 +164,7 @@ impl CPUState {
 /* Functions */
 
 fn inc_page_addr_by(page: u8, addr: u16, increment_amount: u32) -> (u8, u16) {
+    //TODO error checking
     if addr != 0xFFFF {
         return (page, addr + 1);
     } else {

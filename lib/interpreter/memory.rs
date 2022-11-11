@@ -43,7 +43,7 @@ pub(super) struct MemoryState {
 
 impl MemoryState {
     pub(super) fn new() -> MemoryState {
-        log!(0, 1, "Initializizing Memory State");
+        log!(0, 1, "Initializing memory");
         return MemoryState {
             /*
             //FIXME use this instead once it is stable
@@ -96,9 +96,12 @@ impl MemoryState {
 
         log!(0, 1, "Resetting memory");
 
+        log!(0, 2, "Place loaded bios and rom into the address space");
         //TODO
         //TEMPORARY for now just copy the bios to the memory
         self.mem.clone_from(&self.bios);
+
+        //TODO registers/etc?
 
         self.mem_loaded = true;
         return true;
@@ -143,7 +146,7 @@ fn load_file_u16(path: &str, buffer: &mut [u16], buffer_size: usize) -> ReturnCo
         return ReturnCode::LOAD_FAIL_SIZE;
     }
 
-    log!(0, 0, "Loading file \"{}\": {} words | {} bytes", path, metadata.len() / 2, metadata.len());
+    log!(0, 0, "\x1b[36mLoading file \"{}\": {} words | {} bytes\x1b[0m", path, metadata.len() / 2, metadata.len());
 
     //Read in its contents into the buffer
     let mut byte_buffer: Box<[u8]> = vec![0u8; buffer_size * 2].into_boxed_slice();//TODO avoid overhead of zeroing out contents, as well as overhead of needing to copy to buffer instead of reading to it directly
