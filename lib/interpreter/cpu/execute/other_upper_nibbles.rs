@@ -58,43 +58,7 @@ fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 }
 
 fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
-    let upper_nibble = inst_word >> 12;
-    //TODO refactor this for better code between IMM6 and IMM16 and Direct16/for clairty
-    //TODO we can't just fetch from memory willy-nilly; we need to use memory access functions in case we are writing to/reading from registers/etc
-
-    //IMM6 or branches
-    let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
-
-    if rd_index == 0b111 {
-        log_finln!("Branch");
-        unimplemented!();
-    } else {
-        log_finln!("IMM6");
-
-        //Get imm6
-        let imm6: u8 = (inst_word & 0b111111) as u8;
-        log!(t, 5, "IMM6:  {:#06X} | {:#018b} | unsigned {}", imm6, imm6, imm6);
-
-        //Get Rs
-        let rs_index: u8 = (inst_word & 0b111) as u8;
-        log_noln!(t, 5, "Rs: {:#05b}, aka ", rs_index);
-        let rs: u16 = get_rs(cpu, rs_index);
-        log_finln!(", which contains:");
-        log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", rs, rs, rs);
-
-        //TODO handle store, cmp, jmp, etc
-        log_noln!(t, 5, "Operation: ");
-        let mut result: u16 = alu_operation(upper_nibble as u8, rs, imm6 as u16);//TODO alu operations may need to set flags; will have to pass in the state
-
-        //Set Rd
-        let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
-        log_noln!(t, 5, "Rd: {:#05b}, aka ", rd_index);
-        set_rd(cpu, rd_index, result);
-        log_finln!(", has been set to:");
-        log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
-    }
-
-    cpu.inc_pc();
+    unimplemented!();
 }
 
 fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
@@ -123,21 +87,29 @@ fn secondary_group_011(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 
 fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
-    //TODO refactor this for better code between IMM6 and IMM16 and Direct16/for clairty
-    //TODO we can't just fetch from memory willy-nilly; we need to use memory access functions in case we are writing to/reading from registers/etc
+    //Flags to decide output behaviour (upper_nibble is also used)
+    let direct16: bool;
+    let direct16_w: bool;
 
-    //Direct16 stuffs
-    let mut direct16: bool = false;
-    let mut direct16_w: bool = false;
-    let mut direct16_address: usize = 0;
+    //Operands and result
+    let operand1: u16;
+    let operand2: u16;
+    let result: u16;
 
-    //Get the second operand based on bits 5:3, and also set the direct16 flags
-    let mut operand2: u16;
+    //Determine if this is IMM16 or Direct16, perform type-specific setup
     match (inst_word >> 3) & 0b111 {
         0b001 => {
             log_finln!("IMM16");
+            direct16 = false;
+            direct16_w = false;//This value dosn't matter
 
-            //Get the other operand
+            //Get the operands
+            let rs_index: u8 = (inst_word & 0b111) as u8;
+            log_noln!(t, 5, "Rs is {:#05b}, aka ", rs_index);
+            let operand1: u16 = get_rs(cpu, rs_index);
+            log_finln!(", which contains:");
+            log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand1, operand1, operand1);
+
             operand2 = super::get_wg1(cpu, mem);
             log!(t, 5, "IMM16: {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
         },
@@ -146,11 +118,12 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             direct16 = true;
             direct16_w = ((inst_word >> 3) & 0b1) == 0b1;
 
-            direct16_address = (super::get_wg1(cpu, mem) as usize) | ((cpu.get_ds() as usize) << 16);
-            //operand2 = state.mem[direct16_address];
             unimplemented!();//TODO
-            log!(t, 5, "Address: {:#04X}_{:04X}, which contains", direct16_address >> 16, direct16_address & 0xFFFF);
-            log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
+            //direct16_address = (super::get_wg1(cpu, mem) as usize) | ((cpu.get_ds() as usize) << 16);
+            //operand2 = state.mem[direct16_address];
+            //unimplemented!();//TODO
+            //log!(t, 5, "Address: {:#04X}_{:04X}, which contains", direct16_address >> 16, direct16_address & 0xFFFF);
+            //log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
         },
         _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
@@ -158,32 +131,30 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         },
     }
 
-    //Get Rs
-    let rs_index: u8 = (inst_word & 0b111) as u8;
-    log_noln!(t, 5, "Rs: {:#05b}, aka ", rs_index);
-    let rs: u16 = get_rs(cpu, rs_index);
-    log_finln!(", which contains:");
-    log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", rs, rs, rs);
+    //TODO perform operation
+    //TESTING
+    result = 0;
 
-    //Perform the operation
-    log_noln!(t, 5, "Operation: ");
-    if upper_nibble == 0b1101 {//STORE needs special handling
-        log_finln!("STORE");
-        if direct16 {
-            //state.mem[direct16_address] = rs;//TODO ensure this is the correct behaviour
+    log!(t, 5, "Result:{:#06X} | {:#018b} | unsigned {}", result, result, result);
+
+    //Write to the appropriate (if any) destination
+    match (upper_nibble, direct16, direct16_w) {
+        (0b0100, _, _) | (0b1100, _, _) => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
+        (0b1101, false, _) => {//IMM16 STORE; needs special handling
             unimplemented!();//TODO
-        } else {
+        },
+        (0b1101, true, false) => {//Direct16 STORE (w flag not set); needs special handling
+            unimplemented!();//TODO
+        },
+        (0b1101, true, true) => {//Direct16 STORE (w flag set); needs special handling
+            unimplemented!();//TODO
+        },
+        (_, true, true) => {//Direct16 operation with w flag set writes to memory instead of a register
             unimplemented!();//TODO
         }
-    } else {//Any other alu operation//TODO CMP and TEST also need special handling
-        let mut result: u16 = alu_operation(upper_nibble as u8, rs, operand2);//TODO alu operations may need to set flags; will have to pass in the state
-
-        //Set Rd
-        let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
-        log_noln!(t, 5, "Rd: {:#05b}, aka ", rd_index);
-        set_rd(cpu, rd_index, result);
-        log_finln!(", has been set to:");
-        log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
+        (_, false, _) | (_, true, false) => {//Other cases are much simpler; we just write to Rd
+            unimplemented!();//TODO
+        }
     }
 
     cpu.inc_pc_by(2);//2 instead of 1 since we must skip over the 16 bit immediate

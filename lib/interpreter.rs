@@ -129,3 +129,7 @@ impl State {
 
     //TODO functions to read frambuffer so the user can display it as they wish
 }
+
+/* Functions */
+
+//TODO
