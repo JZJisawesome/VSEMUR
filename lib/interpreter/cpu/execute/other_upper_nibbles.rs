@@ -105,36 +105,61 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     let operand2: u16;
     let result: u16;
 
-    //Determine if this is IMM16 or Direct16, perform type-specific setup
-    match (inst_word >> 3) & 0b111 {
-        0b001 => {
+    //Determine if this is IMM16 or Direct16 and perform type-specific setup
+    match ((inst_word >> 4) & 0b11, (inst_word >> 3) & 0b1) {
+        (0b00, 0b1) => {
             log_finln!("IMM16");
             direct16 = false;
             direct16_w = false;//This value dosn't matter
 
             //Get the operands
+            //Rs is operand1
             let rs_index: u8 = (inst_word & 0b111) as u8;
             log_noln!(t, 5, "Rs is {:#05b}, aka ", rs_index);
             operand1 = get_rs(cpu, rs_index);
             log_finln!(", which contains:");
             log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand1, operand1, operand1);
-
+            //IMM16 is operand2
             operand2 = super::get_wg1(cpu, mem);
             log!(t, 5, "IMM16: {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
         },
-        0b010 | 0b011 => {
-            log_finln!("Direct16");
+        (0b01, direct16_w_bit) => {
+            log_midln!("Direct16");
             direct16 = true;
-            direct16_w = ((inst_word >> 3) & 0b1) == 0b1;
+            direct16_w = direct16_w_bit == 0b1;
+            log_finln!(", with W flag{} set", if direct16_w { "" } else { " not" });
 
-            unimplemented!();//TODO
-            //direct16_address = (super::get_wg1(cpu, mem) as usize) | ((cpu.get_ds() as usize) << 16);
-            //operand2 = state.mem[direct16_address];
-            //unimplemented!();//TODO
-            //log!(t, 5, "Address: {:#04X}_{:04X}, which contains", direct16_address >> 16, direct16_address & 0xFFFF);
-            //log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
+            //Get the operands
+            //Rs is always one of the operands
+            let rs_index: u8 = (inst_word & 0b111) as u8;
+            log_noln!(t, 5, "Rs is {:#05b}, aka ", rs_index);
+            let rs = get_rs(cpu, rs_index);
+            log_finln!(", which contains:");
+            log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", rs, rs, rs);
+
+            if direct16_w {
+                //Rs is operand1
+                operand1 = rs;
+
+                //The word at the memory address is operand2
+                let page = cpu.get_ds();
+                let addr = super::get_wg1(cpu, mem);
+                operand2 = mem.read_page_addr(page, addr);
+                log!(t, 5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", page, addr);
+                log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
+            } else {
+                //Rd is operand1
+                let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
+                log_noln!(t, 5, "Rd is {:#05b}, aka ", rd_index);
+                operand1 = get_rs(cpu, rd_index);
+                log_finln!(", which contains:");
+                log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand1, operand1, operand1);
+
+                //Rs is operand2
+                operand2 = rs;
+            }
         },
-        _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+        (_, _) => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
             return;
         },
