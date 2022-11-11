@@ -71,6 +71,38 @@ macro_rules! log_noln {
 }
 pub(crate) use log_noln;
 
+macro_rules! log_midln {
+    //Case where there are no extra arguments
+    ($string:expr) => {
+        if cfg!(debug_assertions) {
+            eprint!($string);
+        }
+    };
+    //Case where there are extra arguments
+    /*//FIXME this dosn't work (how to pass multiple args to log_noln???)
+    ($string:expr, $($extra_println_args:expr), +) => {
+
+    };
+    */
+    //HACK Support up to three extra arguments (the most we'll likely need; add more if necessary)
+    ($string:expr, $extra_arg_1:expr) => {
+        if cfg!(debug_assertions) {
+            eprint!($string, $extra_arg_1);
+        }
+    };
+    ($string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
+        if cfg!(debug_assertions) {
+            eprint!($string, $extra_arg_1, $extra_arg_2);
+        }
+    };
+    ($string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
+        if cfg!(debug_assertions) {
+            eprint!($string, $extra_arg_1, $extra_arg_2, $extra_arg_3);
+        }
+    };
+}
+pub(crate) use log_midln;
+
 macro_rules! log_finln {
     //Case where there are no arguments at all
     () => {
