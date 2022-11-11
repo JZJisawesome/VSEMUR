@@ -79,7 +79,16 @@ fn secondary_group_000(state: &mut State, inst: &Inst) {
 }
 
 fn secondary_group_001(state: &mut State, inst: &Inst) {
+    log_finln!("CALL");
+    let new_cs: u8 = (inst.wg[0] & 0b111111) as u8;
+    let new_pc: u16 = inst.wg[1];
+    log!(state.t, 5, "CS page, PC address: {:#04X}_{:04X}", new_cs, new_pc);
+
+    //TODO must also push onto the stack PC and SR before the next step
     unimplemented!();
+
+    state.regs.sr.cs = new_cs;
+    state.regs.pc = new_pc;
 }
 
 fn secondary_group_010(state: &mut State, inst: &Inst) {

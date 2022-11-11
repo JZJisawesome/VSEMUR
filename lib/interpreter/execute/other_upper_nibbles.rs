@@ -56,11 +56,61 @@ fn secondary_group_000(state: &mut State, inst: &Inst, upper_nibble: u8) {
 }
 
 fn secondary_group_001(state: &mut State, inst: &Inst, upper_nibble: u8) {
-    unimplemented!();
+    //TODO refactor this for better code between IMM6 and IMM16 and Direct16/for clairty
+    //TODO we can't just fetch from memory willy-nilly; we need to use memory access functions in case we are writing to/reading from registers/etc
+
+    //IMM6 or branches
+    let rd_index: u8 = ((inst.wg[0] >> 9) & 0b111) as u8;
+
+    if rd_index == 0b111 {
+        log_finln!("Branch");
+        unimplemented!();
+    } else {
+        log_finln!("IMM6");
+
+        //Get imm6
+        let imm6: u8 = (inst.wg[0] & 0b111111) as u8;
+        log!(state.t, 5, "IMM6:  {:#06X} | {:#018b} | unsigned {}", imm6, imm6, imm6);
+
+        //Get Rs
+        let rs_index: u8 = (inst.wg[0] & 0b111) as u8;
+        log_noln!(state.t, 5, "Rs: {:#05b}, aka ", rs_index);
+        let rs: u16 = get_rs(state, rs_index);
+        log_finln!(", which contains:");
+        log!(state.t, 6, "     {:#06X} | {:#018b} | unsigned {}", rs, rs, rs);
+
+        //TODO handle store, cmp, jmp, etc
+        log_noln!(state.t, 5, "Operation: ");
+        let mut result: u16 = alu_operation(upper_nibble, rs, imm6 as u16);//TODO alu operations may need to set flags; will have to pass in the state
+
+        //Set Rd
+        let rd_index: u8 = ((inst.wg[0] >> 9) & 0b111) as u8;
+        log_noln!(state.t, 5, "Rd: {:#05b}, aka ", rd_index);
+        set_rd(state, rd_index, result);
+        log_finln!(", has been set to:");
+        log!(state.t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
+    }
+
+    state.regs.pc += 1;
 }
 
 fn secondary_group_010(state: &mut State, inst: &Inst, upper_nibble: u8) {
-    unimplemented!();
+    log_finln!("Stack Operation");
+
+    log_noln!(state.t, 5, "Instruction: ");
+    match upper_nibble {
+        0b1101 => {
+            log_finln!("PUSH");
+            unimplemented!();
+        },
+        0b1001 => {
+            log_finln!("POP");
+            unimplemented!();
+        },
+        _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+            log_finln!("(invalid)");
+        },
+    }
 }
 
 fn secondary_group_011(state: &mut State, inst: &Inst, upper_nibble: u8) {
@@ -68,17 +118,19 @@ fn secondary_group_011(state: &mut State, inst: &Inst, upper_nibble: u8) {
 }
 
 fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
+    //TODO refactor this for better code between IMM6 and IMM16 and Direct16/for clairty
+    //TODO we can't just fetch from memory willy-nilly; we need to use memory access functions in case we are writing to/reading from registers/etc
+
     //Direct16 stuffs
-    let mut direct16: bool;
-    let direct16_w: bool;
-    let direct16_address: usize;
+    let mut direct16: bool = false;
+    let mut direct16_w: bool = false;
+    let mut direct16_address: usize = 0;
 
     //Get the second operand based on bits 5:3, and also set the direct16 flags
     let mut operand2: u16;
     match (inst.wg[0] >> 3) & 0b111 {
         0b001 => {
             log_finln!("IMM16");
-            direct16 = false;
 
             //Get the other operand
             operand2 = inst.wg[1];
@@ -110,9 +162,14 @@ fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
     //Perform the operation
     log_noln!(state.t, 5, "Operation: ");
     if upper_nibble == 0b1101 {//STORE needs special handling
-        unimplemented!();//TODO
+        log_finln!("STORE");
+        if direct16 {
+            state.mem[direct16_address] = rs;//TODO ensure this is the correct behaviour
+        } else {
+            unimplemented!();//TODO
+        }
     } else {//Any other alu operation//TODO CMP and TEST also need special handling
-        let mut result: u16 = alu_operation(upper_nibble, rs, operand2);
+        let mut result: u16 = alu_operation(upper_nibble, rs, operand2);//TODO alu operations may need to set flags; will have to pass in the state
 
         //Set Rd
         let rd_index: u8 = ((inst.wg[0] >> 9) & 0b111) as u8;
@@ -181,7 +238,7 @@ fn set_rd(state: &mut State, rd: u8, value: u16) {
     match rd {
         0b000 => {
             log_midln!("SP");
-            unimplemented!();//TODO should the page be modified or left alone?
+            state.regs.sp = value;
         },
         0b001 => {
             log_midln!("R1");
@@ -209,7 +266,7 @@ fn set_rd(state: &mut State, rd: u8, value: u16) {
         },
         0b111 => {
             log_midln!("PC");
-            unimplemented!();//TODO should the page be modified or left alone?
+            unimplemented!();//TODO what are the implications of the increment after this?
         },
         _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
