@@ -249,7 +249,7 @@ impl State {
 
         //Increment the number of ticks
         self.t += 1;
-        log!(self.t, 0, "Tick {} begins", self.t);
+        log!(self.t, 0, "\x1b[1;97mTick {} begins\x1b[0m", self.t);
 
         //Fetch from memory
         let mut inst = Inst{wg: [0, 0]};

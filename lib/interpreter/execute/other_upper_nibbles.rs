@@ -86,11 +86,10 @@ fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
             //Perform the operation
             log_noln!(state.t, 5, "Operation: ");
             let mut result: u16;
-            result = 0x1234;//TESTING
             match upper_nibble {
                 0b0000 => {
                     log_finln!("ADD");
-                    unimplemented!();//TODO
+                    result = rs + imm16;
                 },
                 0b0001 => {
                     log_finln!("ADC");
@@ -98,7 +97,7 @@ fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
                 },
                 0b0010 => {
                     log_finln!("SUB");
-                    unimplemented!();//TODO
+                    result = rs - imm16;
                 },
                 0b0011 => {
                     log_finln!("SBC");
@@ -110,23 +109,23 @@ fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
                 },
                 0b0110 => {
                     log_finln!("NEG");
-                    unimplemented!();//TODO
+                    result = ((-(imm16 as i32)) & 0xFFFF) as u16;//TODO ensure this is valid, else do ~imm16 + 1
                 },
                 0b1000 => {
                     log_finln!("XOR");
-                    unimplemented!();//TODO
+                    result = rs ^ imm16;
                 },
                 0b1001 => {
                     log_finln!("LOAD");
-                    unimplemented!();//TODO
+                    result = imm16;
                 },
                 0b1010 => {
                     log_finln!("OR");
-                    unimplemented!();//TODO
+                    result = rs | imm16;
                 },
                 0b1011 => {
                     log_finln!("AND");
-                    unimplemented!();//TODO
+                    result = rs & imm16;
                 },
                 0b1100 => {
                     log_finln!("TEST");
@@ -138,6 +137,7 @@ fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
                 },
                 _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
                     log_finln!("(invalid)");
+                    result = 0;
                 },
             }
 
@@ -157,7 +157,7 @@ fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
         },
     }
 
-    unimplemented!();
+    state.regs.pc += 1;
 }
 
 fn secondary_group_101(state: &mut State, inst: &Inst, upper_nibble: u8) {
