@@ -7,8 +7,13 @@
 
 /* Imports */
 
+mod common;
+mod cpu;
+mod input;
 mod execute;
 mod memory;
+mod render;
+mod sound;
 
 use crate::logging::log;
 
@@ -260,7 +265,7 @@ impl State {
 
         //Fetch from memory
         let mut inst = Inst{wg: [0, 0]};
-        if !memory::fetch(self, &mut inst) {
+        if !fetch(self, &mut inst) {
             return ReturnCode::TICK_FAIL_FETCH;
         }
 
@@ -337,4 +342,23 @@ fn load_file(path: &str, buffer: &mut [u16], buffer_size: usize) -> ReturnCode {
         buffer[i] = ((byte_buffer[(i * 2) + 1] as u16) << 8) | (byte_buffer[i * 2] as u16);
     }
     return ReturnCode::LOAD_OK;
+}
+
+fn fetch(state: &State, inst: &mut Inst) -> bool {
+    debug_assert!(state.mem_loaded);
+
+    let fetch_addr: u32 = (state.regs.pc as u32) | ((state.regs.sr.cs as u32) << 16);
+
+    debug_assert!(fetch_addr < ((crate::interpreter::MEM_SIZE_WORDS as u32) - 1));//We need to fetch at least 1 word
+    log!(state.t, 1, "Fetch started from CS page, PC address: {:#04X}_{:04X}", fetch_addr >> 16, fetch_addr & 0xFFFF);
+
+    inst.wg[0] = state.mem[fetch_addr as usize];
+    log!(state.t, 2, "Wordgroup 0: {:#06X} | {:#018b} | unsigned {}", inst.wg[0], inst.wg[0], inst.wg[0]);
+
+    if fetch_addr < ((crate::interpreter::MEM_SIZE_WORDS as u32) - 2) {//There is another word we can fetch (execute will decide if they're useful or not)
+        inst.wg[1] = state.mem[(fetch_addr + 1) as usize];
+        log!(state.t, 2, "Wordgroup 1: {:#06X} | {:#018b} | unsigned {}", inst.wg[1], inst.wg[1], inst.wg[1]);
+    }
+
+    return true;
 }
