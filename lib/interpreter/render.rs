@@ -31,12 +31,20 @@ pub(super) struct RenderState {
 
 impl RenderState {
     pub(super) fn new() -> RenderState {
-        unimplemented!();
+        log!(0, 1, "Initializizing Render State");
+
+        //TODO implement
+        return RenderState {};
+        //unimplemented!();
     }
 
     pub(super) fn reset(self: &mut Self) {
         log!(0, 1, "Resetting render logic");
-        unimplemented!();//TODO
+        //unimplemented!();//TODO
+    }
+
+    pub fn tick(self: &mut Self) {
+        //unimplemented!();//TODO
     }
 }
 

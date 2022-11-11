@@ -11,7 +11,7 @@ use crate::interpreter::cpu;
 use crate::interpreter::render;
 use crate::interpreter::sound;
 use crate::interpreter::input;
-use crate::interpreter::execute;
+//use crate::interpreter::execute;
 use crate::interpreter::memory;
 
 use crate::logging::log;

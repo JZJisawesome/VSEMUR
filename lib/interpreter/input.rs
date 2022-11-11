@@ -24,19 +24,75 @@ use crate::logging::log;
 /* Types */
 
 pub(super) struct InputState {
-    //TODO
+    p1: ControllerButtons,
+    p2: ControllerButtons,
+}
+
+
+struct ControllerButtons {
+    red: bool,
+    yellow: bool,
+    blue: bool,
+    green: bool,
+
+    enter: bool,
+    help: bool,
+    exit: bool,
+    abc: bool,
+
+    up: bool,
+    down: bool,
+    left: bool,
+    right: bool,
+
+    //TODO figure out how to handle the touchpads if they exist
 }
 
 /* Associated Functions and Methods */
 
 impl InputState {
     pub(super) fn new() -> InputState {
-        unimplemented!();
+        log!(0, 1, "Initializizing Input State");
+
+        return InputState {
+            p1: ControllerButtons {
+                red: false,
+                yellow: false,
+                blue: false,
+                green: false,
+
+                enter: false,
+                help: false,
+                exit: false,
+                abc: false,
+
+                up: false,
+                down: false,
+                left: false,
+                right: false,
+            },
+            p2: ControllerButtons {
+                red: false,
+                yellow: false,
+                blue: false,
+                green: false,
+
+                enter: false,
+                help: false,
+                exit: false,
+                abc: false,
+
+                up: false,
+                down: false,
+                left: false,
+                right: false,
+            },
+        };
     }
 
     pub(super) fn reset(self: &mut Self) {
         log!(0, 1, "Resetting input state");
-        unimplemented!();//TODO
+        //unimplemented!();//TODO
     }
 }
 

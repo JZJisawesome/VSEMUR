@@ -8,10 +8,10 @@
 /* Imports */
 
 use crate::logging::log;
-use crate::interpreter::common::ReturnCode;
-use crate::interpreter::common::MAX_BIOS_SIZE_WORDS;
-use crate::interpreter::common::MAX_ROM_SIZE_WORDS;
-use crate::interpreter::common::MEM_SIZE_WORDS;
+use crate::interpreter::ReturnCode;
+use crate::interpreter::MAX_BIOS_SIZE_WORDS;
+use crate::interpreter::MAX_ROM_SIZE_WORDS;
+use crate::interpreter::MEM_SIZE_WORDS;
 
 use std::fs::File;
 use std::io::Read;
@@ -61,7 +61,7 @@ impl MemoryState {
     }
 
     pub(super) fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
-        let load_result = load_file(path, &mut self.bios, MAX_BIOS_SIZE_WORDS);
+        let load_result = load_file_u16(path, &mut self.bios, MAX_BIOS_SIZE_WORDS);
         if matches!(load_result, ReturnCode::LOAD_OK) {
             self.bios_loaded = true;
         }
@@ -73,7 +73,7 @@ impl MemoryState {
     }
 
     pub(super) fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
-        let load_result = load_file(path, &mut self.rom, MAX_ROM_SIZE_WORDS);
+        let load_result = load_file_u16(path, &mut self.rom, MAX_ROM_SIZE_WORDS);
         if matches!(load_result, ReturnCode::LOAD_OK) {
             self.rom_loaded = true;
         }
@@ -91,7 +91,7 @@ impl MemoryState {
 
     pub(super) fn reset(self: &mut Self) -> bool {
         if !self.bios_loaded || !self.rom_loaded {
-            return false
+            return false;
         }
 
         log!(0, 1, "Resetting memory");
@@ -104,16 +104,25 @@ impl MemoryState {
         return true;
     }
 
-    pub(super) fn ready(self: &mut Self) -> bool {
+    pub(super) fn ready(self: &Self) -> bool {
         return self.bios_loaded && self.rom_loaded && self.mem_loaded;
     }
 
     //TODO memory access functions
+    pub(super) fn read_addr(self: &Self, addr: usize) -> u16 {
+        debug_assert!(addr < MEM_SIZE_WORDS);
+        return self.mem[addr];
+    }
+
+    //TODO memory access functions
+    pub(super) fn read_page_addr(self: &Self, page: u8, addr: u16) -> u16 {
+        return self.read_addr(((page as usize) << 16) | (addr as usize));
+    }
 }
 
 /* Functions */
 
-fn load_file(path: &str, buffer: &mut [u16], buffer_size: usize) -> ReturnCode {
+fn load_file_u16(path: &str, buffer: &mut [u16], buffer_size: usize) -> ReturnCode {
     //Open the file
     let file_wrapper = File::open(path);
     if matches!(file_wrapper, Err(_)) {

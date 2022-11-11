@@ -31,12 +31,20 @@ pub(super) struct SoundState {
 
 impl SoundState {
     pub(super) fn new() -> SoundState {
-        unimplemented!();
+        log!(0, 1, "Initializizing Sound State");
+
+        //TODO implement
+        return SoundState {};
+        //unimplemented!();
     }
 
     pub(super) fn reset(self: &mut Self) {
         log!(0, 1, "Resetting sound system");
-        unimplemented!();//TODO
+        //unimplemented!();//TODO
+    }
+
+    pub fn tick(self: &mut Self) {
+        //unimplemented!();//TODO
     }
 }
 
