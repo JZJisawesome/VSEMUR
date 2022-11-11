@@ -58,6 +58,8 @@ fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 }
 
 fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+    let upper_nibble = inst_word >> 12;
+
     //IMM6 or branches
     let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
 
@@ -66,7 +68,34 @@ fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         unimplemented!();
     } else {
         log_finln!("IMM6");
-        unimplemented!();
+
+        //Get Rd
+        log_noln!(t, 5, "Rd is {:#05b}, aka ", rd_index);
+        let rd: u16 = get_rs(cpu, rd_index);
+        log_finln!(", which contains:");
+        log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", rd, rd, rd);
+
+        //Get imm6
+        let imm6: u8 = (inst_word & 0b111111) as u8;
+        log!(t, 5, "IMM6:  {:#06X} | {:#018b} | unsigned {}", imm6, imm6, imm6);
+
+        let result: u16 = alu_operation(cpu, upper_nibble as u8, rd, imm6 as u16);
+
+        //Write to the appropriate (if any) destination
+        match upper_nibble {
+            0b0100 | 0b1100 => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
+            0b1101 => {//IMM6 STORE is invalid (we can't store to an immediate)
+                log!(t, 5, "This isn't valid: we can't store a result to an immediate!");
+            },
+           _ => {//Other cases are much simpler; we just write to Rd
+                log_noln!(t, 5, "Rd is {:#05b}, aka ", rd_index);
+                set_rd(cpu, rd_index, result);
+                log_finln!(", and has been set to:");
+                log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
+            }
+        }
+
+        cpu.inc_pc();
     }
 }
 
@@ -100,10 +129,9 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     let direct16: bool;
     let direct16_w: bool;
 
-    //Operands and result
+    //Operands
     let operand1: u16;
     let operand2: u16;
-    let result: u16;
 
     //Determine if this is IMM16 or Direct16 and perform type-specific setup
     match ((inst_word >> 4) & 0b11, (inst_word >> 3) & 0b1) {
@@ -167,13 +195,13 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 
     //Perform the operation
     log_noln!(t, 5, "Operation: ");
-    result = alu_operation(cpu, upper_nibble as u8, operand1, operand2);
+    let result: u16 = alu_operation(cpu, upper_nibble as u8, operand1, operand2);
     log!(t, 5, "Result:{:#06X} | {:#018b} | unsigned {}", result, result, result);
 
     //Write to the appropriate (if any) destination
     match (upper_nibble, direct16, direct16_w) {
         (0b0100, _, _) | (0b1100, _, _) => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
-        (0b1101, false, _) => {//IMM16 STORE should never occur (we can't store to an immediate)
+        (0b1101, false, _) => {//IMM16 STORE is invalid (we can't store to an immediate)
             log!(t, 5, "This isn't valid: we can't store a result to an immediate!");
         },
         (0b1101, true, true) => {//Direct16 STORE + w flag set stores the result (which is Rd) to Rs

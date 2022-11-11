@@ -20,7 +20,7 @@ macro_rules! log_noln {
     //Case where there are no extra arguments
     ($tick_num:expr, $indent:expr, $string:expr) => {
         if cfg!(debug_assertions) {
-            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[34m>\x1b[0m ", $tick_num);
+            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", $tick_num);
             for _ in 0..$indent {
                 eprint!("  ");
             }
@@ -31,7 +31,7 @@ macro_rules! log_noln {
     /*//FIXME this dosn't work (how to pass multiple args to eprintln???)
     ($tick_num:expr, $indent:expr, $string:expr, $($extra_println_args:expr), +) => {
         if cfg!(debug_assertions) {
-            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[34m>\x1b[0m ", $tick_num);
+            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", $tick_num);
             for _ in 0..$indent {
                 eprint!("  ");
             }
@@ -43,7 +43,7 @@ macro_rules! log_noln {
     //HACK Support up to three extra arguments (the most we'll likely need; add more if necessary)
     ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr) => {
         if cfg!(debug_assertions) {
-            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[34m>\x1b[0m ", $tick_num);
+            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", $tick_num);
             for _ in 0..$indent {
                 eprint!("  ");
             }
@@ -52,7 +52,7 @@ macro_rules! log_noln {
     };
     ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
         if cfg!(debug_assertions) {
-            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[34m>\x1b[0m ", $tick_num);
+            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", $tick_num);
             for _ in 0..$indent {
                 eprint!("  ");
             }
@@ -61,7 +61,7 @@ macro_rules! log_noln {
     };
     ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
         if cfg!(debug_assertions) {
-            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[34m>\x1b[0m ", $tick_num);
+            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", $tick_num);
             for _ in 0..$indent {
                 eprint!("  ");
             }
