@@ -89,7 +89,7 @@ fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             0b1101 => {//IMM6 STORE is invalid (we can't store to an immediate)
                 log!(t, 5, "This isn't valid: we can't store a result to an immediate!");
             },
-           _ => {//Other cases are much simpler; we just write to Rd
+            _ => {//Other cases are much simpler; we just write to Rd
                 log_noln!(t, 5, "Rd is {:#05b}, aka ", rd_index);
                 set_reg_by_index(cpu, rd_index, result);
                 log_finln!(", and has been set to:");
@@ -167,19 +167,7 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             log_finln!(", which contains:");
             log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", rs, rs, rs);
 
-            //TODO this seems to cause the stack pointer to be set incorrectly; figure out the actual proper behaviour here
-            /*
             if direct16_w {
-                //Rs is operand1
-                operand1 = rs;
-
-                //The word at the memory address is operand2
-                let page = cpu.get_ds();
-                let addr = super::get_wg2(cpu, mem);
-                operand2 = mem.read_page_addr(page, addr);
-                log!(t, 5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", page, addr);
-                log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
-            } else {
                 //Rd is operand1
                 let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
                 log_noln!(t, 5, "Rd is {:#05b}, aka ", rd_index);
@@ -189,15 +177,17 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 
                 //Rs is operand2
                 operand2 = rs;
+            } else {
+                //Rs is operand1
+                operand1 = rs;
+
+                //The word at the memory address is operand2
+                let page = cpu.get_ds();
+                let addr = super::get_wg2(cpu, mem);
+                operand2 = mem.read_page_addr(page, addr);
+                log!(t, 5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", page, addr);
+                log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
             }
-            */
-            //TEMPORARY old implementation (FIXME get rid of this and verify/fix the above)
-            operand1 = rs;//operand1 is always RS
-            let page = cpu.get_ds();
-            let addr = super::get_wg2(cpu, mem);
-            operand2 = mem.read_page_addr(page, addr);//operand2 is always the data in memory
-            log!(t, 5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", page, addr);
-            log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
         },
         (_, _) => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
