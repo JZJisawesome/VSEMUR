@@ -9,7 +9,7 @@
 
 mod upper_nibble_1111;
 mod upper_nibble_1110;
-//mod other_upper_nibbles;
+mod other_upper_nibbles;
 
 use crate::logging::log;
 use crate::interpreter::memory::MemoryState;
@@ -71,7 +71,7 @@ pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
             log!(t, 3, "Nope! Split opcodes by secondary group        ^^^");
             log!(t, 3, "using upper nibble followed by         ^^^^");
             log!(t, 3, "other bits to narrow down instruction      ^^^   ^^^^^^");
-            //other_upper_nibbles::execute(state, inst, upper_nibble as u8, secondary_group as u8);
+            other_upper_nibbles::execute(t, cpu, mem, inst_word);
             unimplemented!();
         },
     }
