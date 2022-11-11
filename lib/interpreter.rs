@@ -103,11 +103,11 @@ struct SR {//16 bits in all
 }
 
 struct Registers {
-    sp: u32,//Lower 16 bits is the register, upper 6 is the page
+    sp: u16,
     r: [u16;4],
     bp: u16,
     sr: SR,
-    pc: u32,//Lower 16 bits is the register, upper 6 is the page
+    pc: u16,
 }
 
 struct Inst {
@@ -230,11 +230,13 @@ impl State {
         self.irq_enabled = false;
         self.fiq_enabled = false;
 
-        log!(self.t, 2, "Set initial PC");
+        log!(self.t, 2, "Set initial CS page and PC");
         debug_assert!(RESET_VECTOR_ADDR < MEM_SIZE_WORDS);
         log!(self.t, 3, "Read reset vector at address {:#04X}_{:04X}", RESET_VECTOR_ADDR >> 16, RESET_VECTOR_ADDR & 0xFFFF);
-        self.regs.pc = self.mem[RESET_VECTOR_ADDR] as u32;//FIXME what about the page?
-        log!(self.t, 3, "Initial PC is {:#04X}_{:04X}", self.regs.pc >> 16, self.regs.pc & 0xFFFF);
+        self.regs.pc = self.mem[RESET_VECTOR_ADDR];
+        log!(self.t, 3, "Initial CS page, PC is {:#04X}_{:04X}", self.regs.sr.cs, self.regs.pc);
+
+        //TODO do we need to initialize the cs or ds?
 
 
         //unimplemented!();//TODO implement (load mem with bios and rom, set registers, etc)
@@ -250,6 +252,11 @@ impl State {
         //Increment the number of ticks
         self.t += 1;
         log!(self.t, 0, "\x1b[1;97mTick {} begins\x1b[0m", self.t);
+
+
+        //FIXME
+        //FIXME
+        //Create member function to access the PC to support auto increment WITH paging correctly
 
         //Fetch from memory
         let mut inst = Inst{wg: [0, 0]};

@@ -75,7 +75,7 @@ pub(super) fn execute(state: &mut State, inst: &Inst) -> bool {
         },
     }
 
-    log!(state.t, 2, "PC is now {:#04X}_{:04X}", state.regs.pc >> 16, state.regs.pc & 0xFFFF);
+    log!(state.t, 2, "CS page, PC is now {:#04X}_{:04X}", state.regs.sr.cs, state.regs.pc);
     return true;
 }
 

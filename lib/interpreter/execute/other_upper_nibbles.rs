@@ -68,11 +68,17 @@ fn secondary_group_011(state: &mut State, inst: &Inst, upper_nibble: u8) {
 }
 
 fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
-    //Get the second operand based on bits 5:3
+    //Direct16 stuffs
+    let mut direct16: bool;
+    let direct16_w: bool;
+    let direct16_address: usize;
+
+    //Get the second operand based on bits 5:3, and also set the direct16 flags
     let mut operand2: u16;
     match (inst.wg[0] >> 3) & 0b111 {
         0b001 => {
             log_finln!("IMM16");
+            direct16 = false;
 
             //Get the other operand
             operand2 = inst.wg[1];
@@ -80,14 +86,17 @@ fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
         },
         0b010 | 0b011 => {
             log_finln!("Direct16");
+            direct16 = true;
+            direct16_w = ((inst.wg[0] >> 3) & 0b1) == 0b1;
 
-            //TODO what about the page?
-            operand2 = state.mem[inst.wg[1] as usize];
-            log!(state.t, 5, "Address: 0x??_{:04X}, which contains", inst.wg[1]);
+            direct16_address = (inst.wg[1] as usize) | ((state.regs.sr.ds as usize) << 16);
+            operand2 = state.mem[direct16_address];
+            log!(state.t, 5, "Address: {:#04X}_{:04X}, which contains", direct16_address >> 16, direct16_address & 0xFFFF);
+            log!(state.t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
         },
         _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
-            operand2 = 0;
+            return;
         },
     }
 
@@ -100,68 +109,18 @@ fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
 
     //Perform the operation
     log_noln!(state.t, 5, "Operation: ");
-    let mut result: u16;
-    match upper_nibble {
-        0b0000 => {
-            log_finln!("ADD");
-            result = rs + operand2;
-        },
-        0b0001 => {
-            log_finln!("ADC");
-            unimplemented!();//TODO
-        },
-        0b0010 => {
-            log_finln!("SUB");
-            result = rs - operand2;
-        },
-        0b0011 => {
-            log_finln!("SBC");
-            unimplemented!();//TODO
-        },
-        0b0100 => {
-            log_finln!("CMP");
-            unimplemented!();//TODO
-        },
-        0b0110 => {
-            log_finln!("NEG");
-            result = ((-(operand2 as i32)) & 0xFFFF) as u16;//TODO ensure this is valid, else do ~operand2 + 1
-        },
-        0b1000 => {
-            log_finln!("XOR");
-            result = rs ^ operand2;
-        },
-        0b1001 => {
-            log_finln!("LOAD");
-            result = operand2;
-        },
-        0b1010 => {
-            log_finln!("OR");
-            result = rs | operand2;
-        },
-        0b1011 => {
-            log_finln!("AND");
-            result = rs & operand2;
-        },
-        0b1100 => {
-            log_finln!("TEST");
-            unimplemented!();//TODO
-        },
-        0b1101 => {
-            log_finln!("STORE");
-            unimplemented!();//TODO
-        },
-        _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
-            log_finln!("(invalid)");
-            result = 0;
-        },
-    }
+    if upper_nibble == 0b1101 {//STORE needs special handling
+        unimplemented!();//TODO
+    } else {//Any other alu operation//TODO CMP and TEST also need special handling
+        let mut result: u16 = alu_operation(upper_nibble, rs, operand2);
 
-    //Set Rd
-    let rd_index: u8 = ((inst.wg[0] >> 9) & 0b111) as u8;
-    log_noln!(state.t, 5, "Rd: {:#05b}, aka ", rd_index);
-    set_rd(state, rd_index, result);
-    log_finln!(", has been set to:");
-    log!(state.t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
+        //Set Rd
+        let rd_index: u8 = ((inst.wg[0] >> 9) & 0b111) as u8;
+        log_noln!(state.t, 5, "Rd: {:#05b}, aka ", rd_index);
+        set_rd(state, rd_index, result);
+        log_finln!(", has been set to:");
+        log!(state.t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
+    }
 
     state.regs.pc += 2;//2 instead of 1 since we must skip over the 16 bit immediate
 }
@@ -171,8 +130,6 @@ fn secondary_group_101(state: &mut State, inst: &Inst, upper_nibble: u8) {
 }
 
 fn secondary_group_110(state: &mut State, inst: &Inst, upper_nibble: u8) {
-
-
     unimplemented!();
 }
 
@@ -255,5 +212,61 @@ fn set_rd(state: &mut State, rd: u8, value: u16) {
             unimplemented!();//TODO should the page be modified or left alone?
         },
         _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
+    }
+}
+fn alu_operation(upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {
+    match upper_nibble {
+        0b0000 => {
+            log_finln!("ADD");
+            return operand1 + operand2;
+        },
+        0b0001 => {
+            log_finln!("ADC");
+            unimplemented!();//TODO
+        },
+        0b0010 => {
+            log_finln!("SUB");
+            return operand1 - operand2;
+        },
+        0b0011 => {
+            log_finln!("SBC");
+            unimplemented!();//TODO
+        },
+        0b0100 => {
+            log_finln!("CMP");
+            unimplemented!();//TODO
+        },
+        0b0110 => {
+            log_finln!("NEG");
+            return ((-(operand2 as i32)) & 0xFFFF) as u16;//TODO ensure this is valid, else do ~operand2 + 1
+        },
+        0b1000 => {
+            log_finln!("XOR");
+            return operand1 ^ operand2;
+        },
+        0b1001 => {
+            log_finln!("LOAD");
+            return operand2;
+        },
+        0b1010 => {
+            log_finln!("OR");
+            return operand1 | operand2;
+        },
+        0b1011 => {
+            log_finln!("AND");
+            return operand1 & operand2;
+        },
+        0b1100 => {
+            log_finln!("TEST");
+            unimplemented!();//TODO
+        },
+        0b1101 => {
+            log_finln!("STORE");
+            unimplemented!();//TODO
+        },
+        _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+            log_finln!("(invalid)");
+            return 0;
+        },
     }
 }
