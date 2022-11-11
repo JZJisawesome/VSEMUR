@@ -68,96 +68,102 @@ fn secondary_group_011(state: &mut State, inst: &Inst, upper_nibble: u8) {
 }
 
 fn secondary_group_100(state: &mut State, inst: &Inst, upper_nibble: u8) {
+    //Get the second operand based on bits 5:3
+    let mut operand2: u16;
     match (inst.wg[0] >> 3) & 0b111 {
         0b001 => {
             log_finln!("IMM16");
 
-            //Get Rs
-            let rs_index: u8 = (inst.wg[0] & 0b111) as u8;
-            log_noln!(state.t, 5, "Rs: {:#05b}, aka ", rs_index);
-            let rs: u16 = get_rs(state, rs_index);
-            log_finln!(", which contains:");
-            log!(state.t, 6, "     {:#06X} | {:#018b} | unsigned {}", rs, rs, rs);
-
             //Get the other operand
-            let imm16: u16 = inst.wg[1];
-            log_noln!(state.t, 5, "IMM16: {:#06X} | {:#018b} | unsigned {}", imm16, imm16, imm16);
-
-            //Perform the operation
-            log_noln!(state.t, 5, "Operation: ");
-            let mut result: u16;
-            match upper_nibble {
-                0b0000 => {
-                    log_finln!("ADD");
-                    result = rs + imm16;
-                },
-                0b0001 => {
-                    log_finln!("ADC");
-                    unimplemented!();//TODO
-                },
-                0b0010 => {
-                    log_finln!("SUB");
-                    result = rs - imm16;
-                },
-                0b0011 => {
-                    log_finln!("SBC");
-                    unimplemented!();//TODO
-                },
-                0b0100 => {
-                    log_finln!("CMP");
-                    unimplemented!();//TODO
-                },
-                0b0110 => {
-                    log_finln!("NEG");
-                    result = ((-(imm16 as i32)) & 0xFFFF) as u16;//TODO ensure this is valid, else do ~imm16 + 1
-                },
-                0b1000 => {
-                    log_finln!("XOR");
-                    result = rs ^ imm16;
-                },
-                0b1001 => {
-                    log_finln!("LOAD");
-                    result = imm16;
-                },
-                0b1010 => {
-                    log_finln!("OR");
-                    result = rs | imm16;
-                },
-                0b1011 => {
-                    log_finln!("AND");
-                    result = rs & imm16;
-                },
-                0b1100 => {
-                    log_finln!("TEST");
-                    unimplemented!();//TODO
-                },
-                0b1101 => {
-                    log_finln!("STORE");
-                    unimplemented!();//TODO
-                },
-                _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
-                    log_finln!("(invalid)");
-                    result = 0;
-                },
-            }
-
-            //Set Rd
-            let rd_index: u8 = ((inst.wg[0] >> 9) & 0b111) as u8;
-            log_noln!(state.t, 5, "Rd: {:#05b}, aka ", rd_index);
-            set_rd(state, rd_index, result);
-            log_finln!(", has been set to:");
-            log!(state.t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
+            operand2 = inst.wg[1];
+            log!(state.t, 5, "IMM16: {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
         },
         0b010 | 0b011 => {
             log_finln!("Direct16");
-            unimplemented!();
+
+            //TODO what about the page?
+            operand2 = state.mem[inst.wg[1] as usize];
+            log!(state.t, 5, "Address: 0x??_{:04X}, which contains", inst.wg[1]);
         },
         _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
+            operand2 = 0;
         },
     }
 
-    state.regs.pc += 1;
+    //Get Rs
+    let rs_index: u8 = (inst.wg[0] & 0b111) as u8;
+    log_noln!(state.t, 5, "Rs: {:#05b}, aka ", rs_index);
+    let rs: u16 = get_rs(state, rs_index);
+    log_finln!(", which contains:");
+    log!(state.t, 6, "     {:#06X} | {:#018b} | unsigned {}", rs, rs, rs);
+
+    //Perform the operation
+    log_noln!(state.t, 5, "Operation: ");
+    let mut result: u16;
+    match upper_nibble {
+        0b0000 => {
+            log_finln!("ADD");
+            result = rs + operand2;
+        },
+        0b0001 => {
+            log_finln!("ADC");
+            unimplemented!();//TODO
+        },
+        0b0010 => {
+            log_finln!("SUB");
+            result = rs - operand2;
+        },
+        0b0011 => {
+            log_finln!("SBC");
+            unimplemented!();//TODO
+        },
+        0b0100 => {
+            log_finln!("CMP");
+            unimplemented!();//TODO
+        },
+        0b0110 => {
+            log_finln!("NEG");
+            result = ((-(operand2 as i32)) & 0xFFFF) as u16;//TODO ensure this is valid, else do ~operand2 + 1
+        },
+        0b1000 => {
+            log_finln!("XOR");
+            result = rs ^ operand2;
+        },
+        0b1001 => {
+            log_finln!("LOAD");
+            result = operand2;
+        },
+        0b1010 => {
+            log_finln!("OR");
+            result = rs | operand2;
+        },
+        0b1011 => {
+            log_finln!("AND");
+            result = rs & operand2;
+        },
+        0b1100 => {
+            log_finln!("TEST");
+            unimplemented!();//TODO
+        },
+        0b1101 => {
+            log_finln!("STORE");
+            unimplemented!();//TODO
+        },
+        _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+            log_finln!("(invalid)");
+            result = 0;
+        },
+    }
+
+    //Set Rd
+    let rd_index: u8 = ((inst.wg[0] >> 9) & 0b111) as u8;
+    log_noln!(state.t, 5, "Rd: {:#05b}, aka ", rd_index);
+    set_rd(state, rd_index, result);
+    log_finln!(", has been set to:");
+    log!(state.t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
+
+    state.regs.pc += 2;//2 instead of 1 since we must skip over the 16 bit immediate
 }
 
 fn secondary_group_101(state: &mut State, inst: &Inst, upper_nibble: u8) {
@@ -165,6 +171,8 @@ fn secondary_group_101(state: &mut State, inst: &Inst, upper_nibble: u8) {
 }
 
 fn secondary_group_110(state: &mut State, inst: &Inst, upper_nibble: u8) {
+
+
     unimplemented!();
 }
 
