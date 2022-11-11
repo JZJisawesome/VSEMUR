@@ -58,7 +58,16 @@ fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 }
 
 fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
-    unimplemented!();
+    //IMM6 or branches
+    let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
+
+    if rd_index == 0b111 {
+        log_finln!("Branch");
+        unimplemented!();
+    } else {
+        log_finln!("IMM6");
+        unimplemented!();
+    }
 }
 
 fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
@@ -106,7 +115,7 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             //Get the operands
             let rs_index: u8 = (inst_word & 0b111) as u8;
             log_noln!(t, 5, "Rs is {:#05b}, aka ", rs_index);
-            let operand1: u16 = get_rs(cpu, rs_index);
+            operand1 = get_rs(cpu, rs_index);
             log_finln!(", which contains:");
             log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand1, operand1, operand1);
 
@@ -131,29 +140,34 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         },
     }
 
-    //TODO perform operation
-    //TESTING
-    result = 0;
-
+    //Perform the operation
+    log_noln!(t, 5, "Operation: ");
+    result = alu_operation(cpu, upper_nibble as u8, operand1, operand2);
     log!(t, 5, "Result:{:#06X} | {:#018b} | unsigned {}", result, result, result);
 
     //Write to the appropriate (if any) destination
     match (upper_nibble, direct16, direct16_w) {
         (0b0100, _, _) | (0b1100, _, _) => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
-        (0b1101, false, _) => {//IMM16 STORE; needs special handling
-            unimplemented!();//TODO
+        (0b1101, false, _) => {//IMM16 STORE should never occur (we can't store to an immediate)
+            log!(t, 5, "This isn't valid: we can't store a result to an immediate!");
         },
-        (0b1101, true, false) => {//Direct16 STORE (w flag not set); needs special handling
-            unimplemented!();//TODO
+        (0b1101, true, true) => {//Direct16 STORE + w flag set stores the result (which is Rd) to Rs
+            let rs_index: u8 = (inst_word & 0b111) as u8;
+            log_noln!(t, 5, "Rs is {:#05b}, aka ", rs_index);
+            set_rd(cpu, rs_index, result);//rs is rd, and rd is result
+            log_finln!(", and has been set to:");
+            log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
         },
-        (0b1101, true, true) => {//Direct16 STORE (w flag set); needs special handling
-            unimplemented!();//TODO
-        },
-        (_, true, true) => {//Direct16 operation with w flag set writes to memory instead of a register
+        (0b1101, true, false) |//Direct16 STORE + w flag not set stores the result (which is Rs) to memory
+        (_, true, true) => {//Direct16 operation with w flag set writes result to memory instead of a register
             unimplemented!();//TODO
         }
         (_, false, _) | (_, true, false) => {//Other cases are much simpler; we just write to Rd
-            unimplemented!();//TODO
+            let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
+            log_noln!(t, 5, "Rd is {:#05b}, aka ", rd_index);
+            set_rd(cpu, rd_index, result);
+            log_finln!(", and has been set to:");
+            log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
         }
     }
 
@@ -172,7 +186,7 @@ fn secondary_group_111(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     unimplemented!();
 }
 
-//TODO move to seperate module perhaps?
+//TODO move to seperate module perhaps (up to execute.rs)?
 fn get_rs(cpu: &CPUState, rs: u8) -> u16 {
     debug_assert!(rs < 8);
     match rs {
@@ -250,7 +264,8 @@ fn set_rd(cpu: &mut CPUState, rd: u8, value: u16) {
         _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
 }
-fn alu_operation(upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {
+fn alu_operation(cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
+    //TODO set flags correctly
     match upper_nibble {
         0b0000 => {
             log_finln!("ADD");
@@ -298,7 +313,7 @@ fn alu_operation(upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {
         },
         0b1101 => {
             log_finln!("STORE");
-            unimplemented!();//TODO
+            return operand1;//No need for any flags to be set with store
         },
         _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");

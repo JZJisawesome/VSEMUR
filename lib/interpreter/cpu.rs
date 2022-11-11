@@ -99,7 +99,6 @@ impl CPUState {
 
     //Make PC access easier (also handles the CS register if it needs to be incremented too)
     fn inc_pc_by(self: &mut Self, increment_amount: u32) {
-        //TODO error checking
         let result: (u8, u16) = inc_page_addr_by(self.get_cs(), self.pc, increment_amount);
         self.set_cs(result.0);
         self.pc = result.1;
@@ -165,9 +164,9 @@ impl CPUState {
 
 fn inc_page_addr_by(page: u8, addr: u16, increment_amount: u32) -> (u8, u16) {
     //TODO error checking
-    if addr != 0xFFFF {
-        return (page, addr + 1);
+    if ((addr as u32) + increment_amount) <= 0xFFFF {
+        return (page, addr + (increment_amount as u16));//Safe since at most increment_amount could be 0xFFFF
     } else {
-        return (page + 1, 0);
+        unimplemented!();//TODO
     }
 }
