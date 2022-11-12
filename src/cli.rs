@@ -5,6 +5,8 @@
  *
 */
 
+//!libvsemur command-line frontend
+
 /* Imports */
 
 //TODO (include "use" and "mod" here)

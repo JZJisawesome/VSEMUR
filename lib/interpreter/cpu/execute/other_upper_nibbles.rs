@@ -440,64 +440,93 @@ fn set_reg_by_index(cpu: &mut CPUState, rd: u8, value: u16) {
     }
 }
 fn alu_operation(t: u128, cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
-    //TODO set flags correctly too
+    use std::num::Wrapping as Wrap;
 
+    //We need regular wrapping behaviour to make our lives easier; also do 32 bit operations so we get the carry bit (which is useful) for free
+    let operand1_w = Wrap(operand1 as u32);
+    let operand2_w = Wrap(operand2 as u32);
+
+    //Perform operation
     log_noln!(t, 5, "Operation: ");
-    let result: u16;
+    let result_w: Wrap<u32>;
     match upper_nibble {
         0b0000 => {
             log_finln!("ADD");
-            result = operand1 + operand2;
+            result_w = operand1_w + operand2_w;
         },
         0b0001 => {
             log_finln!("ADC");
-            unimplemented!();//TODO
+            result_w = operand1_w + operand2_w + if cpu.get_c() { Wrap(1) } else { Wrap(0) };
         },
         0b0010 => {
             log_finln!("SUB");
-            result = operand1 - operand2;
+            result_w = operand1_w - operand2_w;
         },
         0b0011 => {
             log_finln!("SBC");
-            unimplemented!();//TODO
+            result_w = operand1_w + !operand2_w + if cpu.get_c() { Wrap(1) } else { Wrap(0) };
         },
         0b0100 => {
             log_finln!("CMP");
-            unimplemented!();//TODO
+            result_w = operand1_w - operand2_w;
         },
         0b0110 => {
             log_finln!("NEG");
-            result = ((-(operand2 as i32)) & 0xFFFF) as u16;//TODO ensure this is valid, else do ~operand2 + 1
+            result_w = Wrap((-(operand2 as i32)) as u32);//Intentionally not using operand2_w so that we can cast to a signed integer and back//TODO ensure this is valid, else do ~operand2 + 1
         },
         0b1000 => {
             log_finln!("XOR");
-            result = operand1 ^ operand2;
+            result_w = operand1_w ^ operand2_w;
         },
         0b1001 => {
             log_finln!("LOAD");
-            result = operand2;
+            result_w = operand2_w;
         },
         0b1010 => {
             log_finln!("OR");
-            result = operand1 | operand2;
+            result_w = operand1_w | operand2_w;
         },
         0b1011 => {
             log_finln!("AND");
-            result = operand1 & operand2;
+            result_w = operand1_w & operand2_w;
         },
         0b1100 => {
             log_finln!("TEST");
-            unimplemented!();//TODO
+            result_w = operand1_w & operand2_w;
         },
         0b1101 => {
             log_finln!("STORE");
-            result = operand1;//No need for any flags to be set with store
+            result_w = operand1_w;//No need for any flags to be set with store
         },
         _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
             return 0;
         },
     }
-    log!(t, 5, "Result:{:#06X} | {:#018b} | unsigned {}", result, result, result);
-    return result;
+    let result: u32 = result_w.0;//We don't need wrapping behaviour anymore
+    log!(t, 5, "Result:{:#06X} | {:#018b} | unsigned {}", (result & 0xFFFF) as u16, (result & 0xFFFF) as u16, (result & 0xFFFF) as u16);
+
+    //Set flags
+    //FIXME don't update flags if the register is the PC
+    //N flag is set if the result's msb is 1
+    //Z flag is set if the result is 0
+    //S flag is set if the result is negative (not the same as N since it looks at higher bits too)
+    //C flag is set if there was a carry
+    match upper_nibble {
+        0b0000 | 0b0001 | 0b0010 | 0b0011 | 0b0100 => {//ADD, ADC, SUB, SBC, CMP update all flags
+            cpu.set_n(((result >> 15) & 0b1) == 0b1);
+            cpu.set_z(result == 0);
+            cpu.set_s((result as i32) < 0);//TODO ensure this is correct; mame does this differently
+            cpu.set_c(((result >> 16) & 0b1) == 0b1);
+        },
+        0b0110 | 0b1000 | 0b1001 | 0b1010 | 0b1011 | 0b1100 => {//NEG, XOR, LOAD, OR, AND, TEST update only N, Z flags
+            cpu.set_n(((result >> 15) & 0b1) == 0b1);
+            cpu.set_z(result == 0);
+        },
+        0b1101 => {},//STORE dosn't update flags
+        _ => { return 0; },//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+    }
+
+
+    return (result & 0xFFFF) as u16;
 }
