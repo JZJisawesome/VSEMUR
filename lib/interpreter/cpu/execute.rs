@@ -5,6 +5,10 @@
  *
 */
 
+//TODO remove this once everything is implemented
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 /* Imports */
 
 mod upper_nibble_1111;
@@ -65,7 +69,7 @@ pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
             log!(t, 3, "other bits to narrow down instruction      ^^^   ^^^^^^");
             upper_nibble_1110::execute(t, cpu, mem, inst_word);
         },
-        upper_nibble => {
+        _ => {
             //For nibbles other than 0xF and 0xE, it is easier to decode the instruction by looking at the secondary group first
             //This is what MAME does, so it's what we'll do too
             log!(t, 3, "Nope! Split opcodes by secondary group        ^^^");

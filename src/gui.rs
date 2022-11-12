@@ -37,7 +37,6 @@ fn main() {
     eprintln!("Powered by: {}\n", vsemur::about::version::pretty_string());
 
     //Handle command line arguments
-    let arg: String;
     match std::env::args().len() {
         2 => {
             if std::env::args().nth(1).unwrap() == "--version" {

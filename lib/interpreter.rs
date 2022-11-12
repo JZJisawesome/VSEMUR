@@ -42,15 +42,15 @@ pub struct State {
 }
 
 pub enum ReturnCode {
-    TICK_OK,
-    TICK_FAIL,
+    TickOk,
+    TickFail,
 
-    RESET_OK,
-    RESET_FAIL,
+    ResetOk,
+    ResetFail,
 
-    LOAD_OK,
-    LOAD_FAIL_OPEN,
-    LOAD_FAIL_SIZE,
+    LoadOk,
+    LoadFailOpen,
+    LoadFailSize,
 }
 
 /* Associated Functions and Methods */
@@ -81,7 +81,7 @@ impl State {
 
         //Memory must be reset first since other parts may depend on values in it at reset
         if !self.mem.reset() {//BIOS or ROM wasn't loaded
-            return ReturnCode::RESET_FAIL;
+            return ReturnCode::ResetFail;
         }
 
         self.cpu.reset(&mut self.mem);
@@ -90,12 +90,12 @@ impl State {
         self.input.reset();
 
         log!(self.t, 0, "Reset complete");
-        return ReturnCode::RESET_OK;
+        return ReturnCode::ResetOk;
     }
 
     pub fn tick(self: &mut Self) -> ReturnCode {
         if !self.mem.ready() {
-            return ReturnCode::TICK_FAIL;
+            return ReturnCode::TickFail;
         }
 
         //Increment the number of ticks
@@ -108,7 +108,7 @@ impl State {
         self.sound.tick();
 
         log!(self.t, 0, "Tick {} ends", self.t);
-        return ReturnCode::TICK_OK;
+        return ReturnCode::TickOk;
     }
 
     pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {

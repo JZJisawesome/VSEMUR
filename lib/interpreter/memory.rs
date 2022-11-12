@@ -5,6 +5,11 @@
  *
 */
 
+//TODO remove this once everything is implemented
+#![allow(unused_variables)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
+
 /* Imports */
 
 use crate::logging::log;
@@ -62,19 +67,25 @@ impl MemoryState {
 
     pub(super) fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
         let load_result = load_file_u16(path, &mut self.bios, MAX_BIOS_SIZE_WORDS);
-        if matches!(load_result, ReturnCode::LOAD_OK) {
+        if matches!(load_result, ReturnCode::LoadOk) {
             self.bios_loaded = true;
         }
         return load_result;
     }
 
     pub(super) fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> ReturnCode {
-        unimplemented!();//TODO implement
+        if bios_mem.len() > MAX_BIOS_SIZE_WORDS {
+            return ReturnCode::LoadFailSize;
+        }
+        //TODO bios_mem copy into self.bios
+        self.bios_loaded = true;
+        unimplemented!();
+        return ReturnCode::LoadOk;
     }
 
     pub(super) fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
         let load_result = load_file_u16(path, &mut self.rom, MAX_ROM_SIZE_WORDS);
-        if matches!(load_result, ReturnCode::LOAD_OK) {
+        if matches!(load_result, ReturnCode::LoadOk) {
             self.rom_loaded = true;
         }
         return load_result;
@@ -82,11 +93,12 @@ impl MemoryState {
 
     pub(super) fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> ReturnCode {
         if rom_mem.len() > MAX_ROM_SIZE_WORDS {
-            return ReturnCode::LOAD_FAIL_SIZE;
+            return ReturnCode::LoadFailSize;
         }
-        unimplemented!();//TODO rom_mem copy into self.rom
+        //TODO rom_mem copy into self.rom
         self.rom_loaded = true;
-        return ReturnCode::LOAD_OK;
+        unimplemented!();
+        return ReturnCode::LoadOk;
     }
 
     pub(super) fn reset(self: &mut Self) -> bool {
@@ -138,30 +150,32 @@ fn load_file_u16(path: &str, buffer: &mut [u16], buffer_size: usize) -> ReturnCo
     //Open the file
     let file_wrapper = File::open(path);
     if matches!(file_wrapper, Err(_)) {
-        return ReturnCode::LOAD_FAIL_OPEN;
+        return ReturnCode::LoadFailOpen;
     }
     let mut file = file_wrapper.unwrap();
 
     //Ensure it is not larger than expected
     let metadata_wrapper = file.metadata();
     if matches!(metadata_wrapper, Err(_)) {
-        return ReturnCode::LOAD_FAIL_OPEN;
+        return ReturnCode::LoadFailOpen;
     }
     let metadata = metadata_wrapper.unwrap();
     if metadata.len() > (buffer_size * 2) as u64 {//Ensure it is not too big of a file
-        return ReturnCode::LOAD_FAIL_SIZE;
+        return ReturnCode::LoadFailSize;
     }
     if (metadata.len() & 0b1) == 0b1 {//Ensure the file is a multiple of 2
-        return ReturnCode::LOAD_FAIL_SIZE;
+        return ReturnCode::LoadFailSize;
     }
 
     log!(0, 0, "\x1b[36mLoading file \"{}\": {} words | {} bytes\x1b[0m", path, metadata.len() / 2, metadata.len());
 
     //Read in its contents into the buffer
     let mut byte_buffer: Box<[u8]> = vec![0u8; buffer_size * 2].into_boxed_slice();//TODO avoid overhead of zeroing out contents, as well as overhead of needing to copy to buffer instead of reading to it directly
-    file.read(&mut byte_buffer);
+    let bytes_read = file.read(&mut byte_buffer).unwrap();
+    debug_assert!(bytes_read <= buffer_size * 2);
+
     for i in 0..buffer_size {
         buffer[i] = ((byte_buffer[(i * 2) + 1] as u16) << 8) | (byte_buffer[i * 2] as u16);
     }
-    return ReturnCode::LOAD_OK;
+    return ReturnCode::LoadOk;
 }

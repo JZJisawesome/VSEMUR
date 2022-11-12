@@ -5,6 +5,9 @@
  *
 */
 
+//We don't want warnings if the loggings statements are unreachable when used elsewhere
+#![allow(unreachable_code)]
+
 /* Imports */
 
 //TODO (include "use" and "mod" here)

@@ -5,6 +5,11 @@
  *
 */
 
+//TODO remove this once everything is implemented
+#![allow(unused_variables)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
+
 /* Imports */
 
 use crate::logging::*;
@@ -128,29 +133,30 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
             log_finln!("PUSH");
             while size != 0 {
-
+                //TODO is this the correct order to push things?
                 log_noln!(t, 6, "Current reg. is {:#05b}, aka ", rh_index);
                 let reg: u16 = get_reg_by_index(cpu, rh_index);
                 log_finln!(", which contains:");
                 log!(t, 7, "{:#06X} | {:#018b} | unsigned {}", reg, reg, reg);
-                rs = get_reg_by_index(cpu, rs_index);
+                rs = get_reg_by_index_silent(cpu, rs_index);
 
                 mem.write_page_addr(reg, 0x00, rs);
                 log!(t, 7, "Pushed to the stack @ [Rs]: {:#06X}", rs);
 
                 rs -= 1;
-                log!(t, 6, "Decrement Rs; it is now {:#06X}", rs);
+                log!(t, 7, "Decrement Rs; it is now {:#06X}", rs);
+
+                rh_index -= 1;
 
                 size -= 1;
             }
 
-            //TODO avoid printout in log
-            set_reg_by_index(cpu, rs_index, rs);//Actually write back RS to the cpu's state
+            set_reg_by_index_silent(cpu, rs_index, rs);//Actually write back RS to the cpu's state
         },
         0b1001 => {
             //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
             log_finln!("POP");
-            unimplemented!();
+            unimplemented!();//TODO figure out the exact semantics of this
         },
         _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
@@ -161,7 +167,38 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 }
 
 fn secondary_group_011(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
-    unimplemented!();
+    log_finln!("DS_Indirect");
+
+    let page: u8;
+
+    log_noln!(t, 5, "D flag ");
+    if (inst_word >> 5 & 0b1) == 0b1 {
+        page = cpu.get_ds();
+    } else {
+        page = 0x00;
+        log_midln!("not ");
+    }
+    log_finln!("set, page is {:#04X}", page);
+
+    match (inst_word >> 3) & 0b11 {
+        0b00 => {
+            log!(t, 5, "@ is 0b00, no change to Rs");
+            unimplemented!();
+        },
+        0b01 => {
+            unimplemented!();//TODO may also have to modify pages if d flag is set
+            log!(t, 5, "@ is 0b01, do Rs--");
+        },
+        0b10 => {
+            unimplemented!();//TODO may also have to modify pages if d flag is set
+            log!(t, 5, "@ is 0b10, do Rs++");
+        },
+        0b11 => {
+            log!(t, 5, "@ is 0b11, do ++Rs");
+            unimplemented!();//TODO may also have to modify pages if d flag is set
+        },
+        _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
+    }
 }
 
 fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
@@ -359,7 +396,7 @@ fn set_reg_by_index(cpu: &mut CPUState, rd: u8, value: u16) {
     }
 }
 fn alu_operation(cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
-    //TODO set flags correctly
+    //TODO set flags correctly too
     match upper_nibble {
         0b0000 => {
             log_finln!("ADD");
@@ -413,5 +450,66 @@ fn alu_operation(cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: 
             log_finln!("(invalid)");
             return 0;
         },
+    }
+}
+fn get_reg_by_index_silent(cpu: &CPUState, rs: u8) -> u16 {
+    debug_assert!(rs < 8);
+    match rs {
+        0b000 => {
+            return (cpu.sp & 0xFFFF) as u16;
+        },
+        0b001 => {
+            return cpu.r[0];
+        },
+        0b010 => {
+            return cpu.r[1];
+        },
+        0b011 => {
+            return cpu.r[2];
+        },
+        0b100 => {
+            return cpu.r[3];
+        },
+        0b101 => {
+            return cpu.bp;
+        },
+        0b110 => {
+            return cpu.sr;
+        },
+        0b111 => {
+            return cpu.pc;
+        },
+        _ => { if cfg!(debug_assertions) { panic!(); } return 0; },//This should never occur
+    }
+}
+fn set_reg_by_index_silent(cpu: &mut CPUState, rd: u8, value: u16) {
+    debug_assert!(rd < 8);
+    match rd {
+        0b000 => {
+            cpu.sp = value;
+        },
+        0b001 => {
+            cpu.r[0] = value;
+        },
+        0b010 => {
+            cpu.r[1] = value;
+        },
+        0b011 => {
+            cpu.r[2] = value;
+        },
+        0b100 => {
+            cpu.r[3] = value;
+        },
+        0b101 => {
+            cpu.bp = value;
+        },
+        0b110 => {
+            cpu.sr = value;
+        },
+        0b111 => {
+            cpu.pc = value;
+            unimplemented!();//TODO what are the implications of the increment after this?
+        },
+        _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
 }

@@ -5,6 +5,10 @@
  *
 */
 
+//TODO remove this once everything is implemented
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 /* Imports */
 
 use crate::logging::*;
@@ -173,18 +177,18 @@ fn secondary_group_101(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             },
             0b010 => {
                 log_finln!("DIVS");
-                unimplemented!();//TODO
                 cpu.inc_pc();
+                unimplemented!();//TODO
             },
             0b011 => {
                 log_finln!("DIVQ");
-                unimplemented!();//TODO
                 cpu.inc_pc();
+                unimplemented!();//TODO
             },
             0b100 => {
                 log_finln!("EXP");
-                unimplemented!();//TODO
                 cpu.inc_pc();
+                unimplemented!();//TODO
             },
             0b101 => {
                 log_finln!("NOP");
