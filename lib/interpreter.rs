@@ -14,6 +14,8 @@ mod render;
 mod sound;
 
 use crate::logging::log;
+use crate::logging::log_ansi;
+use crate::logging::log_reset_file;
 
 /* Constants */
 
@@ -59,7 +61,9 @@ pub enum ReturnCode {
 //Everything else goes into other modules and are not associated
 impl State {
     pub fn new() -> State {
-        log!(0, 0, "\x1b[1;97mInitializing VSEMUR State\x1b[0m");
+        log_reset_file!();
+
+        log_ansi!(0, 0, "\x1b[1;97m", "Initializing VSEMUR State");
 
         let new_state = State {
             t: 0,
@@ -77,7 +81,7 @@ impl State {
 
     pub fn reset(self: &mut Self) -> ReturnCode {
         self.t = 0;
-        log!(self.t, 0, "\x1b[1;97mResetting emulated system\x1b[0m");
+        log_ansi!(self.t, 0, "\x1b[1;97m", "Resetting emulated system");
 
         //Memory must be reset first since other parts may depend on values in it at reset
         if !self.mem.reset() {//BIOS or ROM wasn't loaded
@@ -100,7 +104,7 @@ impl State {
 
         //Increment the number of ticks
         self.t += 1;
-        log!(self.t, 0, "\x1b[1;97mTick {} begins\x1b[0m", self.t);
+        log_ansi!(self.t, 0, "\x1b[1;97m", "Tick {} begins", self.t);
 
         //Tick sub-states
         self.cpu.tick(self.t, &mut self.mem);

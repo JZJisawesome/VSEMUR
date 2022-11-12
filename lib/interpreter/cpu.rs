@@ -1,7 +1,7 @@
-/* NAME//TODO
+/* cpu.rs
  * By: John Jekel
  *
- * TODO description
+ * Emulation for the CPU of the VSmile
  *
 */
 

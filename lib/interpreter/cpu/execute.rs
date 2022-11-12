@@ -1,7 +1,7 @@
 /* execute.rs
  * By: John Jekel
  *
- * Module for executing VSmile instructions and performing other operations
+ * Module for executing unSP instructions and performing other operations
  *
 */
 
