@@ -19,7 +19,7 @@ use crate::logging::log;
 
 const MAX_BIOS_SIZE_WORDS: usize = 1 << 22;//FIXME figure out what this actually is
 const MAX_ROM_SIZE_WORDS: usize = 1 << 22;//FIXME figure out what this actually is
-const MEM_SIZE_WORDS: usize = 1 << 22;
+const MEM_SIZE_WORDS: usize = 1 << 22;//TODO set this to 0xFFFF since everything above this should not be writable
 
 /* Macros */
 

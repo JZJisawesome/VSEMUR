@@ -84,14 +84,14 @@ fn get_wg2(cpu: &CPUState, mem: &mut MemoryState) -> u16 {
     return mem.read_page_addr(address_after_pc_tuple.0, address_after_pc_tuple.1);
 }
 
-fn push(cpu: &mut CPUState, mem: &mut MemoryState, value: u16) {
-    //HACK We assume the SP will always point to page 0, so we never update the ds register here
+fn push_sp(cpu: &mut CPUState, mem: &mut MemoryState, value: u16) {
+    //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
     mem.write_page_addr(value, 0x00, cpu.sp);
     cpu.sp -= 1;
 }
 
-fn pop(cpu: &mut CPUState, mem: &MemoryState) -> u16 {
-    //HACK We assume the SP will always point to page 0, so we never update the ds register here
+fn pop_sp(cpu: &mut CPUState, mem: &MemoryState) -> u16 {
+    //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
     cpu.sp += 1;
     return mem.read_page_addr(0x00, cpu.sp);
 }

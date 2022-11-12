@@ -105,13 +105,50 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     let upper_nibble = inst_word >> 12;
     log_finln!("Stack Operation");
 
+    //Get Rs since we index by it
+    let rs_index: u8 = (inst_word & 0b111) as u8;
+    log_noln!(t, 5, "Rs is {:#05b}, aka ", rs_index);
+    let mut rs: u16 = get_reg_by_index(cpu, rs_index);
+    log_finln!(", which contains:");
+    log!(t, 6, "{:#06X} | {:#018b} | unsigned {}", rs, rs, rs);
+
+    //Get Rh
+    let mut rh_index: u8 = ((inst_word >> 9) & 0b111) as u8;
+    log_noln!(t, 5, "Rh is {:#05b}, aka ", rh_index);
+    get_reg_by_index(cpu, rh_index);
+    log_finln!();
+
+    //Get Size
+    let mut size: u8 = ((inst_word >> 3) & 0b111) as u8;
+    log!(t, 5, "Size is {}", size);
+
     log_noln!(t, 5, "Instruction: ");
     match upper_nibble {
         0b1101 => {
+            //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
             log_finln!("PUSH");
-            unimplemented!();
+            while size != 0 {
+
+                log_noln!(t, 6, "Current reg. is {:#05b}, aka ", rh_index);
+                let reg: u16 = get_reg_by_index(cpu, rh_index);
+                log_finln!(", which contains:");
+                log!(t, 7, "{:#06X} | {:#018b} | unsigned {}", reg, reg, reg);
+                rs = get_reg_by_index(cpu, rs_index);
+
+                mem.write_page_addr(reg, 0x00, rs);
+                log!(t, 7, "Pushed to the stack @ [Rs]: {:#06X}", rs);
+
+                rs -= 1;
+                log!(t, 6, "Decrement Rs; it is now {:#06X}", rs);
+
+                size -= 1;
+            }
+
+            //TODO avoid printout in log
+            set_reg_by_index(cpu, rs_index, rs);//Actually write back RS to the cpu's state
         },
         0b1001 => {
+            //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
             log_finln!("POP");
             unimplemented!();
         },
@@ -119,6 +156,8 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             log_finln!("(invalid)");
         },
     }
+
+    cpu.inc_pc();
 }
 
 fn secondary_group_011(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {

@@ -93,9 +93,9 @@ fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     cpu.inc_pc_by(2);
     log!(t, 5, "Inc. the current CS page, PC address to {:#04X}_{:04X}", cpu.get_cs(), cpu.pc);
     log!(t, 5, "Push the current PC {:#06X} to the stack @ SP {:#06X}", cpu.pc, cpu.sp);
-    super::push(cpu, mem, cpu.pc);
+    super::push_sp(cpu, mem, cpu.pc);
     log!(t, 5, "Push the current SR {:#06X} to the stack @ SP {:#06X}", cpu.sr, cpu.sp);
-    super::push(cpu, mem, cpu.sr);
+    super::push_sp(cpu, mem, cpu.sr);
 
     cpu.set_cs(new_cs);
     cpu.pc = new_pc;

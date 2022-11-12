@@ -11,7 +11,7 @@ use crate::logging::log;
 use crate::interpreter::ReturnCode;
 use crate::interpreter::MAX_BIOS_SIZE_WORDS;
 use crate::interpreter::MAX_ROM_SIZE_WORDS;
-use crate::interpreter::MEM_SIZE_WORDS;
+use crate::interpreter::MEM_SIZE_WORDS;//TODO set this to 0xFFFF since everything above this should not be writable
 
 use std::fs::File;
 use std::io::Read;
