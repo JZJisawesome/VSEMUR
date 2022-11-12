@@ -22,7 +22,34 @@ use super::CPUState;
 
 /* Macros */
 
-//TODO (also pub(crate) use the_macro statements here too)
+macro_rules! reg_string_by_index {
+    ($rs:expr) => {{
+        debug_assert!($rs < 8);
+        let string: &str;
+        match $rs  {
+            0b000 => { string = "SP"; },
+            0b001 => { string = "R1"; },
+            0b010 => { string = "R2"; },
+            0b011 => { string = "R3"; },
+            0b100 => { string = "R4"; },
+            0b101 => { string = "BP"; },
+            0b110 => { string = "SR"; },
+            0b111 => { string = "PC"; },
+            _ => { if cfg!(debug_assertions) { panic!(); } string = ""; },//This should never occur
+        }
+        string
+    }};
+}
+
+macro_rules! log_register {
+    ($tick_num:expr, $indent:expr, $reg_name:expr, $reg_index:expr) => {
+        log!($tick_num, $indent, "{} is {:#05b}, aka {}", $reg_name, $reg_index, reg_string_by_index!($reg_index));
+    };
+    ($tick_num:expr, $indent:expr, $reg_name:expr, $reg_index:expr, $reg_contents:expr) => {
+        log!($tick_num, $indent, "{} is {:#05b}, aka {}, which contains:", $reg_name, $reg_index, reg_string_by_index!($reg_index));
+        log!($tick_num, $indent + 1, "{:#06X} | {:#018b} | unsigned {}", $reg_contents, $reg_contents, $reg_contents);
+    };
+}
 
 /* Static Variables */
 
@@ -74,10 +101,8 @@ fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         log_finln!("IMM6");
 
         //Get Rd
-        log_noln!(t, 5, "Rd is {:#05b}, aka ", rd_index);
         let rd: u16 = get_reg_by_index(cpu, rd_index);
-        log_finln!(", which contains:");
-        log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", rd, rd, rd);
+        log_register!(t, 5, "Rd", rd_index, rd);
 
         //Get imm6
         let imm6: u8 = (inst_word & 0b111111) as u8;
@@ -95,10 +120,8 @@ fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
                 log!(t, 5, "This isn't valid: we can't store a result to an immediate!");
             },
             _ => {//Other cases are much simpler; we just write to Rd
-                log_noln!(t, 5, "Rd is {:#05b}, aka ", rd_index);
                 set_reg_by_index(cpu, rd_index, result);
-                log_finln!(", and has been set to:");
-                log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
+                log_register!(t, 5, "Rd", rd_index, result);
             }
         }
 
@@ -112,16 +135,13 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 
     //Get Rs since we index by it
     let rs_index: u8 = (inst_word & 0b111) as u8;
-    log_noln!(t, 5, "Rs is {:#05b}, aka ", rs_index);
     let mut rs: u16 = get_reg_by_index(cpu, rs_index);
-    log_finln!(", which contains:");
-    log!(t, 6, "{:#06X} | {:#018b} | unsigned {}", rs, rs, rs);
+    log_register!(t, 5, "Rs", rs_index, rs);
 
     //Get Rh
     let mut rh_index: u8 = ((inst_word >> 9) & 0b111) as u8;
-    log_noln!(t, 5, "Rh is {:#05b}, aka ", rh_index);
+    log_register!(t, 5, "Rh", rh_index);
     get_reg_by_index(cpu, rh_index);
-    log_finln!();
 
     //Get Size
     let mut size: u8 = ((inst_word >> 3) & 0b111) as u8;
@@ -134,11 +154,9 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             log_finln!("PUSH");
             while size != 0 {
                 //TODO is this the correct order to push things?
-                log_noln!(t, 6, "Current reg. is {:#05b}, aka ", rh_index);
                 let reg: u16 = get_reg_by_index(cpu, rh_index);
-                log_finln!(", which contains:");
-                log!(t, 7, "{:#06X} | {:#018b} | unsigned {}", reg, reg, reg);
-                rs = get_reg_by_index_silent(cpu, rs_index);
+                log_register!(t, 5, "Current reg.", rh_index, reg);
+                rs = get_reg_by_index(cpu, rs_index);
 
                 mem.write_page_addr(reg, 0x00, rs);
                 log!(t, 7, "Pushed to the stack @ [Rs]: {:#06X}", rs);
@@ -151,7 +169,7 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
                 size -= 1;
             }
 
-            set_reg_by_index_silent(cpu, rs_index, rs);//Actually write back RS to the cpu's state
+            set_reg_by_index(cpu, rs_index, rs);//Actually write back RS to the cpu's state
         },
         0b1001 => {
             //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
@@ -221,10 +239,9 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             //Get the operands
             //Rs is operand1
             let rs_index: u8 = (inst_word & 0b111) as u8;
-            log_noln!(t, 5, "Rs is {:#05b}, aka ", rs_index);
             operand1 = get_reg_by_index(cpu, rs_index);
-            log_finln!(", which contains:");
-            log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand1, operand1, operand1);
+            log_register!(t, 5, "Rs", rs_index, operand1);
+
             //IMM16 is operand2
             operand2 = super::get_wg2(cpu, mem);
             log!(t, 5, "IMM16: {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
@@ -238,18 +255,14 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             //Get the operands
             //Rs is always one of the operands
             let rs_index: u8 = (inst_word & 0b111) as u8;
-            log_noln!(t, 5, "Rs is {:#05b}, aka ", rs_index);
             let rs = get_reg_by_index(cpu, rs_index);
-            log_finln!(", which contains:");
-            log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", rs, rs, rs);
+            log_register!(t, 5, "Rs", rs_index, rs);
 
             if direct16_w {
                 //Rd is operand1
                 let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
-                log_noln!(t, 5, "Rd is {:#05b}, aka ", rd_index);
                 operand1 = get_reg_by_index(cpu, rd_index);
-                log_finln!(", which contains:");
-                log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand1, operand1, operand1);
+                log_register!(t, 5, "Rd", rd_index, operand1);
 
                 //Rs is operand2
                 operand2 = rs;
@@ -284,10 +297,8 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         },
         (0b1101, true, true) => {//Direct16 STORE + w flag set stores the result (which is Rd) to Rs
             let rs_index: u8 = (inst_word & 0b111) as u8;
-            log_noln!(t, 5, "Rs is {:#05b}, aka ", rs_index);
             set_reg_by_index(cpu, rs_index, result);//rs is rd, and rd is result
-            log_finln!(", and has been set to:");
-            log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
+            log_register!(t, 5, "Rs", rs_index, result);
         },
         (0b1101, true, false) |//Direct16 STORE + w flag not set stores the result (which is Rs) to memory
         (_, true, true) => {//Direct16 operation with w flag set writes result to memory instead of a register
@@ -295,10 +306,8 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         }
         (_, false, _) | (_, true, false) => {//Other cases are much simpler; we just write to Rd
             let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
-            log_noln!(t, 5, "Rd is {:#05b}, aka ", rd_index);
             set_reg_by_index(cpu, rd_index, result);
-            log_finln!(", and has been set to:");
-            log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", result, result, result);
+            log_register!(t, 5, "Rd", rd_index, result);
         }
     }
 
@@ -322,35 +331,27 @@ fn get_reg_by_index(cpu: &CPUState, rs: u8) -> u16 {
     debug_assert!(rs < 8);
     match rs {
         0b000 => {
-            log_midln!("SP");
             return (cpu.sp & 0xFFFF) as u16;
         },
         0b001 => {
-            log_midln!("R1");
             return cpu.r[0];
         },
         0b010 => {
-            log_midln!("R2");
             return cpu.r[1];
         },
         0b011 => {
-            log_midln!("R3");
             return cpu.r[2];
         },
         0b100 => {
-            log_midln!("R4");
             return cpu.r[3];
         },
         0b101 => {
-            log_midln!("BP");
             return cpu.bp;
         },
         0b110 => {
-            log_midln!("SR");
             return cpu.sr;
         },
         0b111 => {
-            log_midln!("PC");
             return cpu.pc;
         },
         _ => { if cfg!(debug_assertions) { panic!(); } return 0; },//This should never occur
@@ -360,35 +361,27 @@ fn set_reg_by_index(cpu: &mut CPUState, rd: u8, value: u16) {
     debug_assert!(rd < 8);
     match rd {
         0b000 => {
-            log_midln!("SP");
             cpu.sp = value;
         },
         0b001 => {
-            log_midln!("R1");
             cpu.r[0] = value;
         },
         0b010 => {
-            log_midln!("R2");
             cpu.r[1] = value;
         },
         0b011 => {
-            log_midln!("R3");
             cpu.r[2] = value;
         },
         0b100 => {
-            log_midln!("R4");
             cpu.r[3] = value;
         },
         0b101 => {
-            log_midln!("BP");
             cpu.bp = value;
         },
         0b110 => {
-            log_midln!("SR");
             cpu.sr = value;
         },
         0b111 => {
-            log_midln!("PC");
             cpu.pc = value;
             unimplemented!();//TODO what are the implications of the increment after this?
         },
@@ -450,66 +443,5 @@ fn alu_operation(cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: 
             log_finln!("(invalid)");
             return 0;
         },
-    }
-}
-fn get_reg_by_index_silent(cpu: &CPUState, rs: u8) -> u16 {
-    debug_assert!(rs < 8);
-    match rs {
-        0b000 => {
-            return (cpu.sp & 0xFFFF) as u16;
-        },
-        0b001 => {
-            return cpu.r[0];
-        },
-        0b010 => {
-            return cpu.r[1];
-        },
-        0b011 => {
-            return cpu.r[2];
-        },
-        0b100 => {
-            return cpu.r[3];
-        },
-        0b101 => {
-            return cpu.bp;
-        },
-        0b110 => {
-            return cpu.sr;
-        },
-        0b111 => {
-            return cpu.pc;
-        },
-        _ => { if cfg!(debug_assertions) { panic!(); } return 0; },//This should never occur
-    }
-}
-fn set_reg_by_index_silent(cpu: &mut CPUState, rd: u8, value: u16) {
-    debug_assert!(rd < 8);
-    match rd {
-        0b000 => {
-            cpu.sp = value;
-        },
-        0b001 => {
-            cpu.r[0] = value;
-        },
-        0b010 => {
-            cpu.r[1] = value;
-        },
-        0b011 => {
-            cpu.r[2] = value;
-        },
-        0b100 => {
-            cpu.r[3] = value;
-        },
-        0b101 => {
-            cpu.bp = value;
-        },
-        0b110 => {
-            cpu.sr = value;
-        },
-        0b111 => {
-            cpu.pc = value;
-            unimplemented!();//TODO what are the implications of the increment after this?
-        },
-        _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
 }
