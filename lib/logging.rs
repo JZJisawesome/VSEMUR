@@ -10,17 +10,46 @@
 
 /* Imports */
 
-//TODO (include "use" and "mod" here)
-
 /* Constants */
 
 pub(crate) const LOG_FILE_PATH: &str = "vsemur-log.txt";
 
 /* Macros */
 
-/*macro_rules! log_prompt {//Helper macro
-    //TODO
-}*/
+//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+macro_rules! internal_log_prompt {//Helper macro
+    ($tick_num:expr, $indent:expr) => {
+        eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", $tick_num);
+        for _ in 0..$indent {
+            eprint!("  ");
+        }
+    };
+}
+pub(crate) use internal_log_prompt;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+macro_rules! internal_log_file_open {//Helper macro
+    () => {
+        std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap()
+    };
+}
+pub(crate) use internal_log_file_open;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+macro_rules! internal_log_buffer_create {//Helper macro
+    ($log_file:expr) => {
+        std::io::BufWriter::new($log_file)
+    };
+}
+pub(crate) use internal_log_buffer_create;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+macro_rules! internal_log_buffer_create_and_prompt {//Helper macro
+    ($log_file:expr, $tick_num:expr, $indent:expr) => {{
+        let mut log_buffer = crate::logging::internal_log_buffer_create!($log_file);
+        use std::io::Write;
+        write!(&mut log_buffer, "@t={:>10}> ", $tick_num).unwrap();
+        for _ in 0..$indent {
+            write!(&mut log_buffer, "  ").unwrap();
+        }
+        log_buffer
+    }};
+}
+pub(crate) use internal_log_buffer_create_and_prompt;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
 
 //Thanks https://stackoverflow.com/questions/34373169/how-do-i-create-a-rust-macro-with-optional-parameters-using-repetitions
 macro_rules! log_noln {
@@ -28,20 +57,13 @@ macro_rules! log_noln {
     ($tick_num:expr, $indent:expr, $string:expr) => {
         if cfg!(debug_assertions) {
             //Log to stderr
-            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", $tick_num);
-            for _ in 0..$indent {
-                eprint!("  ");
-            }
+            crate::logging::internal_log_prompt!($tick_num, $indent);
             eprint!($string);
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
-            write!(&mut log_buffer, "@t={:>10}> ", $tick_num).unwrap();
-            for _ in 0..$indent {
-                write!(&mut log_buffer, "  ").unwrap();
-            }
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $tick_num, $indent);
             write!(&mut log_buffer, $string).unwrap();
         }
     };
@@ -55,60 +77,39 @@ macro_rules! log_noln {
     ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr) => {
         if cfg!(debug_assertions) {
             //Log to stderr
-            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", $tick_num);
-            for _ in 0..$indent {
-                eprint!("  ");
-            }
+            crate::logging::internal_log_prompt!($tick_num, $indent);
             eprint!($string, $extra_arg_1);
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
-            write!(&mut log_buffer, "@t={:>10}> ", $tick_num).unwrap();
-            for _ in 0..$indent {
-                write!(&mut log_buffer, "  ").unwrap();
-            }
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $tick_num, $indent);
             write!(&mut log_buffer, $string, $extra_arg_1).unwrap();
         }
     };
     ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
         if cfg!(debug_assertions) {
             //Log to stderr
-            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", $tick_num);
-            for _ in 0..$indent {
-                eprint!("  ");
-            }
+            crate::logging::internal_log_prompt!($tick_num, $indent);
             eprint!($string, $extra_arg_1, $extra_arg_2);
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
-            write!(&mut log_buffer, "@t={:>10}> ", $tick_num).unwrap();
-            for _ in 0..$indent {
-                write!(&mut log_buffer, "  ").unwrap();
-            }
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $tick_num, $indent);
             write!(&mut log_buffer, $string, $extra_arg_1, $extra_arg_2).unwrap();
         }
     };
     ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
         if cfg!(debug_assertions) {
             //Log to stderr
-            eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", $tick_num);
-            for _ in 0..$indent {
-                eprint!("  ");
-            }
+            crate::logging::internal_log_prompt!($tick_num, $indent);
             eprint!($string, $extra_arg_1, $extra_arg_2, $extra_arg_3);
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
-            write!(&mut log_buffer, "@t={:>10}> ", $tick_num).unwrap();
-            for _ in 0..$indent {
-                write!(&mut log_buffer, "  ").unwrap();
-            }
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $tick_num, $indent);
             write!(&mut log_buffer, $string, $extra_arg_1, $extra_arg_2, $extra_arg_3).unwrap();
         }
     };
@@ -124,8 +125,8 @@ macro_rules! log_midln {
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create!(&log_file);
             write!(&mut log_buffer, $string).unwrap();
         }
     };
@@ -143,8 +144,8 @@ macro_rules! log_midln {
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create!(&log_file);
             write!(&mut log_buffer, $string, $extra_arg_1, $extra_arg_2).unwrap();
         }
     };
@@ -155,8 +156,8 @@ macro_rules! log_midln {
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create!(&log_file);
             write!(&mut log_buffer, $string).unwrap();
         }
     };
@@ -167,8 +168,8 @@ macro_rules! log_midln {
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create!(&log_file);
             write!(&mut log_buffer, $string, $extra_arg_1, $extra_arg_2, $extra_arg_3).unwrap();
         }
     };
@@ -184,8 +185,8 @@ macro_rules! log_finln {
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create!(&log_file);
             write!(&mut log_buffer, "\n").unwrap();
         }
     };
@@ -198,8 +199,8 @@ macro_rules! log_finln {
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create!(&log_file);
             writeln!(&mut log_buffer, $string).unwrap();
         }
     };
@@ -217,8 +218,8 @@ macro_rules! log_finln {
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create!(&log_file);
             writeln!(&mut log_buffer, $string, $extra_arg_1).unwrap();
         }
     };
@@ -229,8 +230,8 @@ macro_rules! log_finln {
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create!(&log_file);
             writeln!(&mut log_buffer, $string, $extra_arg_1, $extra_arg_2).unwrap();
         }
     };
@@ -241,8 +242,8 @@ macro_rules! log_finln {
 
             //Log to the log file
             use std::io::Write;
-            let log_file = std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap();
-            let mut log_buffer = std::io::BufWriter::new(&log_file);
+            let log_file = crate::logging::internal_log_file_open!();
+            let mut log_buffer = crate::logging::internal_log_buffer_create!(&log_file);
             writeln!(&mut log_buffer, $string, $extra_arg_1, $extra_arg_2, $extra_arg_3).unwrap();
         }
     };
@@ -334,10 +335,10 @@ macro_rules! log_reset_file {
         if cfg!(debug_assertions) {
             match std::fs::remove_file(crate::logging::LOG_FILE_PATH) {
                 Ok(_) => {
-                    log_ansi!(0, 0, "\x1b[36m", "Overwriting existing log file \"{}\"", crate::logging::LOG_FILE_PATH);
+                    crate::logging::log_ansi!(0, 0, "\x1b[36m", "Overwriting existing log file \"{}\"", crate::logging::LOG_FILE_PATH);
                 },
                 Err(_) => {
-                    log_ansi!(0, 0, "\x1b[36m", "Creating new log file \"{}\"", crate::logging::LOG_FILE_PATH);
+                    crate::logging::log_ansi!(0, 0, "\x1b[36m", "Creating new log file \"{}\"", crate::logging::LOG_FILE_PATH);
                 }
             }
         }
