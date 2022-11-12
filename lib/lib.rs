@@ -5,6 +5,12 @@
  *
 */
 
+//!libvsemur
+//!
+//!By: John Jekel
+//!
+//!Library for the VSmile EMUlator in Rust
+
 /* Imports */
 
 pub mod about;//We want to export the module itself, into the root namespace, not it's contents directly, so we don't use ::*

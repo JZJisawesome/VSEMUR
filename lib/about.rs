@@ -1,26 +1,45 @@
+/* about.rs
+ * By: John Jekel
+ *
+ * Holds information about the libvsemur library for compatibilty, versioning, and licensing
+ *
+*/
+
+//!Holds information about the libvsemur library for compatibilty, versioning, and licensing
+
+///libvsemur version information
 pub mod version {
+    ///str of libvsemur's semantic version
     pub static STRING: &str = env!("CARGO_PKG_VERSION");
+    ///str of libvsemur's semantic version, major number
     pub static MAJOR: &str = env!("CARGO_PKG_VERSION_MAJOR");
+    ///str of libvsemur's semantic version, minor number
     pub static MINOR: &str = env!("CARGO_PKG_VERSION_MINOR");
+    ///str of libvsemur's semantic version, patch number
     pub static PATCH: &str = env!("CARGO_PKG_VERSION_PATCH");
 
+    ///Returns libvsemur's semantic version, major number
     pub fn major_u128() -> u128 {
         return MAJOR.parse::<u128>().unwrap();
     }
 
+    ///Returns libvsemur's semantic version, minor number
     pub fn minor_u128() -> u128 {
         return MINOR.parse::<u128>().unwrap();
     }
 
+    ///Returns libvsemur's semantic version, patch number
     pub fn patch_u128() -> u128 {
         return PATCH.parse::<u128>().unwrap();
     }
 
+    ///Returns 1-line "pretty string" containing libvsemur's version, build information, and other neat info
     pub fn pretty_string() -> String {
         return format!("libvsemur v{} ({} Build)", env!("CARGO_PKG_VERSION"), if cfg!(debug_assertions) {"Debug"} else {"Release"});
     }
 }
 
+///License text for libvsemur
 pub static LICENSE: &'static str = "
 VSEMUR
 Copyright (C) 2022 John Jekel
@@ -113,4 +132,5 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ";
 
+///true if this is a debug build of libvsemur
 pub static DEBUG: bool = cfg!(debug_assertions);

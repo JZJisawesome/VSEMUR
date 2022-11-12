@@ -1,9 +1,21 @@
-/* jit.rs
+/* jit.rs: VSEMUR JIT
  * By: John Jekel
  *
  * More efficient VSmile emulation
  *
 */
+
+//!VSEMUR JIT
+//!
+//!By: John Jekel
+//!
+//!More efficient VSmile emulation
+//!
+//!# Example usage
+//!
+//!```
+//!//TODO
+//!```
 
 /* Imports */
 

@@ -5,6 +5,53 @@
  *
 */
 
+//!VSEMUR Interpreter
+//!
+//!By: John Jekel
+//!
+//!Emulates a VSmile system one .tick() at a time!
+//!
+//!# Example usage
+//!
+//!```
+//!use vsemur::interpreter;
+//!
+//!//Initialize state
+//!let mut state: interpreter::State = interpreter::State::new();
+//!
+//!//Load bios and rom
+//!if !matches!(state.load_bios_file("path/to/bios.bin"), interpreter::ReturnCode::LoadOk) {
+//!    panic!("Error: Failed to load bios from disk");
+//!}
+//!if !matches!(state.load_rom_file("path/to/rom.bin"), interpreter::ReturnCode::LoadOk) {
+//!    panic!("Error: Failed to load rom from disk");
+//!}
+//!
+//!//Power-on reset
+//!if !matches!(state.reset(), interpreter::ReturnCode::ResetOk) {
+//!    panic!("Error: Reset failed");
+//!}
+//!
+//!//Main emulation loop
+//!loop {
+//!    match state.tick() {
+//!        interpreter::ReturnCode::TickOk => { /* No special handling needed */ },
+//!        interpreter::ReturnCode::TickFail => {
+//!            if cfg!(debug_assertions) {
+//!                panic!("Error: Tick failed");
+//!            }
+//!        },
+//!        interpreter::ReturnCode::TickOkNewFrameAvailable => {
+//!            //Add your own logic here to display the new frame to the user
+//!        }
+//!        _ => {
+//!            panic!("This will never occur");
+//!        },
+//!    }
+//!    //Add your own logic (including deciding when to exit) here
+//!}
+//!```
+
 /* Imports */
 
 mod cpu;
@@ -33,6 +80,11 @@ const MEM_SIZE_WORDS: usize = 1 << 22;//TODO set this to 0xFFFF since everything
 
 /* Types */
 
+///State for the VSEMUR interpreter
+///
+///Holds all information needed to store the state of an emulated VSmile system.
+///
+///Instanciate with [`State::new()`].
 pub struct State {
     t: u128,//Ticks
 
@@ -43,15 +95,25 @@ pub struct State {
     mem: memory::MemoryState,
 }
 
+///Return type for several VSEMUR interpreter functions
 pub enum ReturnCode {
+    ///The call to [`State::tick()`] was sucessful, no additional action is required.
     TickOk,
+    ///The call to [`State::tick()`] failed for some reason.
     TickFail,
+    ///The call to [`State::tick()`] was sucessful, and additionally a new frame is available to be displayed.
+    TickOkNewFrameAvailable,
 
+    ///The call to [`State::reset()`] was sucessful.
     ResetOk,
+    ///The call to [`State::reset()`] failed for some reason.
     ResetFail,
 
+    ///The call to [`State::load_bios_file()`], [`State::load_bios_mem()`], [`State::load_rom_file()`], or [`State::load_rom_mem()`] was sucessful.
     LoadOk,
+    ///The call to [`State::load_bios_file()`] or [`State::load_rom_file()`] failed due to a filesystem issue.
     LoadFailOpen,
+    ///The call to [`State::load_bios_file()`], [`State::load_bios_mem()`], [`State::load_rom_file()`], or [`State::load_rom_mem()`] failed due to the source being an invalid size.
     LoadFailSize,
 }
 
@@ -60,6 +122,9 @@ pub enum ReturnCode {
 //Only functions called by external users are associated functions/methods
 //Everything else goes into other modules and are not associated
 impl State {
+    ///Instanciates a new [`State`].
+    ///
+    ///You probably want to load a rom and bios after this; see [`State::load_bios_file()`], [`State::load_bios_mem()`], [`State::load_rom_file()`], and [`State::load_rom_mem()`].
     pub fn new() -> State {
         log_reset_file!();
 
@@ -79,6 +144,11 @@ impl State {
         return new_state
     }
 
+    ///Resets the emulated system.
+    ///
+    ///Requires that a rom and bios have already been loaded beforehand; see [`State::load_bios_file()`], [`State::load_bios_mem()`], [`State::load_rom_file()`], and [`State::load_rom_mem()`].
+    ///
+    ///Returns [`ReturnCode::ResetFail`] if a BIOS or ROM wasn't loaded beforehand; otherwise returns [`ReturnCode::ResetOk`].
     pub fn reset(self: &mut Self) -> ReturnCode {
         self.t = 0;
         log_ansi!(self.t, 0, "\x1b[1;97m", "Resetting emulated system");
@@ -97,6 +167,13 @@ impl State {
         return ReturnCode::ResetOk;
     }
 
+    ///Performs one "tick" of the emulated system, equivalent to one clock cycle.
+    ///
+    ///This function should be called approximately (TODO determine the proper clock frequency) times per second
+    ///
+    ///Before this is called, [`State::reset()`] should already have been called at least once.
+    ///
+    ///Returns [`ReturnCode::TickFail`] if the proper prerequisites have not been met. Otherwise normally returns [`ReturnCode::TickOk`], unless a new frame is ready to be shown to the user, in which case it returns [`ReturnCode::TickOkNewFrameAvailable`].
     pub fn tick(self: &mut Self) -> ReturnCode {
         if !self.mem.ready() {
             return ReturnCode::TickFail;
@@ -115,18 +192,38 @@ impl State {
         return ReturnCode::TickOk;
     }
 
+    ///Loads a VSmile BIOS file from disk at the path specified.
+    ///
+    ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
+    ///
+    ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, [`ReturnCode::LoadFailOpen`] if there was a filesystem issue, [`ReturnCode::LoadFailSize`] if the file was an invalid size.
     pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
         return self.mem.load_bios_file(path);
     }
 
+    ///Loads a VSmile BIOS from the memory contained within the given slice.
+    ///
+    ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
+    ///
+    ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, or [`ReturnCode::LoadFailSize`] if the slice was an invalid size.
     pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> ReturnCode {
         return self.mem.load_bios_mem(bios_mem);
     }
 
+    ///Loads a VSmile rom file from disk at the path specified.
+    ///
+    ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
+    ///
+    ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, [`ReturnCode::LoadFailOpen`] if there was a filesystem issue, [`ReturnCode::LoadFailSize`] if the file was an invalid size.
     pub fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
         return self.mem.load_rom_file(path);
     }
 
+    ///Loads a VSmile rom from the memory contained within the given slice.
+    ///
+    ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
+    ///
+    ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, or [`ReturnCode::LoadFailSize`] if the slice was an invalid size.
     pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> ReturnCode {
         return self.mem.load_rom_mem(rom_mem);
     }

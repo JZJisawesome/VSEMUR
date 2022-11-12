@@ -78,6 +78,9 @@ fn main() {
                     panic!("\x1b[31mError: Tick failed\x1b[0m");
                 }
             },
+            vsemur::interpreter::ReturnCode::TickOkNewFrameAvailable => {
+                unimplemented!();//TODO implement
+            }
             _ => {
                 if cfg!(debug_assertions) {
                     panic!("\x1b[31mError: Tick returned invalid code\x1b[0m");

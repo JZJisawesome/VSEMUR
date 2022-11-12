@@ -22,6 +22,7 @@ use super::CPUState;
 
 /* Macros */
 
+//TODO perhaps move these to a common location, like execute.rs?
 macro_rules! reg_string_by_index {
     ($rs:expr) => {{
         debug_assert!($rs < 8);
@@ -109,9 +110,7 @@ fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         log!(t, 5, "IMM6:  {:#06X} | {:#018b} | unsigned {}", imm6, imm6, imm6);
 
         //Perform the operation
-        log_noln!(t, 5, "Operation: ");
-        let result: u16 = alu_operation(cpu, upper_nibble as u8, rd, imm6 as u16);
-        log!(t, 5, "Result:{:#06X} | {:#018b} | unsigned {}", result, result, result);
+        let result: u16 = alu_operation(t, cpu, upper_nibble as u8, rd, imm6 as u16);
 
         //Write to the appropriate (if any) destination
         match upper_nibble {
@@ -185,12 +184,14 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 }
 
 fn secondary_group_011(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+    let upper_nibble = inst_word >> 12;
     log_finln!("DS_Indirect");
 
+    //Check D flag and determine page
     let page: u8;
-
+    let d_flag: bool = (inst_word >> 5 & 0b1) == 0b1;
     log_noln!(t, 5, "D flag ");
-    if (inst_word >> 5 & 0b1) == 0b1 {
+    if d_flag {
         page = cpu.get_ds();
     } else {
         page = 0x00;
@@ -198,25 +199,77 @@ fn secondary_group_011(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     }
     log_finln!("set, page is {:#04X}", page);
 
+    //Get Rd
+    let rd_index: u8 = ((inst_word) >> 9 & 0b111) as u8;
+    let mut rd: u16 = get_reg_by_index(cpu, rd_index);
+    log_register!(t, 5, "Rd", rd_index, rd);
+
+    //Get Rs since we index by it
+    let rs_index: u8 = (inst_word & 0b111) as u8;
+    let mut rs: u16 = get_reg_by_index(cpu, rs_index);
+    log_register!(t, 5, "Rs", rs_index, rs);
+
+    //Do pre-operations to rs
     match (inst_word >> 3) & 0b11 {
         0b00 => {
             log!(t, 5, "@ is 0b00, no change to Rs");
-            unimplemented!();
         },
-        0b01 => {
-            unimplemented!();//TODO may also have to modify pages if d flag is set
-            log!(t, 5, "@ is 0b01, do Rs--");
-        },
-        0b10 => {
-            unimplemented!();//TODO may also have to modify pages if d flag is set
-            log!(t, 5, "@ is 0b10, do Rs++");
-        },
+        0b01 | 0b10 => {},//0b01 and 0b10 are post-decrement and increment respectively, so we do nothing here
         0b11 => {
             log!(t, 5, "@ is 0b11, do ++Rs");
-            unimplemented!();//TODO may also have to modify pages if d flag is set
+            if d_flag {
+                let new_ds_rs_tuple = super::super::inc_page_addr_by(page, rs, 1);
+                cpu.set_ds(new_ds_rs_tuple.0);
+                rs = new_ds_rs_tuple.1;
+            } else {
+                rs += 1;
+            }
+
+            set_reg_by_index(cpu, rs_index, rs);
+            //TODO log DS too?
+            log_register!(t, 5, "Rs", rs_index, rs);
         },
         _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
+
+    //Get data at address determined by page and Rs
+    let data: u16 = mem.read_page_addr(page, rs);
+    log!(t, 5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", page, rs);
+    log!(t, 6, "{:#06X} | {:#018b} | unsigned {}", data, data, data);
+
+    //Perform the operation
+    let result: u16 = alu_operation(t, cpu, upper_nibble as u8, rd, data);
+
+    //Store back to Rd
+    set_reg_by_index(cpu, rd_index, result);
+    log_register!(t, 5, "Rd", rd_index, result);
+
+    //Do post-operations to rs
+    match (inst_word >> 3) & 0b11 {
+        0b00 | 0b11 => {},//0b00 is no increment/decrement, 0b11 is pre-increment, so we do nothing here
+        0b01 => {
+            log!(t, 5, "@ is 0b01, do Rs--");
+            unimplemented!();//TODO may also have to modify pages if d flag is set
+            set_reg_by_index(cpu, rs_index, rs);
+        },
+        0b10 => {
+            log!(t, 5, "@ is 0b10, do Rs++");
+            if d_flag {
+                let new_ds_rs_tuple = super::super::inc_page_addr_by(page, rs, 1);
+                cpu.set_ds(new_ds_rs_tuple.0);
+                rs = new_ds_rs_tuple.1;
+            } else {
+                rs += 1;
+            }
+
+            set_reg_by_index(cpu, rs_index, rs);
+            //TODO log DS too?
+            log_register!(t, 5, "Rs", rs_index, rs);
+        },
+        _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
+    }
+
+    cpu.inc_pc();
 }
 
 fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
@@ -285,9 +338,7 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     }
 
     //Perform the operation
-    log_noln!(t, 5, "Operation: ");
-    let result: u16 = alu_operation(cpu, upper_nibble as u8, operand1, operand2);
-    log!(t, 5, "Result:{:#06X} | {:#018b} | unsigned {}", result, result, result);
+    let result: u16 = alu_operation(t, cpu, upper_nibble as u8, operand1, operand2);
 
     //Write to the appropriate (if any) destination
     match (upper_nibble, direct16, direct16_w) {
@@ -388,12 +439,15 @@ fn set_reg_by_index(cpu: &mut CPUState, rd: u8, value: u16) {
         _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
 }
-fn alu_operation(cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
+fn alu_operation(t: u128, cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
     //TODO set flags correctly too
+
+    log_noln!(t, 5, "Operation: ");
+    let result: u16;
     match upper_nibble {
         0b0000 => {
             log_finln!("ADD");
-            return operand1 + operand2;
+            result = operand1 + operand2;
         },
         0b0001 => {
             log_finln!("ADC");
@@ -401,7 +455,7 @@ fn alu_operation(cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: 
         },
         0b0010 => {
             log_finln!("SUB");
-            return operand1 - operand2;
+            result = operand1 - operand2;
         },
         0b0011 => {
             log_finln!("SBC");
@@ -413,23 +467,23 @@ fn alu_operation(cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: 
         },
         0b0110 => {
             log_finln!("NEG");
-            return ((-(operand2 as i32)) & 0xFFFF) as u16;//TODO ensure this is valid, else do ~operand2 + 1
+            result = ((-(operand2 as i32)) & 0xFFFF) as u16;//TODO ensure this is valid, else do ~operand2 + 1
         },
         0b1000 => {
             log_finln!("XOR");
-            return operand1 ^ operand2;
+            result = operand1 ^ operand2;
         },
         0b1001 => {
             log_finln!("LOAD");
-            return operand2;
+            result = operand2;
         },
         0b1010 => {
             log_finln!("OR");
-            return operand1 | operand2;
+            result = operand1 | operand2;
         },
         0b1011 => {
             log_finln!("AND");
-            return operand1 & operand2;
+            result = operand1 & operand2;
         },
         0b1100 => {
             log_finln!("TEST");
@@ -437,11 +491,13 @@ fn alu_operation(cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: 
         },
         0b1101 => {
             log_finln!("STORE");
-            return operand1;//No need for any flags to be set with store
+            result = operand1;//No need for any flags to be set with store
         },
         _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
             return 0;
         },
     }
+    log!(t, 5, "Result:{:#06X} | {:#018b} | unsigned {}", result, result, result);
+    return result;
 }
