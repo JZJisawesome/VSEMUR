@@ -41,6 +41,8 @@ pub(super) struct CPUState {
     pc: u16,
     irq_enabled: bool,
     fiq_enabled: bool,
+
+    cycle_count: u8,//Instructions may take multiple clock cycles; we fake this by waiting the proper amount of them after executing the whole thing on the first tick()
 }
 
 struct Inst {
@@ -60,6 +62,8 @@ impl CPUState {
             pc: 0,
             irq_enabled: false,
             fiq_enabled: false,
+
+            cycle_count: 0,
         };
     }
 
@@ -87,6 +91,14 @@ impl CPUState {
 
     pub(super) fn tick(self: &mut Self, t: u128, mem: &mut MemoryState) {
         debug_assert!(mem.ready());
+
+        //Wait for the proper number of cycles depending on the last instruction executed
+        if self.cycle_count != 0 {
+            log!(t, 1, "CPU: Waiting {} more cycle(s) for the instruction to finish.", self.cycle_count);
+            log!(t, 1, "CPU: CS page, PC is still {:#04X}_{:04X} | SP is still {:#04X}", self.get_cs(), self.pc, self.sp);
+            self.cycle_count -= 1;
+            return;
+        }
 
         //Fetch instruction from memory
         debug_assert!(self.get_cs() < 0b111111);
@@ -162,6 +174,11 @@ impl CPUState {
 
     fn set_c(self: &mut Self, value: bool) {
         self.sr = (self.sr & 0b1111111110111111) | ((if value { 0b1 } else { 0b0 }) << 6);
+    }
+
+    fn set_cycle_count(self: &mut Self, value: u8) {
+        debug_assert!(value >= 1);
+        self.cycle_count = value - 1;//Since the current cycle counts as the first one we must wait
     }
 }
 

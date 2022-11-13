@@ -123,8 +123,8 @@ fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         }
     }
 
-    //TODO what if the register is the PC?
-    cpu.inc_pc();
+    cpu.set_cycle_count(8);
+    cpu.inc_pc();//TODO what if the register is the PC?
 }
 
 fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
@@ -161,8 +161,8 @@ fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             }
         }
 
-        //TODO what if rd_index is the PC?
-        cpu.inc_pc();
+        cpu.set_cycle_count(3);
+        cpu.inc_pc();//TODO what if rd_index is the PC?
     }
 }
 
@@ -189,6 +189,7 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         0b1101 => {
             //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
             log_finln!("PUSH");
+            cpu.set_cycle_count((3 * size) + 4);//Cycles to execute is proprotional to the number of registers we are pushing
             while size != 0 {
                 //TODO is this the correct order to push things?
                 let reg: u16 = get_reg_by_index(cpu, rh_index);
@@ -211,7 +212,7 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         0b1001 => {
             //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
             log_finln!("POP");
-            unimplemented!();//TODO figure out the exact semantics of this
+            unimplemented!();//TODO figure out the exact semantics of this including cycle time
         },
         _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
@@ -225,6 +226,7 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 fn secondary_group_011(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
     log_finln!("DS_Indirect");
+    //TODO determine number of cycles this takes
 
     //Check D flag and determine page
     let page: u8;
@@ -326,6 +328,7 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     match ((inst_word >> 4) & 0b11, (inst_word >> 3) & 0b1) {
         (0b00, 0b1) => {
             log_finln!("IMM16");
+            //TODO determine number of cycles this takes
             direct16 = false;
             direct16_w = false;//This value dosn't matter
 
@@ -341,6 +344,7 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         },
         (0b01, direct16_w_bit) => {
             log_midln!("Direct16");
+            //TODO determine number of cycles this takes
             direct16 = true;
             direct16_w = direct16_w_bit == 0b1;
             log_finln!(", with W flag{} set", if direct16_w { "" } else { " not" });

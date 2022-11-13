@@ -81,11 +81,12 @@ fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         }
     }
 
+    cpu.set_cycle_count(2);//All of these take 2 clock cycles
     cpu.inc_pc();
 }
 
 fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
-    log_finln!("CALL");
+    log_finln!("CALL A22");
 
     //Determine the new cs and pc
     let new_cs: u8 = (inst_word & 0b111111) as u8;
@@ -103,6 +104,8 @@ fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
 
     cpu.set_cs(new_cs);
     cpu.pc = new_pc;
+
+    cpu.set_cycle_count(9);
 }
 
 fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
@@ -147,7 +150,7 @@ fn secondary_group_101(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
                     log_finln!("OFF");
                 }
 
-                //Next instruction
+                cpu.set_cycle_count(2);
                 cpu.inc_pc();
             },
             0b001 => {
@@ -192,6 +195,7 @@ fn secondary_group_101(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             },
             0b101 => {
                 log_finln!("NOP");
+                cpu.set_cycle_count(2);
                 cpu.inc_pc();//Do nothing, just go to the next instruction
             },
             _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?

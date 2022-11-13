@@ -52,6 +52,8 @@
 //!}
 //!```
 
+//TODO we don't _need_ to load a rom; we only need the bios, so we should allow for that
+
 /* Imports */
 
 mod cpu;
