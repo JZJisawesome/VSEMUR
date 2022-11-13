@@ -38,11 +38,8 @@ use super::CPUState;
 /* Functions */
 
 pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
-    let secondary_group = (inst_word >> 6) & 0b111;
-    debug_assert!(secondary_group < 8);
-
     log_noln!(4, "Instruction type: ");
-    match secondary_group {
+    match super::secondary_group!(inst_word) {
         0b000 => { secondary_group_000(cpu, mem, inst_word); },
         0b001 => { secondary_group_001(cpu, mem, inst_word); },
         0b010 => { secondary_group_010(cpu, mem, inst_word); },

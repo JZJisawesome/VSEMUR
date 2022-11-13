@@ -39,8 +39,34 @@ use super::CPUState;
 /* Functions */
 
 pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
-    let secondary_group = (inst_word >> 6) & 0b111;
-    debug_assert!(secondary_group < 8);
+    log_noln!(4, "Instruction type: ");
+    if ((inst_word >> 8) & 0b1) == 0b1 {//Part of the secondary group
+        register_bitop(cpu, mem, inst_word);
+    } else {
+        memory_bitop(cpu, mem, inst_word);
+    }
+}
 
-    unimplemented!();//TODO
+pub(super) fn register_bitop(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+    log_midln!("Register BITOP, ");
+
+    if ((inst_word >> 6) & 0b1) == 0b1 {//Part of the secondary group
+        log_finln!("offset");
+        unimplemented!();//TODO
+    } else {
+        log_finln!("Rs");
+        unimplemented!();//TODO
+    }
+}
+
+pub(super) fn memory_bitop(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+    log_midln!("Memory BITOP, ");
+
+    if ((inst_word >> 7) & 0b1) == 0b1 {//Part of the secondary group
+        log_finln!("offset");
+        unimplemented!();//TODO
+    } else {
+        log_finln!("Rs");
+        unimplemented!();//TODO
+    }
 }
