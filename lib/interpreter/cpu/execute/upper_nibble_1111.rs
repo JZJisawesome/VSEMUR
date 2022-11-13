@@ -51,7 +51,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16)
         0b101 => { secondary_group_101(cpu, mem, inst_word); },
         0b110 => { secondary_group_110(cpu, mem, inst_word); },
         0b111 => { secondary_group_111(cpu, mem, inst_word); },
-        _ => { if cfg!(debug_assertions) { panic!(); }},//This should never occur
+        _ => { panic!(); },//This should never occur
     }
 }
 
@@ -75,8 +75,9 @@ fn secondary_group_000(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
                 log_finln!("FR access");
                 unimplemented!();//TODO
             },
-            _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+            _ => {//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
                 log_finln!("(invalid)");
+                panic!();
             },
         }
     }
@@ -163,8 +164,9 @@ fn secondary_group_101(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
             0b011 => {
                 unimplemented!();//TODO
             },
-            _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+            _ => {//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
                 log_finln!("(invalid)");
+                panic!();
             },
         }
     } else {
@@ -198,8 +200,9 @@ fn secondary_group_101(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
                 cpu.set_cycle_count(2);
                 cpu.inc_pc();//Do nothing, just go to the next instruction
             },
-            _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+            _ => {//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
                 log_finln!("(invalid)");
+                panic!();
             },
         }
     }

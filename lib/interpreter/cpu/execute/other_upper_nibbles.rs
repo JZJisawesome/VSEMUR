@@ -36,7 +36,7 @@ macro_rules! reg_string_by_index {
             0b101 => { string = "BP"; },
             0b110 => { string = "SR"; },
             0b111 => { string = "PC"; },
-            _ => { if cfg!(debug_assertions) { panic!(); } string = ""; },//This should never occur
+            _ => { panic!(); },//This should never occur
         }
         string
     }};
@@ -82,7 +82,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16)
         0b101 => { secondary_group_101(cpu, mem, inst_word); },
         0b110 => { secondary_group_110(cpu, mem, inst_word); },
         0b111 => { secondary_group_111(cpu, mem, inst_word); },
-        _ => { if cfg!(debug_assertions) { panic!(); }},//This should never occur
+        _ => { panic!(); },//This should never occur
     }
 }
 
@@ -114,8 +114,9 @@ fn secondary_group_000(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
     //Write to the appropriate (if any) destination
     match upper_nibble {
         0b0100 | 0b1100 => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
-        0b1101 => {//IMM6 STORE is invalid (we can't store to an immediate)
+        0b1101 => {//IMM6 STORE is invalid (we can't store to an immediate)//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
             log!(5, "This isn't valid: we can't store a result to an immediate!");
+            panic!();
         },
         _ => {//Other cases are much simpler; we just write to Rd
             set_reg_by_index(cpu, rd_index, result);
@@ -152,8 +153,9 @@ fn secondary_group_001(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
         //Write to the appropriate (if any) destination
         match upper_nibble {
             0b0100 | 0b1100 => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
-            0b1101 => {//IMM6 STORE is invalid (we can't store to an immediate)
+            0b1101  => {//IMM6 STORE is invalid (we can't store to an immediate)//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
                 log!(5, "This isn't valid: we can't store a result to an immediate!");
+                panic!();
             },
             _ => {//Other cases are much simpler; we just write to Rd
                 set_reg_by_index(cpu, rd_index, result);
@@ -214,8 +216,9 @@ fn secondary_group_010(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
             log_finln!("POP");
             unimplemented!();//TODO figure out the exact semantics of this including cycle time
         },
-        _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+        _ => {//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
+            panic!();
         },
     }
 
@@ -270,7 +273,7 @@ fn secondary_group_011(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
             //TODO log DS too?
             log_register!(5, "Rs", rs_index, rs);
         },
-        _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
+        _ => { panic!(); },//This should never occur
     }
 
     //Get data at address determined by page and Rs
@@ -307,7 +310,7 @@ fn secondary_group_011(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
             //TODO log DS too?
             log_register!(5, "Rs", rs_index, rs);
         },
-        _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
+        _ => { panic!(); },//This should never occur
     }
 
     //TODO what if rd_index is the PC?
@@ -329,7 +332,6 @@ fn secondary_group_100(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
     match ((inst_word >> 4) & 0b11, (inst_word >> 3) & 0b1) {
         (0b00, 0b1) => {
             log_finln!("IMM16");
-            cpu.set_cycle_count(if rd_index == 0b111 { 5 } else { 4 });
             direct16 = false;
             direct16_w = false;//This value dosn't matter
 
@@ -345,7 +347,6 @@ fn secondary_group_100(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
         },
         (0b01, direct16_w_bit) => {
             log_midln!("Direct16");
-            cpu.set_cycle_count(if rd_index == 0b111 { 8 } else { 7 });
             direct16 = true;
             direct16_w = direct16_w_bit == 0b1;
             log_finln!(", with W flag{} set", if direct16_w { "" } else { " not" });
@@ -376,9 +377,9 @@ fn secondary_group_100(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
                 log!(6, "     {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
             }
         },
-        (_, _) => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+        (_, _) => {//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
-            return;
+            panic!();
         },
     }
 
@@ -388,22 +389,31 @@ fn secondary_group_100(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
     //Write to the appropriate (if any) destination
     match (upper_nibble, direct16, direct16_w) {
         (0b0100, _, _) | (0b1100, _, _) => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
-        (0b1101, false, _) => {//IMM16 STORE is invalid (we can't store to an immediate)
+        (0b1101, false, _) => {//IMM16 STORE is invalid (we can't store to an immediate)//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
             log!(5, "This isn't valid: we can't store a result to an immediate!");
+            panic!();
         },
         (0b1101, true, true) => {//Direct16 STORE + w flag set stores the result (which is Rd) to Rs
             let rs_index: u8 = (inst_word & 0b111) as u8;
             set_reg_by_index(cpu, rs_index, result);//rs is rd, and rd is result
             log_register!(5, "Rs", rs_index, result);
+            //TODO cycle count in this case
         },
         (0b1101, true, false) |//Direct16 STORE + w flag not set stores the result (which is Rs) to memory
         (_, true, true) => {//Direct16 operation with w flag set writes result to memory instead of a register
-            unimplemented!();//TODO
+            unimplemented!();//TODO (also cycle count in this case)
         }
         (_, false, _) | (_, true, false) => {//Other cases are much simpler; we just write to Rd
             let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
             set_reg_by_index(cpu, rd_index, result);
             log_register!(5, "Rd", rd_index, result);
+
+            //Determine cycle count in this case
+            if direct16 {
+                cpu.set_cycle_count(if rd_index == 0b111 { 5 } else { 4 });
+            } else {
+                cpu.set_cycle_count(if rd_index == 0b111 { 8 } else { 7 });
+            }
         }
     }
 
@@ -451,7 +461,7 @@ fn get_reg_by_index(cpu: &CPUState, rs: u8) -> u16 {
         0b111 => {
             return cpu.pc;
         },
-        _ => { if cfg!(debug_assertions) { panic!(); } return 0; },//This should never occur
+        _ => { panic!(); },//This should never occur
     }
 }
 fn set_reg_by_index(cpu: &mut CPUState, rd: u8, value: u16) {
@@ -481,7 +491,7 @@ fn set_reg_by_index(cpu: &mut CPUState, rd: u8, value: u16) {
         0b111 => {
             cpu.pc = value;
         },
-        _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
+        _ => { panic!(); },//This should never occur
     }
 }
 fn alu_operation(cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
@@ -543,9 +553,9 @@ fn alu_operation(cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: 
             log_finln!("STORE");
             result_w = operand1_w;//No need for any flags to be set with store
         },
-        _ => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+        _ => {//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");
-            return 0;
+            panic!();
         },
     }
     let result: u32 = result_w.0;//We don't need wrapping behaviour anymore

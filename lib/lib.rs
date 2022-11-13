@@ -3,6 +3,9 @@
  *
  * Library for the VSmile EMUlator in Rust
  *
+ * Note: This library may not report errors to your application if it is compiled in release mode for speed.
+ * If you are developing an application, you should compile this library in debug mode in order to be guaranteed to get errors back.
+ *
 */
 
 //!libvsemur

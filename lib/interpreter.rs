@@ -159,8 +159,11 @@ impl State {
         log_ansi!(0, "\x1b[1;97m", "Resetting emulated system");
 
         //Memory must be reset first since other parts may depend on values in it at reset
-        if !self.mem.reset() {//BIOS or ROM wasn't loaded
-            return ReturnCode::ResetFail;
+        let mem_result: bool = self.mem.reset();
+        if cfg!(debug_assertions) {
+            if !mem_result {//BIOS or ROM wasn't loaded
+                return ReturnCode::ResetFail;
+            }
         }
 
         self.cpu.reset(&mut self.mem);
@@ -181,7 +184,7 @@ impl State {
     ///
     ///Returns [`ReturnCode::TickFail`] if the proper prerequisites have not been met. Otherwise normally returns [`ReturnCode::TickOk`], unless a new frame is ready to be shown to the user, in which case it returns [`ReturnCode::TickOkNewFrameAvailable`].
     pub fn tick(self: &mut Self) -> ReturnCode {
-        if cfg!(debug_assertions) {//Gotta go fast
+        if cfg!(debug_assertions) {
             if self.reset_needed {
                 return ReturnCode::TickFail;
             }
