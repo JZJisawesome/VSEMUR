@@ -12,6 +12,7 @@
 
 /* Imports */
 
+mod decode;
 mod execute;
 
 use crate::logging::log;

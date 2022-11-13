@@ -16,6 +16,8 @@ mod upper_nibble_1110;
 mod other_upper_nibbles;
 
 use crate::logging::log;
+use crate::logging::log_noln;
+use crate::logging::log_finln;
 use crate::interpreter::memory::MemoryState;
 use super::CPUState;
 
@@ -128,7 +130,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16)
 
 
     log!(2, "Check if upper nibble is 0xF or 0xE:     ^^^^");
-    match upper_nibble {
+    match upper_nibble!(inst_word) {
         0xF => {
             log!(3, "Yep! Split opcodes by upper nibble     ^^^^");
             log!(3, "using secondary group and followed by         ^^^");
