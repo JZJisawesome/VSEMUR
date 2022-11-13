@@ -196,7 +196,6 @@ fn secondary_group_010(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
                 //TODO is this the correct order to push things?
                 let reg: u16 = get_reg_by_index(cpu, rh_index);
                 log_register!(5, "Current reg.", rh_index, reg);
-                rs = get_reg_by_index(cpu, rs_index);
 
                 mem.write_page_addr(reg, 0x00, rs);
                 log!(7, "Pushed to the stack @ [Rs]: {:#06X}", rs);
@@ -205,7 +204,6 @@ fn secondary_group_010(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
                 log!(7, "Decrement Rs; it is now {:#06X}", rs);
 
                 rh_index -= 1;
-
                 size -= 1;
             }
 
@@ -214,7 +212,22 @@ fn secondary_group_010(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
         0b1001 => {
             //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
             log_finln!("POP");
-            unimplemented!();//TODO figure out the exact semantics of this including cycle time
+            while size != 0 {
+                //TODO is this the correct order to pop things?
+                rs += 1;
+                log!(7, "Increment Rs; it is now {:#06X}", rs);
+
+                let data: u16 = mem.read_page_addr(0x00, rs);
+                log!(7, "Popped from the stack @ [Rs]: {:#06X}", rs);
+
+                set_reg_by_index(cpu, rh_index, data);
+                log_register!(5, "Current reg.", rh_index, data);
+
+                rh_index -= 1;
+                size -= 1;
+            }
+
+            set_reg_by_index(cpu, rs_index, rs);//Actually write back RS to the cpu's state
         },
         _ => {//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
             log_finln!("(invalid)");

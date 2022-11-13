@@ -175,6 +175,7 @@ fn load_file_u16(path: &str, buffer: &mut [u16], buffer_size: usize) -> ReturnCo
     let bytes_read = file.read(&mut byte_buffer).unwrap();
     debug_assert!(bytes_read <= buffer_size * 2);
 
+    //Files are little-endian
     for i in 0..buffer_size {//FIXME this loop is incredibly slow
         buffer[i] = ((byte_buffer[(i * 2) + 1] as u16) << 8) | (byte_buffer[i * 2] as u16);
     }

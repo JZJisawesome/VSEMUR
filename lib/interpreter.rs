@@ -53,6 +53,8 @@
 //!```
 
 //TODO we don't _need_ to load a rom; we only need the bios, so we should allow for that
+//We also don't need to load the bios; we can also get away with the bios in the rom
+//So really we only need one or the other
 
 /* Imports */
 
