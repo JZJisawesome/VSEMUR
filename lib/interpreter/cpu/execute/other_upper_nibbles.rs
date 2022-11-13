@@ -87,7 +87,44 @@ pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
 }
 
 fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
-    unimplemented!();
+    let upper_nibble = inst_word >> 12;
+    log_finln!("Base+Disp6");
+
+    //Get Rd
+    let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
+    let rd: u16 = get_reg_by_index(cpu, rd_index);
+    log_register!(t, 5, "Rd", rd_index, rd);
+
+    //Get BP
+    log_noln!(t, 5, "BP: {:#06X}, ", cpu.bp);
+
+    //Get imm6
+    let imm6: u8 = (inst_word & 0b111111) as u8;
+    log_finln!("IMM6: {:#06X}, sum to get address", imm6);
+
+    //Determine address and get data
+    let addr: u16 = cpu.bp + (imm6 as u16);
+    let data: u16 = mem.read_page_addr(cpu.get_ds(), addr);
+    log!(t, 5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", cpu.get_ds(), addr);//TODO is this the correct page, or should it be the zero page?
+    log!(t, 6, "{:#06X} | {:#018b} | unsigned {}", data, data, data);
+
+    //Perform the operation
+    let result: u16 = alu_operation(t, cpu, upper_nibble as u8, rd, data);
+
+    //Write to the appropriate (if any) destination
+    match upper_nibble {
+        0b0100 | 0b1100 => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
+        0b1101 => {//IMM6 STORE is invalid (we can't store to an immediate)
+            log!(t, 5, "This isn't valid: we can't store a result to an immediate!");
+        },
+        _ => {//Other cases are much simpler; we just write to Rd
+            set_reg_by_index(cpu, rd_index, result);
+            log_register!(t, 5, "Rd", rd_index, result);
+        }
+    }
+
+    //TODO what if the register is the PC?
+    cpu.inc_pc();
 }
 
 fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
@@ -124,6 +161,7 @@ fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
             }
         }
 
+        //TODO what if rd_index is the PC?
         cpu.inc_pc();
     }
 }
@@ -180,6 +218,7 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         },
     }
 
+    //TODO what if rd_index is the PC?
     cpu.inc_pc();
 }
 
@@ -269,6 +308,7 @@ fn secondary_group_011(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
 
+    //TODO what if rd_index is the PC?
     cpu.inc_pc();
 }
 
@@ -362,6 +402,7 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
         }
     }
 
+    //TODO what if rd_index is the PC?
     cpu.inc_pc_by(2);//2 instead of 1 since we must skip over the 16 bit immediate
 }
 
@@ -434,7 +475,6 @@ fn set_reg_by_index(cpu: &mut CPUState, rd: u8, value: u16) {
         },
         0b111 => {
             cpu.pc = value;
-            unimplemented!();//TODO what are the implications of the increment after this?
         },
         _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
