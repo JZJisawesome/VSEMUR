@@ -65,6 +65,8 @@ mod sound;
 use crate::logging::log;
 use crate::logging::log_ansi;
 use crate::logging::log_reset_file;
+use crate::logging::log_increment_ticks;
+use crate::logging::log_reset_ticks;
 
 /* Constants */
 
@@ -88,8 +90,6 @@ const MEM_SIZE_WORDS: usize = 1 << 22;//TODO set this to 0xFFFF since everything
 ///
 ///Instanciate with [`State::new()`].
 pub struct State {
-    t: u32,//Ticks
-
     cpu: cpu::CPUState,
     render: render::RenderState,
     sound: sound::SoundState,
@@ -129,11 +129,11 @@ impl State {
     ///You probably want to load a rom and bios after this; see [`State::load_bios_file()`], [`State::load_bios_mem()`], [`State::load_rom_file()`], and [`State::load_rom_mem()`].
     pub fn new() -> State {
         log_reset_file!();
+        log_reset_ticks!();
 
-        log_ansi!(0, 0, "\x1b[1;97m", "Initializing VSEMUR State");
+        log_ansi!(0, "\x1b[1;97m", "Initializing VSEMUR State");
 
         let new_state = State {
-            t: 0,
             cpu: cpu::CPUState::new(),
             render: render::RenderState::new(),
             sound: sound::SoundState::new(),
@@ -141,7 +141,7 @@ impl State {
             mem: memory::MemoryState::new(),
         };
 
-        log!(0, 0, "Initialization complete");
+        log!(0, "Initialization complete");
 
         return new_state
     }
@@ -152,8 +152,8 @@ impl State {
     ///
     ///Returns [`ReturnCode::ResetFail`] if a BIOS or ROM wasn't loaded beforehand; otherwise returns [`ReturnCode::ResetOk`].
     pub fn reset(self: &mut Self) -> ReturnCode {
-        self.t = 0;
-        log_ansi!(self.t, 0, "\x1b[1;97m", "Resetting emulated system");
+        log_reset_ticks!();
+        log_ansi!(0, "\x1b[1;97m", "Resetting emulated system");
 
         //Memory must be reset first since other parts may depend on values in it at reset
         if !self.mem.reset() {//BIOS or ROM wasn't loaded
@@ -165,7 +165,7 @@ impl State {
         self.sound.reset();
         self.input.reset();
 
-        log!(self.t, 0, "Reset complete");
+        log!(0, "Reset complete");
         return ReturnCode::ResetOk;
     }
 
@@ -182,15 +182,15 @@ impl State {
         }
 
         //Increment the number of ticks for debugging
-        if cfg!(debug_assertions) { self.t += 1; }
-        log_ansi!(self.t, 0, "\x1b[1;97m", "Tick {} begins", self.t);
+        log_increment_ticks!();
+        log_ansi!(0, "\x1b[1;97m", "Tick begins");
 
         //Tick sub-states
-        self.cpu.tick(self.t, &mut self.mem);
+        self.cpu.tick(&mut self.mem);
         self.render.tick();
         self.sound.tick();
 
-        log!(self.t, 0, "Tick {} ends", self.t);
+        log!(0, "Tick ends");
         return ReturnCode::TickOk;
     }
 

@@ -57,7 +57,7 @@ struct ControllerButtons {
 
 impl InputState {
     pub(super) fn new() -> InputState {
-        log!(0, 1, "Initializing input state");
+        log!(1, "Initializing input state");
 
         return InputState {
             p1: ControllerButtons {
@@ -96,7 +96,7 @@ impl InputState {
     }
 
     pub(super) fn reset(self: &mut Self) {
-        log!(0, 1, "Resetting input state");
+        log!(1, "Resetting input state");
         //unimplemented!();//TODO
     }
 }

@@ -53,7 +53,7 @@ struct Inst {
 
 impl CPUState {
     pub(super) fn new() -> CPUState {
-        log!(0, 1, "Initializing CPU");
+        log!(1, "Initializing CPU");
         return CPUState {
             sp: 0,
             r: [0, 0, 0, 0],
@@ -68,50 +68,50 @@ impl CPUState {
     }
 
     pub(super) fn reset(self: &mut Self, mem: &MemoryState) {
-        log!(0, 1, "Resetting CPU");
+        log!(1, "Resetting CPU");
 
-        log!(0, 2, "Zero out SP, R1, R2, R3, R4, BP, and SR");
+        log!(2, "Zero out SP, R1, R2, R3, R4, BP, and SR");
         self.sp = 0;
         self.r = [0, 0, 0, 0];
         self.bp = 0;
         self.sr = 0;
 
-        log!(0, 2, "Disable interrupts");
+        log!(2, "Disable interrupts");
         self.irq_enabled = false;
         self.fiq_enabled = false;
 
-        log!(0, 2, "Set initial CS page and PC");
+        log!(2, "Set initial CS page and PC");
         debug_assert!(RESET_VECTOR_ADDR < MEM_SIZE_WORDS);
-        log!(0, 3, "Read reset vector at address {:#04X}_{:04X}", RESET_VECTOR_ADDR >> 16, RESET_VECTOR_ADDR & 0xFFFF);
+        log!(3, "Read reset vector at address {:#04X}_{:04X}", RESET_VECTOR_ADDR >> 16, RESET_VECTOR_ADDR & 0xFFFF);
         self.pc = mem.read_addr(RESET_VECTOR_ADDR as u32);
-        log!(0, 3, "Initial CS page, PC is {:#04X}_{:04X}", self.get_cs(), self.pc);
+        log!(3, "Initial CS page, PC is {:#04X}_{:04X}", self.get_cs(), self.pc);
 
         //TODO do we need to initialize the cs or ds?
     }
 
-    pub(super) fn tick(self: &mut Self, t: u32, mem: &mut MemoryState) {
+    pub(super) fn tick(self: &mut Self, mem: &mut MemoryState) {
         debug_assert!(mem.ready());
 
         //Wait for the proper number of cycles depending on the last instruction executed
         if self.cycle_count != 0 {
-            log!(t, 1, "CPU: Waiting {} more cycle(s) for the instruction to finish", self.cycle_count);
-            log!(t, 1, "CPU: CS page, PC is still {:#04X}_{:04X} | SP is still {:#04X}", self.get_cs(), self.pc, self.sp);
+            log!(1, "CPU: Waiting {} more cycle(s) for the instruction to finish", self.cycle_count);
+            log!(1, "CPU: CS page, PC is still {:#04X}_{:04X} | SP is still {:#04X}", self.get_cs(), self.pc, self.sp);
             self.cycle_count -= 1;
             return;
         }
 
         //Fetch instruction from memory
         debug_assert!(self.get_cs() < 0b111111);
-        log!(t, 1, "CPU: Fetch started from CS page, PC address: {:#04X}_{:04X}", self.get_cs(), self.pc);
+        log!(1, "CPU: Fetch started from CS page, PC address: {:#04X}_{:04X}", self.get_cs(), self.pc);
         let inst_word: u16 = mem.read_page_addr(self.get_cs(), self.pc);
-        log!(t, 2, "Instruction word group 1:     {:#06X} | {:#018b}", inst_word, inst_word);
+        log!(2, "Instruction word group 1:     {:#06X} | {:#018b}", inst_word, inst_word);
 
         //Execute it
-        execute::execute(t, self, mem, inst_word);
+        execute::execute(self, mem, inst_word);
 
         //TODO handle interrupts, etc
 
-        log!(t, 1, "CPU: CS page, PC is now {:#04X}_{:04X} | SP is now {:#04X}", self.get_cs(), self.pc, self.sp);
+        log!(1, "CPU: CS page, PC is now {:#04X}_{:04X} | SP is now {:#04X}", self.get_cs(), self.pc, self.sp);
     }
 
     //Make PC access easier (also handles the CS register if it needs to be incremented too)

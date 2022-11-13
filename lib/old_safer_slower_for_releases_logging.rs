@@ -1,8 +1,7 @@
 /* logging.rs
  * By: John Jekel
  *
- * Logging facilities for libvsemur (debug builds only)
- * These do nothing in release builds (optimized away by the compiler)
+ * Logging facilities for libvsemur
  *
 */
 
@@ -15,21 +14,12 @@
 
 pub(crate) const LOG_FILE_PATH: &str = "vsemur-log.txt";
 
-/* Static Variables */
-
-//Is this thread safe? No.
-//Is this a variable accessible to the whole crate? Yes.
-//Is this unsafe rust? Yes.
-//But it is only used in debug builds, and saves us having to pass a tick variable to each function that needs to log something
-//thus improving the performance of release builds
-pub(crate) static mut TICK_NUM: u128 = 0;
-
 /* Macros */
 
 //FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
 macro_rules! internal_log_prompt {//Helper macro
-    ($indent:expr) => {
-        eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", crate::logging::internal_log_ticks!());
+    ($tick_num:expr, $indent:expr) => {
+        eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", $tick_num);
         for _ in 0..$indent {
             eprint!("  ");
         }
@@ -49,10 +39,10 @@ macro_rules! internal_log_buffer_create {//Helper macro
 }
 pub(crate) use internal_log_buffer_create;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
 macro_rules! internal_log_buffer_create_and_prompt {//Helper macro
-    ($log_file:expr, $indent:expr) => {{
+    ($log_file:expr, $tick_num:expr, $indent:expr) => {{
         let mut log_buffer = crate::logging::internal_log_buffer_create!($log_file);
         use std::io::Write;
-        write!(&mut log_buffer, "@t={:>10}> ", crate::logging::internal_log_ticks!()).unwrap();
+        write!(&mut log_buffer, "@t={:>10}> ", $tick_num).unwrap();
         for _ in 0..$indent {
             write!(&mut log_buffer, "  ").unwrap();
         }
@@ -60,88 +50,66 @@ macro_rules! internal_log_buffer_create_and_prompt {//Helper macro
     }};
 }
 pub(crate) use internal_log_buffer_create_and_prompt;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
-macro_rules! internal_log_ticks {//Helper macro
-    () => {
-        unsafe { crate::logging::TICK_NUM }
-    };
-}
-pub(crate) use internal_log_ticks;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
 
-macro_rules! log_reset_ticks {
-    () => {
-        if cfg!(debug_assertions) {
-            unsafe { crate::logging::TICK_NUM = 0; }
-        }
-    };
-}
-pub(crate) use log_reset_ticks;
-macro_rules! log_increment_ticks {
-    () => {
-        if cfg!(debug_assertions) {
-            unsafe { crate::logging::TICK_NUM += 1; }
-        }
-    };
-}
-pub(crate) use log_increment_ticks;
 //Thanks https://stackoverflow.com/questions/34373169/how-do-i-create-a-rust-macro-with-optional-parameters-using-repetitions
 macro_rules! log_noln {
     //Case where there are no extra arguments
-    ($indent:expr, $string:expr) => {
+    ($tick_num:expr, $indent:expr, $string:expr) => {
         if cfg!(debug_assertions) {
             //Log to stderr
-            crate::logging::internal_log_prompt!($indent);
+            crate::logging::internal_log_prompt!($tick_num, $indent);
             eprint!($string);
 
             //Log to the log file
             use std::io::Write;
             let log_file = crate::logging::internal_log_file_open!();
-            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $indent);
+            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $tick_num, $indent);
             write!(&mut log_buffer, $string).unwrap();
         }
     };
     //Case where there are extra arguments
     /*//FIXME this dosn't work (how to pass multiple args to eprintln???)
-    ($indent:expr, $string:expr, $($extra_println_args:expr), +) => {
+    ($tick_num:expr, $indent:expr, $string:expr, $($extra_println_args:expr), +) => {
 
     };
     */
     //HACK Support up to three extra arguments (the most we'll likely need; add more if necessary)
-    ($indent:expr, $string:expr, $extra_arg_1:expr) => {
+    ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr) => {
         if cfg!(debug_assertions) {
             //Log to stderr
-            crate::logging::internal_log_prompt!($indent);
+            crate::logging::internal_log_prompt!($tick_num, $indent);
             eprint!($string, $extra_arg_1);
 
             //Log to the log file
             use std::io::Write;
             let log_file = crate::logging::internal_log_file_open!();
-            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $indent);
+            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $tick_num, $indent);
             write!(&mut log_buffer, $string, $extra_arg_1).unwrap();
         }
     };
-    ($indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
+    ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
         if cfg!(debug_assertions) {
             //Log to stderr
-            crate::logging::internal_log_prompt!($indent);
+            crate::logging::internal_log_prompt!($tick_num, $indent);
             eprint!($string, $extra_arg_1, $extra_arg_2);
 
             //Log to the log file
             use std::io::Write;
             let log_file = crate::logging::internal_log_file_open!();
-            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $indent);
+            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $tick_num, $indent);
             write!(&mut log_buffer, $string, $extra_arg_1, $extra_arg_2).unwrap();
         }
     };
-    ($indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
+    ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
         if cfg!(debug_assertions) {
             //Log to stderr
-            crate::logging::internal_log_prompt!($indent);
+            crate::logging::internal_log_prompt!($tick_num, $indent);
             eprint!($string, $extra_arg_1, $extra_arg_2, $extra_arg_3);
 
             //Log to the log file
             use std::io::Write;
             let log_file = crate::logging::internal_log_file_open!();
-            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $indent);
+            let mut log_buffer = crate::logging::internal_log_buffer_create_and_prompt!(&log_file, $tick_num, $indent);
             write!(&mut log_buffer, $string, $extra_arg_1, $extra_arg_2, $extra_arg_3).unwrap();
         }
     };
@@ -284,34 +252,34 @@ pub(crate) use log_finln;
 
 macro_rules! log {
     //Case where there are no extra arguments
-    ($indent:expr, $string:expr) => {
+    ($tick_num:expr, $indent:expr, $string:expr) => {
         if cfg!(debug_assertions) {
-            crate::logging::log_noln!($indent, $string);
+            crate::logging::log_noln!($tick_num, $indent, $string);
             crate::logging::log_finln!();
         }
     };
     //Case where there are extra arguments
     /*//FIXME this dosn't work (how to pass multiple args to log_noln???)
-    ($indent:expr, $string:expr, $($extra_println_args:expr), +) => {
+    ($tick_num:expr, $indent:expr, $string:expr, $($extra_println_args:expr), +) => {
 
     };
     */
     //HACK Support up to three extra arguments (the most we'll likely need; add more if necessary)
-    ($indent:expr, $string:expr, $extra_arg_1:expr) => {
+    ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr) => {
         if cfg!(debug_assertions) {
-            crate::logging::log_noln!($indent, $string, $extra_arg_1);
+            crate::logging::log_noln!($tick_num, $indent, $string, $extra_arg_1);
             crate::logging::log_finln!();
         }
     };
-    ($indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
+    ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
         if cfg!(debug_assertions) {
-            crate::logging::log_noln!($indent, $string, $extra_arg_1, $extra_arg_2);
+            crate::logging::log_noln!($tick_num, $indent, $string, $extra_arg_1, $extra_arg_2);
             crate::logging::log_finln!();
         }
     };
-    ($indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
+    ($tick_num:expr, $indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
         if cfg!(debug_assertions) {
-            crate::logging::log_noln!($indent, $string, $extra_arg_1, $extra_arg_2, $extra_arg_3);
+            crate::logging::log_noln!($tick_num, $indent, $string, $extra_arg_1, $extra_arg_2, $extra_arg_3);
             crate::logging::log_finln!();
         }
     };
@@ -320,9 +288,9 @@ pub(crate) use log;
 
 macro_rules! log_ansi {
     //Case where there are no extra arguments
-    ($indent:expr, $ansi:expr, $string:expr) => {
+    ($tick_num:expr, $indent:expr, $ansi:expr, $string:expr) => {
         if cfg!(debug_assertions) {
-            crate::logging::log_noln!($indent, "");
+            crate::logging::log_noln!($tick_num, $indent, "");
             eprint!($ansi);//Only output ansi to the terminal, not to the log file
             crate::logging::log_finln!($string);
             eprint!("\x1b[0m");//Reset ansi text properties
@@ -330,30 +298,30 @@ macro_rules! log_ansi {
     };
     //Case where there are extra arguments
     /*//FIXME this dosn't work (how to pass multiple args to log_noln???)
-    ($indent:expr, $string:expr, $($extra_println_args:expr), +) => {
+    ($tick_num:expr, $indent:expr, $string:expr, $($extra_println_args:expr), +) => {
 
     };
     */
     //HACK Support up to three extra arguments (the most we'll likely need; add more if necessary)
-    ($indent:expr, $ansi:expr, $string:expr, $extra_arg_1:expr) => {
+    ($tick_num:expr, $indent:expr, $ansi:expr, $string:expr, $extra_arg_1:expr) => {
         if cfg!(debug_assertions) {
-            crate::logging::log_noln!($indent, "");
+            crate::logging::log_noln!($tick_num, $indent, "");
             eprint!($ansi);//Only output ansi to the terminal, not to the log file
             crate::logging::log_finln!($string, $extra_arg_1);
             eprint!("\x1b[0m");//Reset ansi text properties
         }
     };
-    ($indent:expr, $ansi:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
+    ($tick_num:expr, $indent:expr, $ansi:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
         if cfg!(debug_assertions) {
-            crate::logging::log_noln!($indent, "");
+            crate::logging::log_noln!($tick_num, $indent, "");
             eprint!($ansi);//Only output ansi to the terminal, not to the log file
             crate::logging::log_finln!($string, $extra_arg_1, $extra_arg_2);
             eprint!("\x1b[0m");//Reset ansi text properties
         }
     };
-    ($indent:expr, $ansi:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
+    ($tick_num:expr, $indent:expr, $ansi:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
         if cfg!(debug_assertions) {
-            crate::logging::log_noln!($indent, "");
+            crate::logging::log_noln!($tick_num, $indent, "");
             eprint!($ansi);//Only output ansi to the terminal, not to the log file
             crate::logging::log_finln!($string, $extra_arg_1, $extra_arg_2, $extra_arg_3);
             eprint!("\x1b[0m");//Reset ansi text properties
@@ -367,16 +335,20 @@ macro_rules! log_reset_file {
         if cfg!(debug_assertions) {
             match std::fs::remove_file(crate::logging::LOG_FILE_PATH) {
                 Ok(_) => {
-                    crate::logging::log_ansi!(0, "\x1b[36m", "Overwriting existing log file \"{}\"", crate::logging::LOG_FILE_PATH);
+                    crate::logging::log_ansi!(0, 0, "\x1b[36m", "Overwriting existing log file \"{}\"", crate::logging::LOG_FILE_PATH);
                 },
                 Err(_) => {
-                    crate::logging::log_ansi!(0, "\x1b[36m", "Creating new log file \"{}\"", crate::logging::LOG_FILE_PATH);
+                    crate::logging::log_ansi!(0, 0, "\x1b[36m", "Creating new log file \"{}\"", crate::logging::LOG_FILE_PATH);
                 }
             }
         }
     }
 }
 pub(crate) use log_reset_file;
+
+/* Static Variables */
+
+//TODO
 
 /* Types */
 

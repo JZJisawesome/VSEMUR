@@ -49,7 +49,7 @@ pub(super) struct MemoryState {
 
 impl MemoryState {
     pub(super) fn new() -> MemoryState {
-        log!(0, 1, "Initializing memory");
+        log!(1, "Initializing memory");
         return MemoryState {
             /*
             //FIXME use this instead once it is stable
@@ -107,9 +107,9 @@ impl MemoryState {
             return false;
         }
 
-        log!(0, 1, "Resetting memory");
+        log!(1, "Resetting memory");
 
-        log!(0, 2, "Place loaded bios and rom into the address space");
+        log!(2, "Place loaded bios and rom into the address space");
         //TODO
         //TEMPORARY for now just copy the bios to the memory
         self.mem.clone_from(&self.bios);
@@ -168,14 +168,14 @@ fn load_file_u16(path: &str, buffer: &mut [u16], buffer_size: usize) -> ReturnCo
         return ReturnCode::LoadFailSize;
     }
 
-    log_ansi!(0, 0, "\x1b[36m", "Loading file \"{}\": {} words | {} bytes", path, metadata.len() / 2, metadata.len());
+    log_ansi!(0, "\x1b[36m", "Loading file \"{}\": {} words | {} bytes", path, metadata.len() / 2, metadata.len());
 
     //Read in its contents into the buffer
     let mut byte_buffer: Box<[u8]> = vec![0u8; buffer_size * 2].into_boxed_slice();//TODO avoid overhead of zeroing out contents, as well as overhead of needing to copy to buffer instead of reading to it directly
     let bytes_read = file.read(&mut byte_buffer).unwrap();
     debug_assert!(bytes_read <= buffer_size * 2);
 
-    for i in 0..buffer_size {
+    for i in 0..buffer_size {//FIXME this loop is incredibly slow
         buffer[i] = ((byte_buffer[(i * 2) + 1] as u16) << 8) | (byte_buffer[i * 2] as u16);
     }
     return ReturnCode::LoadOk;

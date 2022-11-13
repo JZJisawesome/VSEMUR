@@ -43,12 +43,12 @@ macro_rules! reg_string_by_index {
 }
 
 macro_rules! log_register {
-    ($tick_num:expr, $indent:expr, $reg_name:expr, $reg_index:expr) => {
-        log!($tick_num, $indent, "{} is {:#05b}, aka {}", $reg_name, $reg_index, reg_string_by_index!($reg_index));
+    ($indent:expr, $reg_name:expr, $reg_index:expr) => {
+        log!($indent, "{} is {:#05b}, aka {}", $reg_name, $reg_index, reg_string_by_index!($reg_index));
     };
-    ($tick_num:expr, $indent:expr, $reg_name:expr, $reg_index:expr, $reg_contents:expr) => {
-        log!($tick_num, $indent, "{} is {:#05b}, aka {}, which contains:", $reg_name, $reg_index, reg_string_by_index!($reg_index));
-        log!($tick_num, $indent + 1, "{:#06X} | {:#018b} | unsigned {}", $reg_contents, $reg_contents, $reg_contents);
+    ($indent:expr, $reg_name:expr, $reg_index:expr, $reg_contents:expr) => {
+        log!($indent, "{} is {:#05b}, aka {}, which contains:", $reg_name, $reg_index, reg_string_by_index!($reg_index));
+        log!($indent + 1, "{:#06X} | {:#018b} | unsigned {}", $reg_contents, $reg_contents, $reg_contents);
     };
 }
 
@@ -66,37 +66,37 @@ macro_rules! log_register {
 
 /* Functions */
 
-pub(super) fn execute(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
     let secondary_group = (inst_word >> 6) & 0b111;
     debug_assert!(upper_nibble < 16);
     debug_assert!(secondary_group < 8);
 
-    log_noln!(t, 4, "Instruction type: ");
+    log_noln!(4, "Instruction type: ");
     match secondary_group {
-        0b000 => { secondary_group_000(t, cpu, mem, inst_word); },
-        0b001 => { secondary_group_001(t, cpu, mem, inst_word); },
-        0b010 => { secondary_group_010(t, cpu, mem, inst_word); },
-        0b011 => { secondary_group_011(t, cpu, mem, inst_word); },
-        0b100 => { secondary_group_100(t, cpu, mem, inst_word); },
-        0b101 => { secondary_group_101(t, cpu, mem, inst_word); },
-        0b110 => { secondary_group_110(t, cpu, mem, inst_word); },
-        0b111 => { secondary_group_111(t, cpu, mem, inst_word); },
+        0b000 => { secondary_group_000(cpu, mem, inst_word); },
+        0b001 => { secondary_group_001(cpu, mem, inst_word); },
+        0b010 => { secondary_group_010(cpu, mem, inst_word); },
+        0b011 => { secondary_group_011(cpu, mem, inst_word); },
+        0b100 => { secondary_group_100(cpu, mem, inst_word); },
+        0b101 => { secondary_group_101(cpu, mem, inst_word); },
+        0b110 => { secondary_group_110(cpu, mem, inst_word); },
+        0b111 => { secondary_group_111(cpu, mem, inst_word); },
         _ => { if cfg!(debug_assertions) { panic!(); }},//This should never occur
     }
 }
 
-fn secondary_group_000(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_000(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
     log_finln!("Base+Disp6");
 
     //Get Rd
     let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
     let rd: u16 = get_reg_by_index(cpu, rd_index);
-    log_register!(t, 5, "Rd", rd_index, rd);
+    log_register!(5, "Rd", rd_index, rd);
 
     //Get BP
-    log_noln!(t, 5, "BP: {:#06X}, ", cpu.bp);
+    log_noln!(5, "BP: {:#06X}, ", cpu.bp);
 
     //Get imm6
     let imm6: u8 = (inst_word & 0b111111) as u8;
@@ -105,21 +105,21 @@ fn secondary_group_000(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
     //Determine address and get data
     let addr: u16 = cpu.bp + (imm6 as u16);
     let data: u16 = mem.read_page_addr(cpu.get_ds(), addr);
-    log!(t, 5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", cpu.get_ds(), addr);//TODO is this the correct page, or should it be the zero page?
-    log!(t, 6, "{:#06X} | {:#018b} | unsigned {}", data, data, data);
+    log!(5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", cpu.get_ds(), addr);//TODO is this the correct page, or should it be the zero page?
+    log!(6, "{:#06X} | {:#018b} | unsigned {}", data, data, data);
 
     //Perform the operation
-    let result: u16 = alu_operation(t, cpu, upper_nibble as u8, rd, data);
+    let result: u16 = alu_operation(cpu, upper_nibble as u8, rd, data);
 
     //Write to the appropriate (if any) destination
     match upper_nibble {
         0b0100 | 0b1100 => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
         0b1101 => {//IMM6 STORE is invalid (we can't store to an immediate)
-            log!(t, 5, "This isn't valid: we can't store a result to an immediate!");
+            log!(5, "This isn't valid: we can't store a result to an immediate!");
         },
         _ => {//Other cases are much simpler; we just write to Rd
             set_reg_by_index(cpu, rd_index, result);
-            log_register!(t, 5, "Rd", rd_index, result);
+            log_register!(5, "Rd", rd_index, result);
         }
     }
 
@@ -127,7 +127,7 @@ fn secondary_group_000(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
     cpu.inc_pc();//TODO what if the register is the PC?
 }
 
-fn secondary_group_001(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_001(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
 
     //IMM6 or branches
@@ -140,24 +140,24 @@ fn secondary_group_001(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
 
         //Get Rd
         let rd: u16 = get_reg_by_index(cpu, rd_index);
-        log_register!(t, 5, "Rd", rd_index, rd);
+        log_register!(5, "Rd", rd_index, rd);
 
         //Get imm6
         let imm6: u8 = (inst_word & 0b111111) as u8;
-        log!(t, 5, "IMM6:  {:#06X} | {:#018b} | unsigned {}", imm6, imm6, imm6);
+        log!(5, "IMM6:  {:#06X} | {:#018b} | unsigned {}", imm6, imm6, imm6);
 
         //Perform the operation
-        let result: u16 = alu_operation(t, cpu, upper_nibble as u8, rd, imm6 as u16);
+        let result: u16 = alu_operation(cpu, upper_nibble as u8, rd, imm6 as u16);
 
         //Write to the appropriate (if any) destination
         match upper_nibble {
             0b0100 | 0b1100 => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
             0b1101 => {//IMM6 STORE is invalid (we can't store to an immediate)
-                log!(t, 5, "This isn't valid: we can't store a result to an immediate!");
+                log!(5, "This isn't valid: we can't store a result to an immediate!");
             },
             _ => {//Other cases are much simpler; we just write to Rd
                 set_reg_by_index(cpu, rd_index, result);
-                log_register!(t, 5, "Rd", rd_index, result);
+                log_register!(5, "Rd", rd_index, result);
             }
         }
 
@@ -166,25 +166,25 @@ fn secondary_group_001(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
     }
 }
 
-fn secondary_group_010(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_010(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
     log_finln!("Stack Operation");
 
     //Get Rs since we index by it
     let rs_index: u8 = (inst_word & 0b111) as u8;
     let mut rs: u16 = get_reg_by_index(cpu, rs_index);
-    log_register!(t, 5, "Rs", rs_index, rs);
+    log_register!(5, "Rs", rs_index, rs);
 
     //Get Rh
     let mut rh_index: u8 = ((inst_word >> 9) & 0b111) as u8;
-    log_register!(t, 5, "Rh", rh_index);
+    log_register!(5, "Rh", rh_index);
     get_reg_by_index(cpu, rh_index);
 
     //Get Size
     let mut size: u8 = ((inst_word >> 3) & 0b111) as u8;
-    log!(t, 5, "Size is {}", size);
+    log!(5, "Size is {}", size);
 
-    log_noln!(t, 5, "Instruction: ");
+    log_noln!(5, "Instruction: ");
     match upper_nibble {
         0b1101 => {
             //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
@@ -193,14 +193,14 @@ fn secondary_group_010(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
             while size != 0 {
                 //TODO is this the correct order to push things?
                 let reg: u16 = get_reg_by_index(cpu, rh_index);
-                log_register!(t, 5, "Current reg.", rh_index, reg);
+                log_register!(5, "Current reg.", rh_index, reg);
                 rs = get_reg_by_index(cpu, rs_index);
 
                 mem.write_page_addr(reg, 0x00, rs);
-                log!(t, 7, "Pushed to the stack @ [Rs]: {:#06X}", rs);
+                log!(7, "Pushed to the stack @ [Rs]: {:#06X}", rs);
 
                 rs -= 1;
-                log!(t, 7, "Decrement Rs; it is now {:#06X}", rs);
+                log!(7, "Decrement Rs; it is now {:#06X}", rs);
 
                 rh_index -= 1;
 
@@ -223,7 +223,7 @@ fn secondary_group_010(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
     cpu.inc_pc();
 }
 
-fn secondary_group_011(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_011(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
     log_finln!("DS_Indirect");
     //TODO determine number of cycles this takes
@@ -231,33 +231,33 @@ fn secondary_group_011(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
     //Check D flag and determine page
     let page: u8;
     let d_flag: bool = (inst_word >> 5 & 0b1) == 0b1;
-    log_noln!(t, 5, "D flag ");
+    log_noln!(5, "D flag ");
     if d_flag {
         page = cpu.get_ds();
     } else {
         page = 0x00;
         log_midln!("not ");
     }
-    log_finln!("set, page is {:#04X}", page);
+    log_finln!("sepage is {:#04X}", page);
 
     //Get Rd
     let rd_index: u8 = ((inst_word) >> 9 & 0b111) as u8;
     let mut rd: u16 = get_reg_by_index(cpu, rd_index);
-    log_register!(t, 5, "Rd", rd_index, rd);
+    log_register!(5, "Rd", rd_index, rd);
 
     //Get Rs since we index by it
     let rs_index: u8 = (inst_word & 0b111) as u8;
     let mut rs: u16 = get_reg_by_index(cpu, rs_index);
-    log_register!(t, 5, "Rs", rs_index, rs);
+    log_register!(5, "Rs", rs_index, rs);
 
     //Do pre-operations to rs
     match (inst_word >> 3) & 0b11 {
         0b00 => {
-            log!(t, 5, "@ is 0b00, no change to Rs");
+            log!(5, "@ is 0b00, no change to Rs");
         },
         0b01 | 0b10 => {},//0b01 and 0b10 are post-decrement and increment respectively, so we do nothing here
         0b11 => {
-            log!(t, 5, "@ is 0b11, do ++Rs");
+            log!(5, "@ is 0b11, do ++Rs");
             if d_flag {
                 let new_ds_rs_tuple = super::super::inc_page_addr_by(page, rs, 1);
                 cpu.set_ds(new_ds_rs_tuple.0);
@@ -268,33 +268,33 @@ fn secondary_group_011(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
 
             set_reg_by_index(cpu, rs_index, rs);
             //TODO log DS too?
-            log_register!(t, 5, "Rs", rs_index, rs);
+            log_register!(5, "Rs", rs_index, rs);
         },
         _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
 
     //Get data at address determined by page and Rs
     let data: u16 = mem.read_page_addr(page, rs);
-    log!(t, 5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", page, rs);
-    log!(t, 6, "{:#06X} | {:#018b} | unsigned {}", data, data, data);
+    log!(5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", page, rs);
+    log!(6, "{:#06X} | {:#018b} | unsigned {}", data, data, data);
 
     //Perform the operation
-    let result: u16 = alu_operation(t, cpu, upper_nibble as u8, rd, data);
+    let result: u16 = alu_operation(cpu, upper_nibble as u8, rd, data);
 
     //Store back to Rd
     set_reg_by_index(cpu, rd_index, result);
-    log_register!(t, 5, "Rd", rd_index, result);
+    log_register!(5, "Rd", rd_index, result);
 
     //Do post-operations to rs
     match (inst_word >> 3) & 0b11 {
-        0b00 | 0b11 => {},//0b00 is no increment/decrement, 0b11 is pre-increment, so we do nothing here
+        0b00 | 0b11 => {},//0b00 is no increment/decremen0b11 is pre-incremenso we do nothing here
         0b01 => {
-            log!(t, 5, "@ is 0b01, do Rs--");
+            log!(5, "@ is 0b01, do Rs--");
             unimplemented!();//TODO may also have to modify pages if d flag is set
             set_reg_by_index(cpu, rs_index, rs);
         },
         0b10 => {
-            log!(t, 5, "@ is 0b10, do Rs++");
+            log!(5, "@ is 0b10, do Rs++");
             if d_flag {
                 let new_ds_rs_tuple = super::super::inc_page_addr_by(page, rs, 1);
                 cpu.set_ds(new_ds_rs_tuple.0);
@@ -305,7 +305,7 @@ fn secondary_group_011(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
 
             set_reg_by_index(cpu, rs_index, rs);
             //TODO log DS too?
-            log_register!(t, 5, "Rs", rs_index, rs);
+            log_register!(5, "Rs", rs_index, rs);
         },
         _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
@@ -314,7 +314,7 @@ fn secondary_group_011(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
     cpu.inc_pc();
 }
 
-fn secondary_group_100(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_100(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
     //Flags to decide output behaviour (upper_nibble is also used)
     let direct16: bool;
@@ -336,11 +336,11 @@ fn secondary_group_100(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
             //Rs is operand1
             let rs_index: u8 = (inst_word & 0b111) as u8;
             operand1 = get_reg_by_index(cpu, rs_index);
-            log_register!(t, 5, "Rs", rs_index, operand1);
+            log_register!(5, "Rs", rs_index, operand1);
 
             //IMM16 is operand2
             operand2 = super::get_wg2(cpu, mem);
-            log!(t, 5, "IMM16: {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
+            log!(5, "IMM16: {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
         },
         (0b01, direct16_w_bit) => {
             log_midln!("Direct16");
@@ -353,13 +353,13 @@ fn secondary_group_100(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
             //Rs is always one of the operands
             let rs_index: u8 = (inst_word & 0b111) as u8;
             let rs = get_reg_by_index(cpu, rs_index);
-            log_register!(t, 5, "Rs", rs_index, rs);
+            log_register!(5, "Rs", rs_index, rs);
 
             if direct16_w {
                 //Rd is operand1
                 let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
                 operand1 = get_reg_by_index(cpu, rd_index);
-                log_register!(t, 5, "Rd", rd_index, operand1);
+                log_register!(5, "Rd", rd_index, operand1);
 
                 //Rs is operand2
                 operand2 = rs;
@@ -371,8 +371,8 @@ fn secondary_group_100(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
                 let page = cpu.get_ds();
                 let addr = super::get_wg2(cpu, mem);
                 operand2 = mem.read_page_addr(page, addr);
-                log!(t, 5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", page, addr);
-                log!(t, 6, "     {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
+                log!(5, "DS page, immediate addr: {:#04X}_{:04X}, which contains", page, addr);
+                log!(6, "     {:#06X} | {:#018b} | unsigned {}", operand2, operand2, operand2);
             }
         },
         (_, _) => {//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
@@ -382,18 +382,18 @@ fn secondary_group_100(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
     }
 
     //Perform the operation
-    let result: u16 = alu_operation(t, cpu, upper_nibble as u8, operand1, operand2);
+    let result: u16 = alu_operation(cpu, upper_nibble as u8, operand1, operand2);
 
     //Write to the appropriate (if any) destination
     match (upper_nibble, direct16, direct16_w) {
         (0b0100, _, _) | (0b1100, _, _) => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
         (0b1101, false, _) => {//IMM16 STORE is invalid (we can't store to an immediate)
-            log!(t, 5, "This isn't valid: we can't store a result to an immediate!");
+            log!(5, "This isn't valid: we can't store a result to an immediate!");
         },
         (0b1101, true, true) => {//Direct16 STORE + w flag set stores the result (which is Rd) to Rs
             let rs_index: u8 = (inst_word & 0b111) as u8;
             set_reg_by_index(cpu, rs_index, result);//rs is rd, and rd is result
-            log_register!(t, 5, "Rs", rs_index, result);
+            log_register!(5, "Rs", rs_index, result);
         },
         (0b1101, true, false) |//Direct16 STORE + w flag not set stores the result (which is Rs) to memory
         (_, true, true) => {//Direct16 operation with w flag set writes result to memory instead of a register
@@ -402,7 +402,7 @@ fn secondary_group_100(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
         (_, false, _) | (_, true, false) => {//Other cases are much simpler; we just write to Rd
             let rd_index: u8 = ((inst_word >> 9) & 0b111) as u8;
             set_reg_by_index(cpu, rd_index, result);
-            log_register!(t, 5, "Rd", rd_index, result);
+            log_register!(5, "Rd", rd_index, result);
         }
     }
 
@@ -410,15 +410,15 @@ fn secondary_group_100(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
     cpu.inc_pc_by(2);//2 instead of 1 since we must skip over the 16 bit immediate
 }
 
-fn secondary_group_101(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_101(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     unimplemented!();
 }
 
-fn secondary_group_110(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_110(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     unimplemented!();
 }
 
-fn secondary_group_111(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_111(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     unimplemented!();
 }
 
@@ -483,7 +483,7 @@ fn set_reg_by_index(cpu: &mut CPUState, rd: u8, value: u16) {
         _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
 }
-fn alu_operation(t: u32, cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
+fn alu_operation(cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
     use std::num::Wrapping as Wrap;
 
     //We need regular wrapping behaviour to make our lives easier; also do 32 bit operations so we get the carry bit (which is useful) for free
@@ -491,7 +491,7 @@ fn alu_operation(t: u32, cpu: &mut CPUState, upper_nibble: u8, operand1: u16, op
     let operand2_w = Wrap(operand2 as u32);
 
     //Perform operation
-    log_noln!(t, 5, "Operation: ");
+    log_noln!(5, "Operation: ");
     let result_w: Wrap<u32>;
     match upper_nibble {
         0b0000 => {
@@ -548,7 +548,7 @@ fn alu_operation(t: u32, cpu: &mut CPUState, upper_nibble: u8, operand1: u16, op
         },
     }
     let result: u32 = result_w.0;//We don't need wrapping behaviour anymore
-    log!(t, 5, "Result:{:#06X} | {:#018b} | unsigned {}", (result & 0xFFFF) as u16, (result & 0xFFFF) as u16, (result & 0xFFFF) as u16);
+    log!(5, "Result:{:#06X} | {:#018b} | unsigned {}", (result & 0xFFFF) as u16, (result & 0xFFFF) as u16, (result & 0xFFFF) as u16);
 
     //Set flags
     //FIXME don't update flags if the register is the PC
