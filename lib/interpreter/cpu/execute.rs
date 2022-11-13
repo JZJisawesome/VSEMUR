@@ -60,6 +60,37 @@ macro_rules! secondary_group {
 }
 pub(crate) use secondary_group;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
 
+macro_rules! reg_string_by_index {
+    ($rs:expr) => {{
+        debug_assert!($rs < 8);
+        let string: &str;
+        match $rs  {
+            0b000 => { string = "SP"; },
+            0b001 => { string = "R1"; },
+            0b010 => { string = "R2"; },
+            0b011 => { string = "R3"; },
+            0b100 => { string = "R4"; },
+            0b101 => { string = "BP"; },
+            0b110 => { string = "SR"; },
+            0b111 => { string = "PC"; },
+            _ => { panic!(); },//This should never occur
+        }
+        string
+    }};
+}
+pub(crate) use reg_string_by_index;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+
+macro_rules! log_register {
+    ($indent:expr, $reg_name:expr, $reg_index:expr) => {
+        log!($indent, "{} is {:#05b}, aka {}", $reg_name, $reg_index, crate::interpreter::cpu::execute::reg_string_by_index!($reg_index));
+    };
+    ($indent:expr, $reg_name:expr, $reg_index:expr, $reg_contents:expr) => {
+        log!($indent, "{} is {:#05b}, aka {}, which contains:", $reg_name, $reg_index, crate::interpreter::cpu::execute::reg_string_by_index!($reg_index));
+        log!($indent + 1, "{:#06X} | {:#018b} | unsigned {}", $reg_contents, $reg_contents, $reg_contents);
+    };
+}
+pub(crate) use log_register;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+
 /* Static Variables */
 
 //TODO

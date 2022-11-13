@@ -20,8 +20,11 @@ use super::MEM_SIZE_WORDS;
 
 /* Constants */
 
-const INT_VECTOR_BASE_ADDR: usize = 0xFFF5;//Page 47 is useful :)
-const RESET_VECTOR_ADDR: usize = 0xFFF7;//Page 47 is useful :)
+//Page 47 is useful :)
+const BREAK_INT_VECTOR_ADDR: usize = 0;
+const FIQ_INT_VECTOR_ADDR: usize = 0xFFF6;
+const RESET_INT_VECTOR_ADDR: usize = 0xFFF7;
+const IRQ_INT_VECTOR_ADDR: [usize;8] = [0xFFF8, 0xFFF9, 0xFFFA, 0xFFFB, 0xFFFC, 0xFFFD, 0xFFFE, 0xFFFF];
 
 /* Macros */
 
@@ -36,11 +39,13 @@ const RESET_VECTOR_ADDR: usize = 0xFFF7;//Page 47 is useful :)
 pub(super) struct CPUState {
     sp: u16,
     r: [u16;4],
+    sec_r: [u16;4],
     bp: u16,
     sr: u16,
     pc: u16,
-    irq_enabled: bool,
-    fiq_enabled: bool,
+    irq_enabled: bool,//TODO move these to the FR
+    fiq_enabled: bool,//TODO move these to the FR
+    fr: u16,
 
     cycle_count: u8,//Instructions may take multiple clock cycles; we fake this by waiting the proper amount of them after executing the whole thing on the first tick()
 }
@@ -57,9 +62,12 @@ impl CPUState {
         return CPUState {
             sp: 0,
             r: [0, 0, 0, 0],
+            sec_r: [0, 0, 0, 0],
             bp: 0,
             sr: 0,
             pc: 0,
+            fr: 0,
+
             irq_enabled: false,
             fiq_enabled: false,
 
@@ -70,20 +78,22 @@ impl CPUState {
     pub(super) fn reset(self: &mut Self, mem: &MemoryState) {
         log!(1, "Resetting CPU");
 
-        log!(2, "Zero out SP, R1, R2, R3, R4, BP, and SR");
+        log!(2, "Zero out SP, R[4:1], SR[4:1], BP, SR, and FR");
         self.sp = 0;
         self.r = [0, 0, 0, 0];
+        self.sec_r = [0, 0, 0, 0];
         self.bp = 0;
         self.sr = 0;
+        self.fr = 0;
 
         log!(2, "Disable interrupts");
         self.irq_enabled = false;
         self.fiq_enabled = false;
 
         log!(2, "Set initial CS page and PC");
-        debug_assert!(RESET_VECTOR_ADDR < MEM_SIZE_WORDS);
-        log!(3, "Read reset vector at address {:#04X}_{:04X}", RESET_VECTOR_ADDR >> 16, RESET_VECTOR_ADDR & 0xFFFF);
-        self.pc = mem.read_addr(RESET_VECTOR_ADDR as u32);
+        debug_assert!(RESET_INT_VECTOR_ADDR < MEM_SIZE_WORDS);
+        log!(3, "Read reset vector at address {:#04X}_{:04X}", RESET_INT_VECTOR_ADDR >> 16, RESET_INT_VECTOR_ADDR & 0xFFFF);
+        self.pc = mem.read_addr(RESET_INT_VECTOR_ADDR as u32);
         log!(3, "Initial CS page, PC is {:#04X}_{:04X}", self.get_cs(), self.pc);
 
         //TODO do we need to initialize the cs or ds?

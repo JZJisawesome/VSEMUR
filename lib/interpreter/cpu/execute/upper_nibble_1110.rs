@@ -40,6 +40,8 @@ use super::CPUState;
 
 pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     log_noln!(4, "Instruction type: ");
+
+    //FIXME this could also be a branch
     if ((inst_word >> 8) & 0b1) == 0b1 {//Part of the secondary group
         register_bitop(cpu, mem, inst_word);
     } else {
@@ -69,4 +71,8 @@ pub(super) fn memory_bitop(cpu: &mut CPUState, mem: &mut MemoryState, inst_word:
         log_finln!("Rs");
         unimplemented!();//TODO
     }
+}
+
+fn bitop(bitop: u8, operand: u16) -> u16 {
+    unimplemented!();//TODO
 }
