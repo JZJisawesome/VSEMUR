@@ -29,7 +29,40 @@ const IRQ_INT_VECTOR_ADDR: [usize;8] = [0xFFF8, 0xFFF9, 0xFFFA, 0xFFFB, 0xFFFC, 
 
 /* Macros */
 
-//TODO (also pub(crate) use the_macro statements here too)
+macro_rules! rd_index {
+    ($inst_word:expr) => {
+        (($inst_word >> 9) & 0b111) as u8
+    };
+}
+pub(crate) use rd_index;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+
+macro_rules! rs_index {
+    ($inst_word:expr) => {
+        ($inst_word & 0b111) as u8
+    };
+}
+pub(crate) use rs_index;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+
+macro_rules! imm6 {
+    ($inst_word:expr) => {
+        ($inst_word & 0b111111) as u8
+    };
+}
+pub(crate) use imm6;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+
+macro_rules! upper_nibble {
+    ($inst_word:expr) => {
+        $inst_word >> 12
+    };
+}
+pub(crate) use upper_nibble;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+
+macro_rules! secondary_group {
+    ($inst_word:expr) => {
+        ($inst_word >> 6) & 0b111
+    };
+}
+pub(crate) use secondary_group;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
 
 /* Static Variables */
 
@@ -115,7 +148,10 @@ impl CPUState {
         debug_assert!(self.get_cs() < 0b111111);
         log!(1, "CPU: Fetch started from CS page, PC address: {:#04X}_{:04X}", self.get_cs(), self.pc);
         let inst_word: u16 = mem.read_page_addr(self.get_cs(), self.pc);
-        log!(2, "Instruction word group 1:     {:#06X} | {:#018b}", inst_word, inst_word);
+        log!(2, "Instruction word group 1: {:#06X} | {:#018b}", inst_word, inst_word);
+
+        //Decode its type
+        let mut decoded_inst_type = decode::decode(inst_word);
 
         //Execute it
         execute::execute(self, mem, inst_word);
