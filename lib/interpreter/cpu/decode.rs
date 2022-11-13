@@ -25,48 +25,48 @@ use crate::logging::log_finln;
 
 macro_rules! return_type {
     ($indent:expr, $inst_type:expr) => {
-        log!($indent, "Instruction Type: ");
+        log_noln!($indent, "Instruction Type: ");
         if cfg!(debug_assertions) {
             match $inst_type {
-                DSI6 => { log_finln!("DSI6"); }
-                CALL => { log_finln!("CALL"); }
-                JMPF => { log_finln!("JMPF"); }
-                JMPR => { log_finln!("JMPR"); }
-                FIR_MOV => { log_finln!("FIR_MOV"); }
-                Fraction => { log_finln!("Fraction"); }
-                INT_SET => { log_finln!("INT SET"); }
-                IRQ => { log_finln!("IRQ"); }
-                SECBANK => { log_finln!("SECBANK"); }
-                FIQ => { log_finln!("FIQ"); }
-                IRQ_NEST_MODE => { log_finln!("IRQ Nest Mode"); }
-                BREAK => { log_finln!("BREAK"); }
-                CALLR => { log_finln!("CALLR"); }
-                DIVS => { log_finln!("DIVS"); }
-                DIVQ => { log_finln!("DIVQ"); }
-                EXP => { log_finln!("EXP"); }
-                NOP => { log_finln!("NOP"); }
-                DS_Access => { log_finln!("DS Access"); }
-                FR_Access=> { log_finln!("FR Access"); }
-                MUL => { log_finln!("MUL"); }
-                MULS => { log_finln!("MULS"); }
-                Register_BITOP_Rs => { log_finln!("Register BITOP (Rs)"); }
-                Register_BITOP_offset => { log_finln!("Register BITOP (offset)"); }
-                Memory_BITOP_offset => { log_finln!("Memory BITOP (offset)"); }
-                Memory_BITOP_Rs => { log_finln!("Memory BITOP (Rs)"); }
-                sixteen_bits_Shift => { log_finln!("16 bits Shift"); }
-                RETI => { log_finln!("RETI"); }
-                RETF => { log_finln!("RETF"); }
-                Base_plus_Disp6 => { log_finln!("Base+Disp6"); }
-                IMM6 => { log_finln!("IMM6"); }
-                Branch => { log_finln!("Branch"); }
-                Stack_Operation => { log_finln!("Stack Operation"); }
-                DS_Indirect => { log_finln!("DS_Indirect"); }
-                IMM16 => { log_finln!("IMM16"); }
-                Direct16 => { log_finln!("Direct16"); }
-                Direct6 => { log_finln!("Direct6"); }
-                Register => { log_finln!("Register"); }
+                DecodedInstructionType::DSI6 => { log_finln!("DSI6"); }
+                DecodedInstructionType::CALL => { log_finln!("CALL"); }
+                DecodedInstructionType::JMPF => { log_finln!("JMPF"); }
+                DecodedInstructionType::JMPR => { log_finln!("JMPR"); }
+                DecodedInstructionType::FIR_MOV => { log_finln!("FIR_MOV"); }
+                DecodedInstructionType::Fraction => { log_finln!("Fraction"); }
+                DecodedInstructionType::INT_SET => { log_finln!("INT SET"); }
+                DecodedInstructionType::IRQ => { log_finln!("IRQ"); }
+                DecodedInstructionType::SECBANK => { log_finln!("SECBANK"); }
+                DecodedInstructionType::FIQ => { log_finln!("FIQ"); }
+                DecodedInstructionType::IRQ_NEST_MODE => { log_finln!("IRQ Nest Mode"); }
+                DecodedInstructionType::BREAK => { log_finln!("BREAK"); }
+                DecodedInstructionType::CALLR => { log_finln!("CALLR"); }
+                DecodedInstructionType::DIVS => { log_finln!("DIVS"); }
+                DecodedInstructionType::DIVQ => { log_finln!("DIVQ"); }
+                DecodedInstructionType::EXP => { log_finln!("EXP"); }
+                DecodedInstructionType::NOP => { log_finln!("NOP"); }
+                DecodedInstructionType::DS_Access => { log_finln!("DS Access"); }
+                DecodedInstructionType::FR_Access=> { log_finln!("FR Access"); }
+                DecodedInstructionType::MUL => { log_finln!("MUL"); }
+                DecodedInstructionType::MULS => { log_finln!("MULS"); }
+                DecodedInstructionType::Register_BITOP_Rs => { log_finln!("Register BITOP (Rs)"); }
+                DecodedInstructionType::Register_BITOP_offset => { log_finln!("Register BITOP (offset)"); }
+                DecodedInstructionType::Memory_BITOP_offset => { log_finln!("Memory BITOP (offset)"); }
+                DecodedInstructionType::Memory_BITOP_Rs => { log_finln!("Memory BITOP (Rs)"); }
+                DecodedInstructionType::sixteen_bits_Shift => { log_finln!("16 bits Shift"); }
+                DecodedInstructionType::RETI => { log_finln!("RETI"); }
+                DecodedInstructionType::RETF => { log_finln!("RETF"); }
+                DecodedInstructionType::Base_plus_Disp6 => { log_finln!("Base+Disp6"); }
+                DecodedInstructionType::IMM6 => { log_finln!("IMM6"); }
+                DecodedInstructionType::Branch => { log_finln!("Branch"); }
+                DecodedInstructionType::Stack_Operation => { log_finln!("Stack Operation"); }
+                DecodedInstructionType::DS_Indirect => { log_finln!("DS_Indirect"); }
+                DecodedInstructionType::IMM16 => { log_finln!("IMM16"); }
+                DecodedInstructionType::Direct16 => { log_finln!("Direct16"); }
+                DecodedInstructionType::Direct6 => { log_finln!("Direct6"); }
+                DecodedInstructionType::Register => { log_finln!("Register"); }
 
-                InvalidInstructionType => { log_finln!("(invalid)"); }
+                DecodedInstructionType::InvalidInstructionType => { log_finln!("(invalid)"); }
             }
         }
 
@@ -143,16 +143,16 @@ pub(super) fn decode(inst_word: u16) -> DecodedInstructionType {
     match upper_nibble {
         0b1111 => {
             let secondary_group = super::secondary_group!(inst_word);
-            log!(3, "The upper nibble is 0b1111, so let's inspect the secondary group {:#05b}", secondary_group);
+            log!(3, "The upper nibble is 0b1111, so let's inspect the secondary group: {:#05b}", secondary_group);
             match secondary_group {
                 0b000 => {
                     let rd_index = super::rd_index!(inst_word);
-                    log!(4, "The secondary group is 0b000, so let's inspect Rd {:#05b}", rd_index);
+                    log!(4, "The secondary group is 0b000, so let's inspect Rd: {:#05b}", rd_index);
                     if rd_index == 0b111 {
                         return_type!(5, DecodedInstructionType::DSI6);
                     } else {
                         let bits_54 = (inst_word >> 4) & 0b11;
-                        log!(5, "Rd is not 0b111, so inspect bits [5:4] {:#04b}", bits_54);
+                        log!(5, "Rd is not 0b111, so inspect bits [5:4]: {:#04b}", bits_54);
                         match bits_54 {
                             0b00 => { return_type!(6, DecodedInstructionType::MUL); },
                             0b01 => { return_type!(6, DecodedInstructionType::InvalidInstructionType); },
@@ -163,8 +163,8 @@ pub(super) fn decode(inst_word: u16) -> DecodedInstructionType {
                     }
                 },
                 0b001 => {
-                    let bit_9 = ((inst_word >> 9) & 0b1);
-                    log!(4, "The secondary group is 0b001, so let's inspect bit 9 {:#03b}", bit_9);
+                    let bit_9 = (inst_word >> 9) & 0b1;
+                    log!(4, "The secondary group is 0b001, so let's inspect bit 9: {:#03b}", bit_9);
                     if bit_9 == 0b1 {
                         return_type!(5, DecodedInstructionType::InvalidInstructionType);
                     } else {
@@ -173,7 +173,7 @@ pub(super) fn decode(inst_word: u16) -> DecodedInstructionType {
                 },
                 0b010 => {
                     let rd_index = super::rd_index!(inst_word);
-                    log!(4, "The secondary group is 0b010, so let's inspect Rd {:#05b}", rd_index);
+                    log!(4, "The secondary group is 0b010, so let's inspect Rd: {:#05b}", rd_index);
                     if rd_index == 0b111 {
                         return_type!(5, DecodedInstructionType::JMPF);
                     } else {
@@ -182,7 +182,7 @@ pub(super) fn decode(inst_word: u16) -> DecodedInstructionType {
                 },
                 0b011 => {
                     let rd_index = super::rd_index!(inst_word);
-                    log!(4, "The secondary group is 0b011, so let's inspect Rd {:#05b}", rd_index);
+                    log!(4, "The secondary group is 0b011, so let's inspect Rd: {:#05b}", rd_index);
                     if rd_index == 0b111 {
                         return_type!(5, DecodedInstructionType::JMPR);
                     } else {
@@ -191,12 +191,36 @@ pub(super) fn decode(inst_word: u16) -> DecodedInstructionType {
                 },
                 0b100 => { return_type!(4, DecodedInstructionType::MUL); },
                 0b101 => {
-                    let bit_5 = ((inst_word >> 5) & 0b1);//Look at bit 5 first to split the opcode space in twoish
-                    log!(4, "The secondary group is 0b101, so let's inspect bit 5 {:#03b}", bit_5);
+                    let bit_5 = (inst_word >> 5) & 0b1;//Look at bit 5 first to split the opcode space in twoish
+                    log!(4, "The secondary group is 0b101, so let's inspect bit 5: {:#03b}", bit_5);
                     if bit_5 == 0b1 {
-                        unimplemented!();//TODO
+                        let bits_210 = inst_word & 0b111;//Look at the lowest 3 bits to decide what it is
+                        log!(5, "The bit is set, so let's inspect the lowest 3 bits: {:#05b}", bits_210);
+                        match inst_word & 0b111 {
+                            0b000 => { return_type!(6, DecodedInstructionType::BREAK); },
+                            0b001 => { return_type!(6, DecodedInstructionType::CALLR); },
+                            0b010 => { return_type!(6, DecodedInstructionType::DIVS); },
+                            0b011 => { return_type!(6, DecodedInstructionType::DIVQ); },
+                            0b100 => { return_type!(6, DecodedInstructionType::EXP); },
+                            0b101 => { return_type!(6, DecodedInstructionType::NOP); },
+                            _ => { return_type!(6, DecodedInstructionType::InvalidInstructionType); },
+                        }
                     } else {
-                        unimplemented!();//TODO
+                        let bits_432 = (inst_word >> 2) & 0b111;//Look at bits 4:2 to split things further
+                        log!(5, "The bit is not set, so let's inspect the bits [4:2]: {:#05b}", bits_432);
+                        match bits_432 {
+                            0b000 => { return_type!(6, DecodedInstructionType::INT_SET); },
+                            0b001 => {
+                                unimplemented!();//TODO check bit 1
+                            },
+                            0b010 => {
+                                unimplemented!();//TODO check bit 1
+                            },
+                            0b011 => {
+                                unimplemented!();//TODO check bit 0
+                            },
+                            _ => { return_type!(6, DecodedInstructionType::InvalidInstructionType); },
+                        }
                     }
                 },
                 0b110 | 0b111 => { return_type!(4, DecodedInstructionType::MULS); },
