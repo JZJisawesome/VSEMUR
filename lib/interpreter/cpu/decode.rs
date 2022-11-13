@@ -38,7 +38,7 @@ macro_rules! return_type {
                 DecodedInstructionType::IRQ => { log_finln!("IRQ"); }
                 DecodedInstructionType::SECBANK => { log_finln!("SECBANK"); }
                 DecodedInstructionType::FIQ => { log_finln!("FIQ"); }
-                DecodedInstructionType::IRQ_NEST_MODE => { log_finln!("IRQ Nest Mode"); }
+                DecodedInstructionType::IRQ_Nest_Mode => { log_finln!("IRQ Nest Mode"); }
                 DecodedInstructionType::BREAK => { log_finln!("BREAK"); }
                 DecodedInstructionType::CALLR => { log_finln!("CALLR"); }
                 DecodedInstructionType::DIVS => { log_finln!("DIVS"); }
@@ -91,7 +91,7 @@ pub(super) enum DecodedInstructionType {
     IRQ,
     SECBANK,
     FIQ,
-    IRQ_NEST_MODE,
+    IRQ_Nest_Mode,
     BREAK,
     CALLR,
     DIVS,
@@ -195,7 +195,7 @@ pub(super) fn decode(inst_word: u16) -> DecodedInstructionType {
                     log!(4, "The secondary group is 0b101, so let's inspect bit 5: {:#03b}", bit_5);
                     if bit_5 == 0b1 {
                         let bits_210 = inst_word & 0b111;//Look at the lowest 3 bits to decide what it is
-                        log!(5, "The bit is set, so let's inspect the lowest 3 bits: {:#05b}", bits_210);
+                        log!(5, "Bit 5 is set, so let's inspect the lowest 3 bits: {:#05b}", bits_210);
                         match inst_word & 0b111 {
                             0b000 => { return_type!(6, DecodedInstructionType::BREAK); },
                             0b001 => { return_type!(6, DecodedInstructionType::CALLR); },
@@ -207,17 +207,35 @@ pub(super) fn decode(inst_word: u16) -> DecodedInstructionType {
                         }
                     } else {
                         let bits_432 = (inst_word >> 2) & 0b111;//Look at bits 4:2 to split things further
-                        log!(5, "The bit is not set, so let's inspect the bits [4:2]: {:#05b}", bits_432);
+                        log!(5, "Bit 5 is not set, so let's inspect the bits [4:2]: {:#05b}", bits_432);
                         match bits_432 {
                             0b000 => { return_type!(6, DecodedInstructionType::INT_SET); },
                             0b001 => {
-                                unimplemented!();//TODO check bit 1
+                                let bit_1 = (inst_word >> 1) & 0b1;
+                                log!(6, "Bits [4:2] are 0b001, so let's inspect bit 1: {:#03b}", bit_1);
+                                if bit_1 == 0b1 {
+                                    return_type!(7, DecodedInstructionType::Fraction);
+                                } else {
+                                    return_type!(7, DecodedInstructionType::FIR_MOV);
+                                }
                             },
                             0b010 => {
-                                unimplemented!();//TODO check bit 1
+                                let bit_1 = (inst_word >> 1) & 0b1;
+                                log!(6, "Bits [4:2] are 0b010, so let's inspect bit 1: {:#03b}", bit_1);
+                                if bit_1 == 0b1 {
+                                    return_type!(7, DecodedInstructionType::SECBANK);
+                                } else {
+                                    return_type!(7, DecodedInstructionType::IRQ);
+                                }
                             },
                             0b011 => {
-                                unimplemented!();//TODO check bit 0
+                                let bit_0 = inst_word & 0b1;
+                                log!(6, "Bits [4:2] are 0b011, so let's inspect bit 0: {:#03b}", bit_0);
+                                if bit_0 == 0b1 {
+                                    return_type!(7, DecodedInstructionType::IRQ_Nest_Mode);
+                                } else {
+                                    return_type!(7, DecodedInstructionType::FIQ);
+                                }
                             },
                             _ => { return_type!(6, DecodedInstructionType::InvalidInstructionType); },
                         }
