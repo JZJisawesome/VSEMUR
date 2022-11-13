@@ -66,7 +66,7 @@ macro_rules! log_register {
 
 /* Functions */
 
-pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+pub(super) fn execute(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
     let secondary_group = (inst_word >> 6) & 0b111;
     debug_assert!(upper_nibble < 16);
@@ -86,7 +86,7 @@ pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
     }
 }
 
-fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_000(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
     log_finln!("Base+Disp6");
 
@@ -127,7 +127,7 @@ fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     cpu.inc_pc();//TODO what if the register is the PC?
 }
 
-fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_001(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
 
     //IMM6 or branches
@@ -166,7 +166,7 @@ fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     }
 }
 
-fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_010(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
     log_finln!("Stack Operation");
 
@@ -223,7 +223,7 @@ fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     cpu.inc_pc();
 }
 
-fn secondary_group_011(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_011(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
     log_finln!("DS_Indirect");
     //TODO determine number of cycles this takes
@@ -314,7 +314,7 @@ fn secondary_group_011(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     cpu.inc_pc();
 }
 
-fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_100(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let upper_nibble = inst_word >> 12;
     //Flags to decide output behaviour (upper_nibble is also used)
     let direct16: bool;
@@ -410,15 +410,15 @@ fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     cpu.inc_pc_by(2);//2 instead of 1 since we must skip over the 16 bit immediate
 }
 
-fn secondary_group_101(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_101(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     unimplemented!();
 }
 
-fn secondary_group_110(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_110(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     unimplemented!();
 }
 
-fn secondary_group_111(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_111(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     unimplemented!();
 }
 
@@ -483,7 +483,7 @@ fn set_reg_by_index(cpu: &mut CPUState, rd: u8, value: u16) {
         _ => { if cfg!(debug_assertions) { panic!(); } },//This should never occur
     }
 }
-fn alu_operation(t: u128, cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
+fn alu_operation(t: u32, cpu: &mut CPUState, upper_nibble: u8, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
     use std::num::Wrapping as Wrap;
 
     //We need regular wrapping behaviour to make our lives easier; also do 32 bit operations so we get the carry bit (which is useful) for free

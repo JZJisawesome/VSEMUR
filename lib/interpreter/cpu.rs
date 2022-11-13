@@ -89,12 +89,12 @@ impl CPUState {
         //TODO do we need to initialize the cs or ds?
     }
 
-    pub(super) fn tick(self: &mut Self, t: u128, mem: &mut MemoryState) {
+    pub(super) fn tick(self: &mut Self, t: u32, mem: &mut MemoryState) {
         debug_assert!(mem.ready());
 
         //Wait for the proper number of cycles depending on the last instruction executed
         if self.cycle_count != 0 {
-            log!(t, 1, "CPU: Waiting {} more cycle(s) for the instruction to finish.", self.cycle_count);
+            log!(t, 1, "CPU: Waiting {} more cycle(s) for the instruction to finish", self.cycle_count);
             log!(t, 1, "CPU: CS page, PC is still {:#04X}_{:04X} | SP is still {:#04X}", self.get_cs(), self.pc, self.sp);
             self.cycle_count -= 1;
             return;

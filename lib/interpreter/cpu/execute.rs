@@ -41,7 +41,7 @@ use super::CPUState;
 
 /* Functions */
 
-pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) -> bool {
+pub(super) fn execute(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) -> bool {
     debug_assert!(mem.ready());
 
     let upper_nibble = inst_word >> 12;

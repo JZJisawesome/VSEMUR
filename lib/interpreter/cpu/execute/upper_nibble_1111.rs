@@ -37,7 +37,7 @@ use super::CPUState;
 
 /* Functions */
 
-pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+pub(super) fn execute(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     let secondary_group = (inst_word >> 6) & 0b111;
     debug_assert!(secondary_group < 8);
 
@@ -55,7 +55,7 @@ pub(super) fn execute(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_w
     }
 }
 
-fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_000(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     //TODO what about multiply
     //Check if bits 11:9 are all set
     if ((inst_word >> 9) & 0b111) == 0b111 {
@@ -85,7 +85,7 @@ fn secondary_group_000(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     cpu.inc_pc();
 }
 
-fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_001(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     log_finln!("CALL A22");
 
     //Determine the new cs and pc
@@ -108,19 +108,19 @@ fn secondary_group_001(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     cpu.set_cycle_count(9);
 }
 
-fn secondary_group_010(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_010(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     unimplemented!();
 }
 
-fn secondary_group_011(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_011(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     unimplemented!();
 }
 
-fn secondary_group_100(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_100(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     unimplemented!();
 }
 
-fn secondary_group_101(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_101(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     //Look at bit 5 first to split the opcode space in twoish
     if ((inst_word >> 5) & 0b1) == 0b0 {
         //Look at bits 4:2 to split things further
@@ -205,10 +205,10 @@ fn secondary_group_101(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_
     }
 }
 
-fn secondary_group_110(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_110(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     unimplemented!();
 }
 
-fn secondary_group_111(t: u128, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+fn secondary_group_111(t: u32, cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     unimplemented!();
 }

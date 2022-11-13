@@ -48,7 +48,7 @@
 //!            panic!("This will never occur");
 //!        },
 //!    }
-//!    //Add your own logic (including deciding when to exit) here
+//!    //Add your own logic (including deciding when to exit and to limit tick()s to 27Mhz) here
 //!}
 //!```
 
@@ -88,7 +88,7 @@ const MEM_SIZE_WORDS: usize = 1 << 22;//TODO set this to 0xFFFF since everything
 ///
 ///Instanciate with [`State::new()`].
 pub struct State {
-    t: u128,//Ticks
+    t: u32,//Ticks
 
     cpu: cpu::CPUState,
     render: render::RenderState,
@@ -171,7 +171,7 @@ impl State {
 
     ///Performs one "tick" of the emulated system, equivalent to one clock cycle.
     ///
-    ///This function should be called approximately (TODO determine the proper clock frequency) times per second
+    ///This function should be called approximately 27 million times per second (27 MHz)
     ///
     ///Before this is called, [`State::reset()`] should already have been called at least once.
     ///
@@ -181,8 +181,8 @@ impl State {
             return ReturnCode::TickFail;
         }
 
-        //Increment the number of ticks
-        self.t += 1;
+        //Increment the number of ticks for debugging
+        if cfg!(debug_assertions) { self.t += 1; }
         log_ansi!(self.t, 0, "\x1b[1;97m", "Tick {} begins", self.t);
 
         //Tick sub-states

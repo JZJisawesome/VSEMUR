@@ -24,3 +24,11 @@ strip = true
 overflow-checks = false
 panic = "abort"
 lto = true
+
+[profile.release-with-debug]
+inherits = "release"
+strip = false
+overflow-checks = false
+panic = "abort"
+lto = false
+debug = true

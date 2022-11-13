@@ -72,22 +72,41 @@ fn main() {
     debug_assert!(matches!(reset_result, vsemur::interpreter::ReturnCode::ResetOk));
 
     //Main emulation loop
+    let tick_period = std::time::Duration::from_nanos(37);//1/27Mhz is 0.00000003703 seconds, or 37.03703704ns//TODO perhaps move this to the library?
+    let tick_leniency = std::time::Duration::from_nanos(10);//Most amount of time we tolarate the tick being late before displaying a warning
+    let mut warning_displayed_flag: bool = false;//Only display the warning once
+
+    let mut last_tick = std::time::Instant::now();
     loop {
-        match state.tick() {
-            vsemur::interpreter::ReturnCode::TickOk => { continue; },
-            vsemur::interpreter::ReturnCode::TickFail => {//This should never occur
-                if cfg!(debug_assertions) {
-                    panic!("\x1b[31mError: Tick failed\x1b[0m");
-                }
-            },
-            vsemur::interpreter::ReturnCode::TickOkNewFrameAvailable => {
-                unimplemented!();//TODO implement
+        let time_since_last_tick = last_tick.elapsed();
+        if time_since_last_tick >= tick_period {
+            //Time to call state.tick();
+            let tick_result = state.tick();
+            last_tick = std::time::Instant::now();
+            if !warning_displayed_flag && (time_since_last_tick > (tick_period + tick_leniency)) {
+                eprintln!("\x1b[31mWarning: The last tick was too late ({} > {}), your system might be too slow to run VSEMUR at full speed...\x1b[0m", time_since_last_tick.as_nanos(), tick_period.as_nanos());
+                warning_displayed_flag = true;
             }
-            _ => {
-                if cfg!(debug_assertions) {
-                    panic!("\x1b[31mError: Tick returned invalid code\x1b[0m");
+
+            //Handle the tick's result
+            match tick_result {
+                vsemur::interpreter::ReturnCode::TickOk => { },
+                vsemur::interpreter::ReturnCode::TickFail => {//This should never occur
+                    if cfg!(debug_assertions) {
+                        panic!("\x1b[31mError: Tick failed\x1b[0m");
+                    }
+                },
+                vsemur::interpreter::ReturnCode::TickOkNewFrameAvailable => {
+                    unimplemented!();//TODO implement
                 }
-            },
+                _ => {
+                    if cfg!(debug_assertions) {
+                        panic!("\x1b[31mError: Tick returned invalid code\x1b[0m");
+                    }
+                },
+            }
         }
+
+        //TODO rendering, etc here (perhaps set a flag, then use a thread to render)
     }
 }
