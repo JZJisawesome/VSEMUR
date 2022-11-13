@@ -106,17 +106,26 @@ pub(crate) use log_register;//FIXME prevent having to export these helper macros
 /* Functions */
 
 pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
+    /* Opcodes in this architecture are really difficult to decode
+     * Originally we used the same sort of priority scheme MAME did for decoding instructions
+     * However, I've since changed and have gone with my own that I feel to be a bit more intuitive
+    */
+
     debug_assert!(mem.ready());
+    debug_assert!(upper_nibble!(inst_word) < 16);
+    debug_assert!(secondary_group!(inst_word) < 8);
+    log!(1, "CPU: Decode and execute instruction");
 
-    let upper_nibble = upper_nibble!(inst_word);
-    let secondary_group = secondary_group!(inst_word);
-    debug_assert!(upper_nibble < 16);
-    debug_assert!(secondary_group < 8);
-    log!(1, "CPU: Execute instruction of the form:    {:#06b}xxx{:03b}xxxxxx", upper_nibble, secondary_group);
-
+    log_noln!(2, "First check if the instruction is obviously invalid: ");
     if (inst_word == 0xFFFF) || (inst_word == 0x0000) {//All zero or all one instructions are not valid
-        log!(2, "Instruction type: (invalid)");
+        log_finln!("Yep.");//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
+        panic!();
     }
+    log_finln!("Nope!");
+
+
+    //log_noln!(2, "Next let's check if the instruction is a branch: ");//TODO
+
 
     log!(2, "Check if upper nibble is 0xF or 0xE:     ^^^^");
     match upper_nibble {

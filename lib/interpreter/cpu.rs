@@ -21,10 +21,10 @@ use super::MEM_SIZE_WORDS;
 /* Constants */
 
 //Page 47 is useful :)
-const BREAK_INT_VECTOR_ADDR: usize = 0;
+const BREAK_INT_VECTOR_ADDR: usize = 0xFFF5;
 const FIQ_INT_VECTOR_ADDR: usize = 0xFFF6;
 const RESET_INT_VECTOR_ADDR: usize = 0xFFF7;
-const IRQ_INT_VECTOR_ADDR: [usize;8] = [0xFFF8, 0xFFF9, 0xFFFA, 0xFFFB, 0xFFFC, 0xFFFD, 0xFFFE, 0xFFFF];
+const IRQ_INT_VECTOR_ADDR: [usize;8] = [0xFFF8, 0xFFF9, 0xFFFA, 0xFFFB, 0xFFFC, 0xFFFD, 0xFFFE, 0xFFFF];//0 thru 7
 
 /* Macros */
 
