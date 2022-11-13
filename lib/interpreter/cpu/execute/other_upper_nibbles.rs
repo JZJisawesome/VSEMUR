@@ -123,7 +123,7 @@ fn secondary_group_000(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
         }
     }
 
-    cpu.set_cycle_count(8);
+    cpu.set_cycle_count(6);
     cpu.inc_pc();//TODO what if the register is the PC?
 }
 
@@ -161,7 +161,7 @@ fn secondary_group_001(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
             }
         }
 
-        cpu.set_cycle_count(3);
+        cpu.set_cycle_count(2);
         cpu.inc_pc();//TODO what if rd_index is the PC?
     }
 }
@@ -183,13 +183,13 @@ fn secondary_group_010(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
     //Get Size
     let mut size: u8 = ((inst_word >> 3) & 0b111) as u8;
     log!(5, "Size is {}", size);
+    cpu.set_cycle_count((2 * size) + 4);//Cycles to execute is proprotional to the number of registers we are pushing or poping
 
     log_noln!(5, "Instruction: ");
     match upper_nibble {
         0b1101 => {
             //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
             log_finln!("PUSH");
-            cpu.set_cycle_count((3 * size) + 4);//Cycles to execute is proprotional to the number of registers we are pushing
             while size != 0 {
                 //TODO is this the correct order to push things?
                 let reg: u16 = get_reg_by_index(cpu, rh_index);
@@ -311,6 +311,7 @@ fn secondary_group_011(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
     }
 
     //TODO what if rd_index is the PC?
+    cpu.set_cycle_count(if rd_index == 0b111 { 7 } else { 6 });
     cpu.inc_pc();
 }
 
@@ -328,7 +329,7 @@ fn secondary_group_100(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
     match ((inst_word >> 4) & 0b11, (inst_word >> 3) & 0b1) {
         (0b00, 0b1) => {
             log_finln!("IMM16");
-            //TODO determine number of cycles this takes
+            cpu.set_cycle_count(if rd_index == 0b111 { 5 } else { 4 });
             direct16 = false;
             direct16_w = false;//This value dosn't matter
 
@@ -344,7 +345,7 @@ fn secondary_group_100(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16
         },
         (0b01, direct16_w_bit) => {
             log_midln!("Direct16");
-            //TODO determine number of cycles this takes
+            cpu.set_cycle_count(if rd_index == 0b111 { 8 } else { 7 });
             direct16 = true;
             direct16_w = direct16_w_bit == 0b1;
             log_finln!(", with W flag{} set", if direct16_w { "" } else { " not" });

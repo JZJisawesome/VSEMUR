@@ -41,7 +41,7 @@ use super::CPUState;
 
 /* Functions */
 
-pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) -> bool {
+pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16) {
     debug_assert!(mem.ready());
 
     let upper_nibble = inst_word >> 12;
@@ -52,7 +52,6 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16)
 
     if (inst_word == 0xFFFF) || (inst_word == 0x0000) {//All zero or all one instructions are not valid
         log!(2, "Instruction type: (invalid)");
-        return true;
     }
 
     log!(2, "Check if upper nibble is 0xF or 0xE:     ^^^^");
@@ -78,8 +77,6 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16)
             other_upper_nibbles::execute(cpu, mem, inst_word);
         },
     }
-
-    return true;
 }
 
 //We may need the word after the current instruction (wordgroup 1)

@@ -90,6 +90,8 @@ const MEM_SIZE_WORDS: usize = 1 << 22;//TODO set this to 0xFFFF since everything
 ///
 ///Instanciate with [`State::new()`].
 pub struct State {
+    reset_needed: bool,
+
     cpu: cpu::CPUState,
     render: render::RenderState,
     sound: sound::SoundState,
@@ -134,6 +136,8 @@ impl State {
         log_ansi!(0, "\x1b[1;97m", "Initializing VSEMUR State");
 
         let new_state = State {
+            reset_needed: true,
+
             cpu: cpu::CPUState::new(),
             render: render::RenderState::new(),
             sound: sound::SoundState::new(),
@@ -142,7 +146,6 @@ impl State {
         };
 
         log!(0, "Initialization complete");
-
         return new_state
     }
 
@@ -166,6 +169,7 @@ impl State {
         self.input.reset();
 
         log!(0, "Reset complete");
+        self.reset_needed = false;
         return ReturnCode::ResetOk;
     }
 
@@ -177,8 +181,10 @@ impl State {
     ///
     ///Returns [`ReturnCode::TickFail`] if the proper prerequisites have not been met. Otherwise normally returns [`ReturnCode::TickOk`], unless a new frame is ready to be shown to the user, in which case it returns [`ReturnCode::TickOkNewFrameAvailable`].
     pub fn tick(self: &mut Self) -> ReturnCode {
-        if !self.mem.ready() {
-            return ReturnCode::TickFail;
+        if cfg!(debug_assertions) {//Gotta go fast
+            if self.reset_needed {
+                return ReturnCode::TickFail;
+            }
         }
 
         //Increment the number of ticks for debugging
@@ -200,6 +206,7 @@ impl State {
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, [`ReturnCode::LoadFailOpen`] if there was a filesystem issue, [`ReturnCode::LoadFailSize`] if the file was an invalid size.
     pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
+        self.reset_needed = true;
         return self.mem.load_bios_file(path);
     }
 
@@ -209,6 +216,7 @@ impl State {
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, or [`ReturnCode::LoadFailSize`] if the slice was an invalid size.
     pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> ReturnCode {
+        self.reset_needed = true;
         return self.mem.load_bios_mem(bios_mem);
     }
 
@@ -218,6 +226,7 @@ impl State {
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, [`ReturnCode::LoadFailOpen`] if there was a filesystem issue, [`ReturnCode::LoadFailSize`] if the file was an invalid size.
     pub fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
+        self.reset_needed = true;
         return self.mem.load_rom_file(path);
     }
 
@@ -227,10 +236,18 @@ impl State {
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, or [`ReturnCode::LoadFailSize`] if the slice was an invalid size.
     pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> ReturnCode {
+        self.reset_needed = true;
         return self.mem.load_rom_mem(rom_mem);
     }
 
     //TODO functions to read frambuffer so the user can display it as they wish
+    //Perhaps provide some sort of thread-safe function so we can render the screen asynchrenously?
+    //Don't actually do rendering in render::tick(), just save the data we need to render later, and don't actually render until the user
+    //calls our function to do so (which could be asynchrenous)
+    //Idea:
+    //State::latch_render() copies the values/data internally needed to render later (meaning we can tick right away afterwards since even if we affect the render settings we have a copy)
+    // Or perhaps this returns some sort of FutureFramebuffer object that we can call a render function on, completely seperate from the main State?
+    //State::render() returns the rendered framebuffer (the user can call this in a seperate thread)
 }
 
 /* Functions */
