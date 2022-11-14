@@ -449,17 +449,66 @@ fn get_wg2(cpu: &super::CPUState, mem: &crate::interpreter::memory::MemoryState)
 }
 
 fn dec_alu_op(inst_word: u16) -> DecodedALUOp {
-    unimplemented!();
+    use DecodedALUOp::*;
+    match upper_nibble!(inst_word) {
+        0b0000 => { return ADD; },
+        0b0001 => { return ADC; },
+        0b0010 => { return SUB; },
+        0b0011 => { return SBC; },
+        0b0100 => { return CMP; },
+        0b0110 => { return NEG; },
+        0b1000 => { return XOR; },
+        0b1001 => { return LOAD; },
+        0b1010 => { return OR; },
+        0b1011 => { return AND; },
+        0b1100 => { return TEST; },
+        0b1101 => { return STORE; },
+        _ => { return InvalidALUOp; },
+    }
 }
 
 fn dec_branch_op(inst_word: u16) -> DecodedBranchOp {
-    unimplemented!();
+    use DecodedBranchOp::*;
+    match upper_nibble!(inst_word) {
+        0b0000 => { return JCC_JB_JNAE; },
+        0b0001 => { return JCS_JNB_JAE; },
+        0b0010 => { return JSC_JGE_JNL; },
+        0b0011 => { return JSS_JNGE_JL; },
+        0b0100 => { return JNE_JNZ; },
+        0b0101 => { return JZ_JE; },
+        0b0110 => { return JPL; },
+        0b0111 => { return JMI; },
+        0b1000 => { return JBE_JNA; },
+        0b1001 => { return JNBE_JA; },
+        0b1010 => { return JLE_JNG; },
+        0b1011 => { return JNLE_JG; },
+        0b1100 => { return JVC; },
+        0b1101 => { return JVS; },
+        0b1110 => { return JMP; },
+        _ => { return InvalidBranchOp; },
+    }
 }
 
 fn dec_stack_op(inst_word: u16) -> DecodedStackOp {
-    unimplemented!();
+    use DecodedStackOp::*;
+    match upper_nibble!(inst_word) {
+        0b1101 => { return PUSH; },
+        0b1001 => { return POP; },
+        _ => { return InvalidStackOp; },
+    }
 }
 
 fn dec_reg_from_index(reg_index: u8) -> DecodedRegister {
-    unimplemented!();
+    use DecodedRegister::*;
+    match reg_index {
+        0b000 => { return SP; },
+        0b001 => { return R1_SR1; },
+        0b010 => { return R2_SR2; },
+        0b011 => { return R3_SR3; },
+        0b100 => { return R4_SR4; },
+        0b101 => { return BP; },
+        0b110 => { return SR; },
+        0b111 => { return PC; },
+        _ => { return InvalidRegister; },
+    }
 }
