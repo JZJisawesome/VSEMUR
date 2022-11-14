@@ -41,13 +41,16 @@ Note: the upper nibble refers to bits [15:12] of the instruction word and the se
             - It is Register BITOP (offset)
         Case secondary group is 0b010:
             - It is MULS
+        Case secondary group is 0b011:
+            - It is invalid
         Case secondary group is 0b100 or 0b101:
             - If bit 3 is set, it is 16 bits Shift, else it is Memory BITOP (Rs)
         Case secondary group is 0b110:
             - It is Memory BITOP (Offset). Although this conflicts with MULS and I had no idea what to do, in MAME's unsp emulator Memory BITOP (Offset) takes priority in this case.
         Case secondary group is 0b111:
             - It is Memory BITOP (Offset). Although this conflicts with MULS and I had no idea what to do, in MAME's unsp emulator Memory BITOP (Offset) takes priority in this case.
-4. Check if the instruction has an upper nibble of 0b0101 or 0b0111. If so, it is a Branch. Else keep going
+4. Check if the instruction has an upper nibble of 0b0101 or 0b0111. If it is, perform the substeps, else goto 5
+    - Verify that Rd is 0b111 and the secondary group is 0b000 or 0b001. If so, it is a Branch, otherwise it's invalid.
 5. For all other upper nibbles, do the following substeps:
     3a. If Rd is 0b111 AND the secondary group is either 0b000 or 0b001, it is Branch. Else keep going
     3b. It is one of the alu operation instructions. Look at the secondary group to decode it first, then look at the lower bits to figure out the instruction.

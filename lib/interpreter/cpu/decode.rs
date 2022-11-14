@@ -246,10 +246,48 @@ pub(super) fn decode(inst_word: u16) -> DecodedInstructionType {
             }
         },
         0b1110 => {
-            unimplemented!();//TODO
+            log!(3, "The upper nibble is 0b1110, so let's check if this is a branch");
+
+            let secondary_group = super::secondary_group!(inst_word);
+            if (super::rd_index!(inst_word) == 0b111) && ((secondary_group == 0b000) || (secondary_group == 0b001)) {
+                return_type!(4, DecodedInstructionType::Branch);
+            } else {
+                log!(4, "This isn't a branch, so let's inspect the secondary group: {:#05b}", secondary_group);
+                match secondary_group {
+                    0b000 => {
+                        let bit_3 = (inst_word >> 3) & 0b1;
+                        log!(5, "The secondary group is 0b000, so let's inspect bit 3: {:#03b}", bit_3);
+                        if bit_3 == 0b1 {
+                            return_type!(6, DecodedInstructionType::MUL);
+                        } else {
+                            return_type!(6, DecodedInstructionType::Register_BITOP_Rs);
+                        }
+                    },
+                    0b001 => { return_type!(5, DecodedInstructionType::Register_BITOP_offset); },
+                    0b010 => { return_type!(5, DecodedInstructionType::MULS); },
+                    0b011 => { return_type!(5, DecodedInstructionType::InvalidInstructionType); },
+                    0b100 | 0b101 => {
+                        let bit_3 = (inst_word >> 3) & 0b1;
+                        log!(5, "The secondary group is 0b000, so let's inspect bit 3: {:#03b}", bit_3);
+                        if bit_3 == 0b1 {
+                            return_type!(6, DecodedInstructionType::sixteen_bits_Shift);
+                        } else {
+                            return_type!(6, DecodedInstructionType::Memory_BITOP_Rs);
+                        }
+                    },
+                    0b110 | 0b111 => { return_type!(5, DecodedInstructionType::Memory_BITOP_offset); }
+                    _ => { panic!(); },//This should never occur
+                }
+            }
         },
         0b0101 | 0b0111 => {
-            return_type!(3, DecodedInstructionType::Branch);
+            log!(3, "The upper nibble indicates this is likely a branch, verifying that it is valid...");
+            let secondary_group = super::secondary_group!(inst_word);
+            if (super::rd_index!(inst_word) == 0b111) && ((secondary_group == 0b000) || (secondary_group == 0b001)) {
+                return_type!(4, DecodedInstructionType::Branch);
+            } else {
+                return_type!(4, DecodedInstructionType::InvalidInstructionType);
+            }
         },
         upper_nibble => {
             unimplemented!();//TODO
