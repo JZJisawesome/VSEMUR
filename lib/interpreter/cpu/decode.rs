@@ -598,32 +598,34 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
     }
 }
 
-pub(super) fn decode_wg2(cpu: &super::CPUState, mem: &crate::interpreter::memory::MemoryState, decoded_inst: &mut DecodedInstruction) {
-    log!(1, "CPU: Fetch and decode instruction word group 2");
+pub(super) fn decode_wg2(decoded_inst: &mut DecodedInstruction, wg2: u16) {
+    log!(1, "CPU: Decode instruction word group 2");
     match decoded_inst {
         CALL{ref mut a22} => {
             log!(2, "Fill in the lower 16 bits of a22 for CALL");
-            *a22 |= get_wg2(cpu, mem) as u32;
+            *a22 |= wg2 as u32;
         },
         JMPF{ref mut a22} => {
             log!(2, "Fill in the lower 16 bits of a22 for JMPF");
-            *a22 |= get_wg2(cpu, mem) as u32;
+            *a22 |= wg2 as u32;
         },
         IMM16{ref mut imm16, ..} => {
             log!(2, "Get the 16-bit immediate for IMM16");
-            *imm16 = get_wg2(cpu, mem);
+            *imm16 = wg2;
         },
         Direct16{ref mut a16, ..} => {
             log!(2, "Get the 16-bit immediate for Direct16");
-            *a16 = get_wg2(cpu, mem);
+            *a16 = wg2;
         },
-        _ => { log!(2, "Nope! This instruction dosn't have a second wordgroup. We're done!"); }
+        _ => { panic!(); }//This instruction does not need to look at word group 2
     }
 }
 
-fn get_wg2(cpu: &super::CPUState, mem: &crate::interpreter::memory::MemoryState) -> u16 {
-    let address_after_pc_tuple = super::inc_page_addr_by(cpu.get_cs(), cpu.pc, 1);
-    return mem.read_page_addr(address_after_pc_tuple.0, address_after_pc_tuple.1);
+pub(super) fn needs_decode_wg2(decoded_inst: &DecodedInstruction) -> bool {
+    match decoded_inst {
+        CALL{..} | JMPF{..} | IMM16{..} | Direct16{..} => { return true; }
+        _ => { return false; }
+    }
 }
 
 fn dec_alu_op(inst_word: u16) -> DecodedALUOp {

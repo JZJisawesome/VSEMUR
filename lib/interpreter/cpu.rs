@@ -29,40 +29,7 @@ const IRQ_INT_VECTOR_ADDR: [usize;8] = [0xFFF8, 0xFFF9, 0xFFFA, 0xFFFB, 0xFFFC, 
 
 /* Macros */
 
-macro_rules! rd_index {
-    ($inst_word:expr) => {
-        (($inst_word >> 9) & 0b111) as u8
-    };
-}
-pub(crate) use rd_index;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
-
-macro_rules! rs_index {
-    ($inst_word:expr) => {
-        ($inst_word & 0b111) as u8
-    };
-}
-pub(crate) use rs_index;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
-
-macro_rules! imm6 {
-    ($inst_word:expr) => {
-        ($inst_word & 0b111111) as u8
-    };
-}
-pub(crate) use imm6;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
-
-macro_rules! upper_nibble {
-    ($inst_word:expr) => {
-        $inst_word >> 12
-    };
-}
-pub(crate) use upper_nibble;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
-
-macro_rules! secondary_group {
-    ($inst_word:expr) => {
-        ($inst_word >> 6) & 0b111
-    };
-}
-pub(crate) use secondary_group;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+//TODO
 
 /* Static Variables */
 
@@ -153,10 +120,15 @@ impl CPUState {
         //Decode it
         let mut decoded_inst = decode::DecodedInstruction::InvalidInstructionType;
         decode::decode_wg1(inst_word, &mut decoded_inst);
-        decode::decode_wg2(self, mem, &mut decoded_inst);
+        if decode::needs_decode_wg2(&decoded_inst) {
+            log!(1, "CPU: Fetch started from CS page, PC address + 1");
+            let wg2 = get_wg2(self, mem);
+            log!(2, "Instruction word group 2: {:#06X} | {:#018b}", wg2, wg2);
+            decode::decode_wg2(&mut decoded_inst, wg2);
+        }
 
         //Execute the decoded instruction
-        execute::execute(self, mem, inst_word);
+        execute::execute(self, mem, &decoded_inst);
 
         //TODO handle interrupts, etc
 
@@ -240,4 +212,10 @@ fn inc_page_addr_by(page: u8, addr: u16, increment_amount: u32) -> (u8, u16) {
     } else {
         unimplemented!();//TODO
     }
+}
+
+
+fn get_wg2(cpu: &CPUState, mem: &MemoryState) -> u16 {
+    let address_after_pc_tuple = inc_page_addr_by(cpu.get_cs(), cpu.pc, 1);
+    return mem.read_page_addr(address_after_pc_tuple.0, address_after_pc_tuple.1);
 }
