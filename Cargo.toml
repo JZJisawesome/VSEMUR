@@ -2,6 +2,7 @@
 name = "VSEMUR"
 version = "0.1.0"
 edition = "2021"
+#rustflag = ["link-dead-code=n"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -19,7 +20,11 @@ path = "src/gui.rs"
 
 [dependencies]
 
+[profile.dev]
+incremental = true
+
 [profile.release]
+codegen-units = 1
 strip = true
 overflow-checks = false
 panic = "abort"

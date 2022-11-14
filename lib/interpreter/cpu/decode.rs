@@ -5,6 +5,9 @@
  *
 */
 
+//TODO remove this once everything is implemented
+#![allow(unused_macros)]
+
 /* Imports */
 
 use crate::logging::log;
@@ -22,7 +25,7 @@ use DecodedInstruction::*;
 macro_rules! return_inst {
     ($indent:expr, $decoded_inst_out:expr, $inst_type:expr) => {
         log_noln!($indent, "Instruction: ");
-        if cfg!(debug_assertions) {//TODO print sub fields of each type too
+        if cfg!(debug_assertions) {//TODO print sub fields of each type too (on new lines indented under it)
             match $inst_type {
                 DSI6{..} => { log_finln!("DSI6"); }
                 CALL{..} => { log_finln!("CALL"); }
@@ -153,7 +156,7 @@ pub(super) enum DecodedInstruction {
     FR_Access{w: bool, rs: DecodedRegister},
     MUL{s_rs: bool, rd: DecodedRegister, s_rd: bool, rs: DecodedRegister},
     MULS{s_rs: bool, rd: DecodedRegister, s_rd: bool, size: u8, rs: DecodedRegister},
-    Register_BITOP_Rs,//TODO
+    Register_BITOP_Rs{rd: DecodedRegister, op: DecodedBitOp, rs: DecodedRegister},
     Register_BITOP_offset,//TODO
     Memory_BITOP_offset,//TODO
     Memory_BITOP_Rs,//TODO
@@ -161,12 +164,12 @@ pub(super) enum DecodedInstruction {
     RETI,
     RETF,
     Base_plus_Disp6,//TODO
-    IMM6,//TODO
+    IMM6{op: DecodedALUOp, rd: DecodedRegister, imm6: u8},
     Branch,//TODO
     Stack_Operation,//TODO
     DS_Indirect,//TODO
-    IMM16{imm16: u16},//imm16 is retrived in decode_wg2//TODO
-    Direct16{a16: u16},//a16 is retrived in decode_wg2//TODO
+    IMM16{op: DecodedALUOp, rd: DecodedRegister, rs: DecodedRegister, imm16: u16},//imm16 is retrived in decode_wg2
+    Direct16{op: DecodedALUOp, rd: DecodedRegister, rs: DecodedRegister, a16: u16},//a16 is retrived in decode_wg2
     Direct6{op: DecodedALUOp, rd: DecodedRegister, a6: u8},
     Register,//TODO
 
@@ -219,6 +222,48 @@ pub(super) enum DecodedStackOp {
     InvalidStackOp,
 }
 
+pub(super) enum DecodedDSOp {
+    NOP,
+    PostDecrement,
+    PostIncrement,
+    PreIncrement,
+
+    InvalidDSOp,
+}
+
+pub(super) enum DecodedBitOp {
+    TSTB,
+    SETB,
+    CLRB,
+    INVB,
+
+    InvalidBitOp,
+}
+
+pub(super) enum DecodedLSFTOp {
+    ASR,
+    ASROR,
+    LSL,
+    LSLOR,
+    LSR,
+    LSLROR,
+    ROL,
+    ROR,
+
+    InvalidLSFTOp,
+}
+
+pub(super) enum DecodedSFTOp {
+    NOP,
+    ASR,
+    LSL,
+    LSR,
+    ROL,
+    ROR,
+
+    InvalidSFTOp,
+}
+
 #[allow(non_camel_case_types)]
 pub(super) enum DecodedRegister {
     SP,
@@ -266,10 +311,14 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                         log!(5, "Rd is not 0b111, so inspect bits [5:4]: {:#04b}", bits_54);
                         match bits_54 {
                             0b00 => { return_inst!(6, decoded_inst, MUL_parse!(inst_word)); },
-                            0b01 => { return_inst!(6, decoded_inst, InvalidInstructionType); },
-                            0b10 => { return_inst!(6, decoded_inst, DS_Access{w: ((inst_word >> 3) & 0b1) == 0b1, rs: dec_reg_from_index(rs_index!(inst_word))}); },
+                            0b10 => {
+                                return_inst!(6, decoded_inst, DS_Access {
+                                    w: ((inst_word >> 3) & 0b1) == 0b1,
+                                    rs: dec_reg_from_index(rs_index!(inst_word)),
+                                });
+                            },
                             0b11 => { return_inst!(6, decoded_inst, FR_Access{w: ((inst_word >> 3) & 0b1) == 0b1, rs: dec_reg_from_index(rs_index!(inst_word))}); },
-                            _ => { panic!(); },//This should never occur
+                            _ => { return_inst!(6, decoded_inst, InvalidInstructionType); },
                         }
                     }
                 },
@@ -373,12 +422,15 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                         if bit_3 == 0b1 {
                             return_inst!(6, decoded_inst, MUL_parse!(inst_word));
                         } else {
-                            return_inst!(6, decoded_inst, Register_BITOP_Rs);
+                            return_inst!(6, decoded_inst, Register_BITOP_Rs {
+                                rd: dec_reg_from_index(rd_index!(inst_word)),
+                                op: dec_bit_op(inst_word),
+                                rs: dec_reg_from_index(rs_index!(inst_word)),
+                            });
                         }
                     },
                     0b001 => { return_inst!(5, decoded_inst, Register_BITOP_offset); },
                     0b010 => { return_inst!(5, decoded_inst, MULS_parse!(inst_word)); },
-                    0b011 => { return_inst!(5, decoded_inst, InvalidInstructionType); },
                     0b100 | 0b101 => {
                         let bit_3 = (inst_word >> 3) & 0b1;
                         log!(5, "The secondary group is 0b000, so let's inspect bit 3: {:#03b}", bit_3);
@@ -389,7 +441,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                         }
                     },
                     0b110 | 0b111 => { return_inst!(5, decoded_inst, Memory_BITOP_offset); }
-                    _ => { panic!(); },//This should never occur
+                    _ => { return_inst!(5, decoded_inst, InvalidInstructionType); },
                 }
             }
         },
@@ -412,7 +464,13 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                 log!(4, "This isn't a branch, so let's inspect the secondary group: {:#05b}", secondary_group);
                 match secondary_group {
                     0b000 => { return_inst!(5, decoded_inst, Base_plus_Disp6); },
-                    0b001 => { return_inst!(5, decoded_inst, IMM6); },
+                    0b001 => {
+                        return_inst!(5, decoded_inst, IMM6 {
+                            op: dec_alu_op(inst_word),
+                            rd: dec_reg_from_index(rd_index!(inst_word)),
+                            imm6: imm6!(inst_word),
+                        });
+                    },
                     0b010 => {
                         if        inst_word == 0b1001101010011000 {
                             return_inst!(5, decoded_inst, RETI);
@@ -427,8 +485,22 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                         let bits_543 = (inst_word >> 3) & 0b111;
                         log!(5, "The secondary group is 0b100, so let's inspect bits [5:3]: {:#03b}", bits_543);
                         match bits_543 {
-                            0b001 => { return_inst!(6, decoded_inst, IMM16{imm16: 0}); },//imm16 will be filled in decode_wg2
-                            0b010 | 0b011 => { return_inst!(6, decoded_inst, Direct16{a16: 0}); },//a16 will be filled in decode_wg2
+                            0b001 => {
+                                return_inst!(6, decoded_inst, IMM16 {
+                                    op: dec_alu_op(inst_word),
+                                    rd: dec_reg_from_index(rd_index!(inst_word)),
+                                    rs: dec_reg_from_index(rs_index!(inst_word)),
+                                    imm16: 0,//imm16 will be filled in decode_wg2
+                                });
+                            },
+                            0b010 | 0b011 => {
+                                return_inst!(6, decoded_inst, Direct16 {
+                                    op: dec_alu_op(inst_word),
+                                    rd: dec_reg_from_index(rd_index!(inst_word)),
+                                    rs: dec_reg_from_index(rs_index!(inst_word)),
+                                    a16: 0,//a16 will be filled in decode_wg2
+                                });
+                            },
                             _ => { return_inst!(6, decoded_inst, Register); },
                         }
                     },
@@ -518,6 +590,17 @@ fn dec_stack_op(inst_word: u16) -> DecodedStackOp {
         0b1101 => { return PUSH; },
         0b1001 => { return POP; },
         _ => { return InvalidStackOp; },
+    }
+}
+
+fn dec_bit_op(inst_word: u16) -> DecodedBitOp {
+    use DecodedBitOp::*;
+    match (inst_word >> 4) & 0b11 {
+        0b00 => { return TSTB; },
+        0b01 => { return SETB; },
+        0b10 => { return CLRB; },
+        0b11 => { return INVB; },
+        _ => { panic!(); },//This should never occur
     }
 }
 
