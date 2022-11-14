@@ -5,9 +5,6 @@
  *
 */
 
-//DecodedInstruction's case closely matches the ISA documentation
-#[allow(non_camel_case_types)]
-
 /* Imports */
 
 use crate::logging::log;
@@ -110,46 +107,107 @@ macro_rules! secondary_group {
 
 /* Types */
 
+#[allow(non_camel_case_types)]
 pub(super) enum DecodedInstruction {
     DSI6{imm6: u8},
     CALL{a22: u32},//Lower 16 bits are retrived in decode_wg2
     JMPF{a22: u32},//Lower 16 bits are retrived in decode_wg2
     JMPR,
-    FIR_MOV,
-    Fraction,
-    INT_SET,
-    IRQ,
-    SECBANK,
-    FIQ,
-    IRQ_Nest_Mode,
+    FIR_MOV{fir: bool},
+    Fraction{fra: bool},
+    INT_SET,//TODO
+    IRQ,//TODO
+    SECBANK,//TODO
+    FIQ,//TODO
+    IRQ_Nest_Mode,//TODO
     BREAK,
     CALLR,
     DIVS,
     DIVQ,
     EXP,
     NOP,
-    DS_Access,
-    FR_Access,
-    MUL,
-    MULS,
-    Register_BITOP_Rs,
-    Register_BITOP_offset,
-    Memory_BITOP_offset,
-    Memory_BITOP_Rs,
-    sixteen_bits_Shift,
+    DS_Access,//TODO
+    FR_Access,//TODO
+    MUL,//TODO
+    MULS,//TODO
+    Register_BITOP_Rs,//TODO
+    Register_BITOP_offset,//TODO
+    Memory_BITOP_offset,//TODO
+    Memory_BITOP_Rs,//TODO
+    sixteen_bits_Shift,//TODO
     RETI,
     RETF,
-    Base_plus_Disp6,
-    IMM6,
-    Branch,
-    Stack_Operation,
-    DS_Indirect,
-    IMM16{imm16: u16},//imm16 is retrived in decode_wg2
-    Direct16{a16: u16},//a16 is retrived in decode_wg2
-    Direct6,
-    Register,
+    Base_plus_Disp6,//TODO
+    IMM6,//TODO
+    Branch,//TODO
+    Stack_Operation,//TODO
+    DS_Indirect,//TODO
+    IMM16{imm16: u16},//imm16 is retrived in decode_wg2//TODO
+    Direct16{a16: u16},//a16 is retrived in decode_wg2//TODO
+    Direct6{op: DecodedALUOp, rd: DecodedRegister, a6: u8},
+    Register,//TODO
 
     InvalidInstructionType,
+}
+
+pub(super) enum DecodedALUOp {
+    ADD,
+    ADC,
+    SUB,
+    SBC,
+    CMP,
+    NEG,
+    XOR,
+    LOAD,
+    OR,
+    AND,
+    TEST,
+    STORE,
+
+    InvalidALUOp,
+}
+
+#[allow(non_camel_case_types)]
+pub(super) enum DecodedBranchOp {
+    JCC_JB_JNAE,
+    JCS_JNB_JAE,
+    JSC_JGE_JNL,
+    JSS_JNGE_JL,
+    JNE_JNZ,
+    JZ_JE,
+    JPL,
+    JMI,
+    JBE_JNA,
+    JNBE_JA,
+    JLE_JNG,
+    JNLE_JG,
+    JVC,
+    JVS,
+    JMP,
+    JCC_JB,
+
+    InvalidBranchOp,
+}
+
+pub(super) enum DecodedStackOp {
+    PUSH,
+    POP,
+
+    InvalidStackOp,
+}
+
+#[allow(non_camel_case_types)]
+pub(super) enum DecodedRegister {
+    SP,
+    R1_SR1,
+    R2_SR2,
+    R3_SR3,
+    R4_SR4,
+    BP,
+    SR,
+    PC,
+
+    InvalidRegister,
 }
 
 /* Associated Functions and Methods */
@@ -246,9 +304,9 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                                 let bit_1 = (inst_word >> 1) & 0b1;
                                 log!(6, "Bits [4:2] are 0b001, so let's inspect bit 1: {:#03b}", bit_1);
                                 if bit_1 == 0b1 {
-                                    return_inst!(7, decoded_inst, Fraction);
+                                    return_inst!(7, decoded_inst, Fraction{fra: (inst_word & 0b1) == 0b1});
                                 } else {
-                                    return_inst!(7, decoded_inst, FIR_MOV);
+                                    return_inst!(7, decoded_inst, FIR_MOV{fir: (inst_word & 0b1) == 0b1});
                                 }
                             },
                             0b010 => {
@@ -333,7 +391,13 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                     0b000 => { return_inst!(5, decoded_inst, Base_plus_Disp6); },
                     0b001 => { return_inst!(5, decoded_inst, IMM6); },
                     0b010 => {
-                        unimplemented!();//TODO RETI and RETF
+                        if        inst_word == 0b1001101010011000 {
+                            return_inst!(5, decoded_inst, RETI);
+                        } else if inst_word == 0b1001101010010000 {
+                            return_inst!(5, decoded_inst, RETF);
+                        } else {
+                            return_inst!(5, decoded_inst, InvalidInstructionType);
+                        }
                     },
                     0b011 => { return_inst!(5, decoded_inst, DS_Indirect); },
                     0b100 => {
@@ -382,4 +446,20 @@ pub(super) fn decode_wg2(cpu: &super::CPUState, mem: &crate::interpreter::memory
 fn get_wg2(cpu: &super::CPUState, mem: &crate::interpreter::memory::MemoryState) -> u16 {
     let address_after_pc_tuple = super::inc_page_addr_by(cpu.get_cs(), cpu.pc, 1);
     return mem.read_page_addr(address_after_pc_tuple.0, address_after_pc_tuple.1);
+}
+
+fn dec_alu_op(inst_word: u16) -> DecodedALUOp {
+    unimplemented!();
+}
+
+fn dec_branch_op(inst_word: u16) -> DecodedBranchOp {
+    unimplemented!();
+}
+
+fn dec_stack_op(inst_word: u16) -> DecodedStackOp {
+    unimplemented!();
+}
+
+fn dec_reg_from_index(reg_index: u8) -> DecodedRegister {
+    unimplemented!();
 }
