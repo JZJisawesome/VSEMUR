@@ -1,7 +1,7 @@
-/* NAME//TODO
+/* decode.rs
  * By: John Jekel
  *
- * TODO description
+ * Decodes unSP instructions. See README.md for how this is done (it is black magic).
  *
 */
 
