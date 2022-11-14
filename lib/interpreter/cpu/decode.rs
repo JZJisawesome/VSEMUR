@@ -101,6 +101,29 @@ macro_rules! secondary_group {
     };
 }
 
+macro_rules! MUL_parse {
+    ($inst_word:expr) => {
+        MUL {
+            s_rs: (($inst_word >> 12) & 0b1) == 0b1,
+            rd: dec_reg_from_index(rd_index!($inst_word)),
+            s_rd: (($inst_word >> 8) & 0b1) == 0b1,
+            rs: dec_reg_from_index(rs_index!($inst_word)),
+        }
+    }
+}
+
+macro_rules! MULS_parse {
+    ($inst_word:expr) => {
+        MULS {
+            s_rs: (($inst_word >> 12) & 0b1) == 0b1,
+            rd: dec_reg_from_index(rd_index!($inst_word)),
+            s_rd: (($inst_word >> 8) & 0b1) == 0b1,
+            size: (($inst_word >> 3) & 0b1111) as u8,
+            rs: dec_reg_from_index(rs_index!($inst_word)),
+        }
+    }
+}
+
 /* Static Variables */
 
 //TODO
@@ -115,21 +138,21 @@ pub(super) enum DecodedInstruction {
     JMPR,
     FIR_MOV{fir: bool},
     Fraction{fra: bool},
-    INT_SET,//TODO
-    IRQ,//TODO
-    SECBANK,//TODO
-    FIQ,//TODO
-    IRQ_Nest_Mode,//TODO
+    INT_SET{f: bool, i: bool},
+    IRQ{i: bool},
+    SECBANK{s: bool},
+    FIQ{f: bool},
+    IRQ_Nest_Mode{n: bool},
     BREAK,
     CALLR,
     DIVS,
     DIVQ,
     EXP,
     NOP,
-    DS_Access,//TODO
-    FR_Access,//TODO
-    MUL,//TODO
-    MULS,//TODO
+    DS_Access{w: bool, rs: DecodedRegister},
+    FR_Access{w: bool, rs: DecodedRegister},
+    MUL{s_rs: bool, rd: DecodedRegister, s_rd: bool, rs: DecodedRegister},
+    MULS{s_rs: bool, rd: DecodedRegister, s_rd: bool, size: u8, rs: DecodedRegister},
     Register_BITOP_Rs,//TODO
     Register_BITOP_offset,//TODO
     Memory_BITOP_offset,//TODO
@@ -242,10 +265,10 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                         let bits_54 = (inst_word >> 4) & 0b11;
                         log!(5, "Rd is not 0b111, so inspect bits [5:4]: {:#04b}", bits_54);
                         match bits_54 {
-                            0b00 => { return_inst!(6, decoded_inst, MUL); },
+                            0b00 => { return_inst!(6, decoded_inst, MUL_parse!(inst_word)); },
                             0b01 => { return_inst!(6, decoded_inst, InvalidInstructionType); },
-                            0b10 => { return_inst!(6, decoded_inst, DS_Access); },
-                            0b11 => { return_inst!(6, decoded_inst, FR_Access); },
+                            0b10 => { return_inst!(6, decoded_inst, DS_Access{w: ((inst_word >> 3) & 0b1) == 0b1, rs: dec_reg_from_index(rs_index!(inst_word))}); },
+                            0b11 => { return_inst!(6, decoded_inst, FR_Access{w: ((inst_word >> 3) & 0b1) == 0b1, rs: dec_reg_from_index(rs_index!(inst_word))}); },
                             _ => { panic!(); },//This should never occur
                         }
                     }
@@ -267,7 +290,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                         //Lower 16 bits will be filled in decode_wg2
                         return_inst!(5, decoded_inst, JMPF{a22: ((inst_word as u32) << 16) & 0b1111110000000000000000});
                     } else {
-                        return_inst!(5, decoded_inst, MULS);
+                        return_inst!(5, decoded_inst, MULS_parse!(inst_word));
                     }
                 },
                 0b011 => {
@@ -276,10 +299,10 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                     if rd_index == 0b111 {
                         return_inst!(5, decoded_inst, JMPR);
                     } else {
-                        return_inst!(5, decoded_inst, MULS);
+                        return_inst!(5, decoded_inst, MULS_parse!(inst_word));
                     }
                 },
-                0b100 => { return_inst!(4, decoded_inst, MUL); },
+                0b100 => { return_inst!(4, decoded_inst, MUL_parse!(inst_word)); },
                 0b101 => {
                     let bit_5 = (inst_word >> 5) & 0b1;//Look at bit 5 first to split the opcode space in twoish
                     log!(4, "The secondary group is 0b101, so let's inspect bit 5: {:#03b}", bit_5);
@@ -299,7 +322,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                         let bits_432 = (inst_word >> 2) & 0b111;//Look at bits 4:2 to split things further
                         log!(5, "Bit 5 is not set, so let's inspect the bits [4:2]: {:#05b}", bits_432);
                         match bits_432 {
-                            0b000 => { return_inst!(6, decoded_inst, INT_SET); },
+                            0b000 => { return_inst!(6, decoded_inst, INT_SET{f: ((inst_word >> 1) & 0b1) == 0b1, i: (inst_word & 0b1) == 0b1}); },
                             0b001 => {
                                 let bit_1 = (inst_word >> 1) & 0b1;
                                 log!(6, "Bits [4:2] are 0b001, so let's inspect bit 1: {:#03b}", bit_1);
@@ -313,25 +336,25 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                                 let bit_1 = (inst_word >> 1) & 0b1;
                                 log!(6, "Bits [4:2] are 0b010, so let's inspect bit 1: {:#03b}", bit_1);
                                 if bit_1 == 0b1 {
-                                    return_inst!(7, decoded_inst, SECBANK);
+                                    return_inst!(7, decoded_inst, SECBANK{s: (inst_word & 0b1) == 0b1});
                                 } else {
-                                    return_inst!(7, decoded_inst, IRQ);
+                                    return_inst!(7, decoded_inst, IRQ{i: (inst_word & 0b1) == 0b1});
                                 }
                             },
                             0b011 => {
                                 let bit_0 = inst_word & 0b1;
                                 log!(6, "Bits [4:2] are 0b011, so let's inspect bit 0: {:#03b}", bit_0);
                                 if bit_0 == 0b1 {
-                                    return_inst!(7, decoded_inst, IRQ_Nest_Mode);
+                                    return_inst!(7, decoded_inst, IRQ_Nest_Mode{n: ((inst_word >> 1) & 0b1) == 0b1});
                                 } else {
-                                    return_inst!(7, decoded_inst, FIQ);
+                                    return_inst!(7, decoded_inst, FIQ{f: ((inst_word >> 1) & 0b1) == 0b1});
                                 }
                             },
                             _ => { return_inst!(6, decoded_inst, InvalidInstructionType); },
                         }
                     }
                 },
-                0b110 | 0b111 => { return_inst!(4, decoded_inst, MULS); },
+                0b110 | 0b111 => { return_inst!(4, decoded_inst, MULS_parse!(inst_word)); },
                 _ => { panic!(); },//This should never occur
             }
         },
@@ -348,13 +371,13 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                         let bit_3 = (inst_word >> 3) & 0b1;
                         log!(5, "The secondary group is 0b000, so let's inspect bit 3: {:#03b}", bit_3);
                         if bit_3 == 0b1 {
-                            return_inst!(6, decoded_inst, MUL);
+                            return_inst!(6, decoded_inst, MUL_parse!(inst_word));
                         } else {
                             return_inst!(6, decoded_inst, Register_BITOP_Rs);
                         }
                     },
                     0b001 => { return_inst!(5, decoded_inst, Register_BITOP_offset); },
-                    0b010 => { return_inst!(5, decoded_inst, MULS); },
+                    0b010 => { return_inst!(5, decoded_inst, MULS_parse!(inst_word)); },
                     0b011 => { return_inst!(5, decoded_inst, InvalidInstructionType); },
                     0b100 | 0b101 => {
                         let bit_3 = (inst_word >> 3) & 0b1;
