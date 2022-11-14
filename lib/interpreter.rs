@@ -178,6 +178,10 @@ impl State {
         return ReturnCode::ResetOk;
     }
 
+    pub fn cache(self: &mut Self) {
+        self.cpu.cache(&mut self.mem);
+    }
+
     ///Performs one "tick" of the emulated system, equivalent to one clock cycle.
     ///
     ///This function should be called approximately 27 million times per second (27 MHz)
@@ -198,6 +202,26 @@ impl State {
 
         //Tick sub-states
         self.cpu.tick(&mut self.mem);
+        self.render.tick();
+        self.sound.tick();
+
+        log!(0, "Tick ends");
+        return ReturnCode::TickOk;
+    }
+
+    pub fn tick_cached(self: &mut Self) -> ReturnCode {
+        if cfg!(debug_assertions) {
+            if self.reset_needed {
+                return ReturnCode::TickFail;
+            }
+        }
+
+        //Increment the number of ticks for debugging
+        log_increment_ticks!();
+        log_ansi!(0, "\x1b[1;97m", "Tick begins");
+
+        //Tick sub-states
+        self.cpu.tick_cached(&mut self.mem);
         self.render.tick();
         self.sound.tick();
 

@@ -47,6 +47,9 @@ pub(super) struct CPUState {
     fr: u16,
 
     cycle_count: u8,//Instructions may take multiple clock cycles; we fake this by waiting the proper amount of them after executing the whole thing on the first tick()
+
+    cache_valid: bool,//TODO actually read this value
+    decoded_instruction_cache: Box<[decode::DecodedInstruction]>,
 }
 
 struct Inst {
@@ -68,6 +71,9 @@ impl CPUState {
             fr: 0,
 
             cycle_count: 0,
+
+            cache_valid: false,
+            decoded_instruction_cache: vec![decode::DecodedInstruction::InvalidInstructionType; crate::interpreter::MEM_SIZE_WORDS].into_boxed_slice(),//TODO avoid allocating anything until we need it
         };
     }
 
@@ -85,6 +91,31 @@ impl CPUState {
         log!(3, "Initial CS page, PC is {:#04X}_{:04X}", self.get_cs(), self.pc);
 
         //TODO do we need to initialize the cs or ds?
+    }
+
+    pub(super) fn cache(self: &mut Self, mem: &MemoryState) {
+        log!(1, "Decoding and caching instructions...");
+
+        for i in 0..crate::interpreter::MEM_SIZE_WORDS {
+
+            //Fetch instruction from memory
+            log!(1, "CPU: Fetch started from CS page, PC address: {:#04X}_{:04X}", i >> 16, i & 0xFFFF);
+            let inst_word: u16 = mem.read_addr(i as u32);
+            log!(2, "Instruction word group 1: {:#06X} | {:#018b}", inst_word, inst_word);
+
+            //Decode it
+            let mut decoded_inst = decode::DecodedInstruction::InvalidInstructionType;
+            decode::decode_wg1(inst_word, &mut decoded_inst);
+            if decode::needs_decode_wg2(&decoded_inst) && (i != (crate::interpreter::MEM_SIZE_WORDS - 1)){
+                log!(1, "CPU: Fetch started from CS page, PC address + 1");
+                let wg2 = mem.read_addr((i + 1) as u32);
+                log!(2, "Instruction word group 2: {:#06X} | {:#018b}", wg2, wg2);
+                decode::decode_wg2(&mut decoded_inst, wg2);
+            }
+
+            //Add it to the cache
+            self.decoded_instruction_cache[i] = decoded_inst;
+        }
     }
 
     pub(super) fn tick(self: &mut Self, mem: &mut MemoryState) {
@@ -120,6 +151,23 @@ impl CPUState {
         //TODO handle interrupts, etc
 
         log!(1, "CPU: CS page, PC is now {:#04X}_{:04X} | SP is now {:#04X}", self.get_cs(), self.pc, self.sp);
+    }
+
+    pub(super) fn tick_cached(self: &mut Self, mem: &mut MemoryState) {
+        debug_assert!(mem.ready());
+
+        //Wait for the proper number of cycles depending on the last instruction executed
+        if self.cycle_count != 0 {
+            log!(1, "CPU: Waiting {} more cycle(s) for the instruction to finish", self.cycle_count);
+            log!(1, "CPU: CS page, PC is still {:#04X}_{:04X} | SP is still {:#04X}", self.get_cs(), self.pc, self.sp);
+            self.cycle_count -= 1;
+            return;
+        }
+
+        //Execute the decoded instruction from the cache
+        let cache_index: u32 = ((self.get_cs() as u32) << 16) | (self.pc as u32);
+        let decoded_inst = self.decoded_instruction_cache[cache_index as usize].clone();
+        execute::execute(self, mem, &decoded_inst);
     }
 
     //Make PC access easier (also handles the CS register if it needs to be incremented too)

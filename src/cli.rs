@@ -71,6 +71,9 @@ fn main() {
     let reset_result = state.reset();
     debug_assert!(matches!(reset_result, vsemur::interpreter::ReturnCode::ResetOk));
 
+    //Cache instructions//TESTING
+    //state.cache();//TESTING
+
     //Main emulation loop
     let tick_period = std::time::Duration::from_nanos(37);//1/27Mhz is 0.00000003703 seconds, or 37.03703704ns//TODO perhaps move this to the library?
     let tick_leniency = std::time::Duration::from_nanos(10);//Most amount of time we tolarate the tick being late before displaying a warning
@@ -82,6 +85,7 @@ fn main() {
         if time_since_last_tick >= tick_period {
             //Time to call state.tick();
             let tick_result = state.tick();
+            //let tick_result = state.tick_cached();//TESTING
             last_tick = std::time::Instant::now();
             if !warning_displayed_flag && (time_since_last_tick > (tick_period + tick_leniency)) {
                 eprintln!("\x1b[31mWarning: The last tick was too late ({} > {}), your system might be too slow to run VSEMUR at full speed...\x1b[0m", time_since_last_tick.as_nanos(), tick_period.as_nanos());

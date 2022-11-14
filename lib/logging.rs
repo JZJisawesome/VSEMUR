@@ -13,7 +13,7 @@
 
 /* Constants */
 
-pub(crate) const LOG_FILE_PATH: &str = "vsemur-log.txt";
+pub(crate) const LOG_FILE_PATH: &str = "/tmp/vsemur-log.txt";
 
 /* Static Variables */
 
