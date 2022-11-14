@@ -56,6 +56,21 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
 fn perform_instruction(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
     log!(2, "Perform instruction operations");
     match inst {
+        sixteen_bits_Shift{..} | Base_plus_Disp6{..} | IMM6{..} | DS_Indirect{..} | IMM16{..} | Direct16{..} | Direct6{..} | Register{..} => {
+            alu::execute(cpu, mem, inst);
+        },
+        Register_BITOP_Rs{..} | Register_BITOP_offset{..} | Memory_BITOP_offset{..} | Memory_BITOP_Rs{..} => {
+            bitop::execute(cpu, mem, inst);
+        },
+        CALL{..} | JMPF{..} | JMPR{..} | BREAK{..} | CALLR{..} | RETI{..} | RETF{..} | Branch{..} => {
+            control::execute(cpu, mem, inst);
+        },
+        DIVS{..} | DIVQ{..} | EXP{..} | MUL{..} | MULS{..} => {
+            muldiv::execute(cpu, mem, inst);
+        },
+        Stack_Operation{..} => {
+            stack::execute(cpu, mem, inst);
+        },
         DSI6{imm6} => { cpu.set_ds(*imm6); },
         FIR_MOV{fir}=> { cpu.set_fir(*fir); },
         Fraction{fra} => { cpu.set_fra(*fra); },
@@ -67,27 +82,12 @@ fn perform_instruction(cpu: &mut CPUState, mem: &mut MemoryState, inst: &Decoded
         SECBANK{s} => { cpu.set_bnk(*s); },
         FIQ{f} => { cpu.set_fiq(*f); },
         IRQ_Nest_Mode{n} => { cpu.set_ine(*n); },
-        sixteen_bits_Shift{..} | Base_plus_Disp6{..} | IMM6{..} | DS_Indirect{..} | IMM16{..} | Direct16{..} | Direct6{..} | Register{..} => {
-            alu::execute(cpu, mem, inst);
-        },
-        Register_BITOP_Rs{..} | Register_BITOP_offset{..} | Memory_BITOP_offset{..} | Memory_BITOP_Rs{..} => {
-            bitop::execute(cpu, mem, inst);
-        },
-        CALL{..} | JMPF{..} | JMPR{..} | BREAK{..} | CALLR{..} | RETI{..} | RETF{..} | Branch{..} => {
-            control::execute(cpu, mem, inst);
-        },
-        DIVS{..} | DIVQ{..} | EXP{..} | MUL{..} | MULS{..} | MULS{..} => {
-            muldiv::execute(cpu, mem, inst);
-        },
         NOP => { /* We don't need to do anything! :) */ },
-        DS_Access{..} => {
+        DS_Access{w, rs} => {
             unimplemented!();//TODO do here
         },
-        FR_Access{..} => {
+        FR_Access{w, rs} => {
             unimplemented!();//TODO do here
-        },
-        Stack_Operation{..} => {
-            stack::execute(cpu, mem, inst);
         },
 
         InvalidInstructionType => { panic!(); }//TODO proper error handling?

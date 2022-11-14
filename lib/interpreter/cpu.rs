@@ -259,6 +259,46 @@ impl CPUState {
         self.fr = (self.fr & 0b1111111111110000) | (value as u16);
     }
 
+    //Regular registers
+    fn get_reg(self: &mut Self, reg: decode::DecodedRegister) -> u16 {
+        use decode::DecodedRegister::*;
+        match reg {
+            SP => { return self.sp; },
+            R1_SR1 => { return if self.get_bnk() { self.sec_r[0] } else {self.r[0]}; },
+            R2_SR2 => { return if self.get_bnk() { self.sec_r[1] } else {self.r[1]}; },
+            R3_SR3 => { return if self.get_bnk() { self.sec_r[2] } else {self.r[2]}; },
+            R4_SR4 => { return if self.get_bnk() { self.sec_r[3] } else {self.r[3]}; },
+            BP => { return self.bp; },
+            SR => { return self.sr; },
+            PC => { return self.pc; },
+
+            InvalidRegister => { panic!(); }//We shouldn't be passed this
+        }
+    }
+
+    fn set_reg(self: &mut Self, reg: decode::DecodedRegister, value: u16) {
+        unimplemented!();//TODO
+    }
+
+    fn get_reg_by_index(self: &mut Self, reg: u8) -> u16 {
+        debug_assert!(reg < 8);
+        match reg {
+            0b000 => { return self.sp; },
+            0b001 => { return if self.get_bnk() { self.sec_r[0] } else {self.r[0]}; },
+            0b010 => { return if self.get_bnk() { self.sec_r[1] } else {self.r[1]}; },
+            0b011 => { return if self.get_bnk() { self.sec_r[2] } else {self.r[2]}; },
+            0b100 => { return if self.get_bnk() { self.sec_r[3] } else {self.r[3]}; },
+            0b101 => { return self.bp; },
+            0b110 => { return self.sr; },
+            0b111 => { return self.pc; },
+            _ => { panic!(); },//This should never occur
+        }
+    }
+
+    fn set_reg_by_index(self: &mut Self, reg: u8, value: u16) -> u16 {
+        unimplemented!();//TODO
+    }
+
     //Misc
     fn set_cycle_count(self: &mut Self, value: u8) {
         debug_assert!(value >= 1);
