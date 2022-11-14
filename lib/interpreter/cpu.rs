@@ -152,7 +152,8 @@ impl CPUState {
 
         //Decode it
         let mut decoded_inst = decode::DecodedInstruction::InvalidInstructionType;
-        decode::decode(inst_word, &mut decoded_inst);
+        decode::decode_wg1(inst_word, &mut decoded_inst);
+        decode::decode_wg2(self, mem, &mut decoded_inst);
 
         //Execute the decoded instruction
         execute::execute(self, mem, inst_word);

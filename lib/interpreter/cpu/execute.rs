@@ -154,7 +154,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst_word: u16)
     }
 }
 
-//We may need the word after the current instruction (wordgroup 1)
+//We may need the word after the current instruction (wordgroup 2)
 fn get_wg2(cpu: &CPUState, mem: &mut MemoryState) -> u16 {
     let address_after_pc_tuple = super::inc_page_addr_by(cpu.get_cs(), cpu.pc, 1);
     return mem.read_page_addr(address_after_pc_tuple.0, address_after_pc_tuple.1);
