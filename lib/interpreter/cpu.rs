@@ -44,8 +44,6 @@ pub(super) struct CPUState {
     bp: u16,
     sr: u16,
     pc: u16,
-    irq_enabled: bool,//TODO move these to the FR
-    fiq_enabled: bool,//TODO move these to the FR
     fr: u16,
 
     cycle_count: u8,//Instructions may take multiple clock cycles; we fake this by waiting the proper amount of them after executing the whole thing on the first tick()
@@ -69,9 +67,6 @@ impl CPUState {
             pc: 0,
             fr: 0,
 
-            irq_enabled: false,
-            fiq_enabled: false,
-
             cycle_count: 0,
         };
     }
@@ -79,21 +74,13 @@ impl CPUState {
     pub(super) fn reset(self: &mut Self, mem: &MemoryState) {
         log!(1, "Resetting CPU");
 
-        log!(2, "Zero out SP, R[4:1], SR[4:1], BP, SR, and FR");
-        self.sp = 0;
-        self.r = [0, 0, 0, 0];
-        self.sec_r = [0, 0, 0, 0];
-        self.bp = 0;
-        self.sr = 0;
-        self.fr = 0;
-
-        log!(2, "Disable interrupts");
-        self.irq_enabled = false;
-        self.fiq_enabled = false;
+        log!(2, "Initialize FR to 0bx_0_0_0_0_0000_0_0_0_1000");
+        self.fr = 0b0_0_0_0_0_0000_0_0_0_1000;
 
         log!(2, "Set initial CS page and PC");
         debug_assert!(RESET_INT_VECTOR_ADDR < MEM_SIZE_WORDS);
         log!(3, "Read reset vector at address {:#04X}_{:04X}", RESET_INT_VECTOR_ADDR >> 16, RESET_INT_VECTOR_ADDR & 0xFFFF);
+        self.set_cs(0x00);
         self.pc = mem.read_addr(RESET_INT_VECTOR_ADDR as u32);
         log!(3, "Initial CS page, PC is {:#04X}_{:04X}", self.get_cs(), self.pc);
 
@@ -151,10 +138,6 @@ impl CPUState {
         return ((self.sr >> 10) & 0b111111) as u8;
     }
 
-    fn get_cs(self: &Self) -> u8 {
-        return (self.sr & 0b111111) as u8;
-    }
-
     fn get_n(self: &Self) -> bool {
         return ((self.sr >> 9) & 0b1) == 0b1;
     }
@@ -171,14 +154,13 @@ impl CPUState {
         return ((self.sr >> 6) & 0b1) == 0b1;
     }
 
+    fn get_cs(self: &Self) -> u8 {
+        return (self.sr & 0b111111) as u8;
+    }
+
     fn set_ds(self: &mut Self, value: u8) {
         debug_assert!(value < 0b111111);
         self.sr = (self.sr & 0b0000001111111111) | ((value as u16) << 10);
-    }
-
-    fn set_cs(self: &mut Self, value: u8) {
-        debug_assert!(value < 0b111111);
-        self.sr = (self.sr & 0b1111111111000000) | (value as u16);
     }
 
     fn set_n(self: &mut Self, value: bool) {
@@ -197,6 +179,87 @@ impl CPUState {
         self.sr = (self.sr & 0b1111111110111111) | ((if value { 0b1 } else { 0b0 }) << 6);
     }
 
+    fn set_cs(self: &mut Self, value: u8) {
+        debug_assert!(value < 0b111111);
+        self.sr = (self.sr & 0b1111111111000000) | (value as u16);
+    }
+
+    //FR getters and setters
+    fn get_aq(self: &Self) -> bool {
+        return ((self.fr >> 14) & 0b1) == 0b1;
+    }
+
+    fn get_bnk(self: &Self) -> bool {
+        return ((self.fr >> 13) & 0b1) == 0b1;
+    }
+
+    fn get_fra(self: &Self) -> bool {
+        return ((self.fr >> 12) & 0b1) == 0b1;
+    }
+
+    fn get_fir(self: &Self) -> bool {
+        return ((self.fr >> 11) & 0b1) == 0b1;
+    }
+
+    fn get_sb(self: &Self) -> u8 {
+        return ((self.fr >> 7) & 0b1111) as u8;
+    }
+
+    fn get_fiq(self: &Self) -> bool {
+        return ((self.fr >> 6) & 0b1) == 0b1;
+    }
+
+    fn get_irq(self: &Self) -> bool {
+        return ((self.fr >> 5) & 0b1) == 0b1;
+    }
+
+    fn get_ine(self: &Self) -> bool {
+        return ((self.fr >> 4) & 0b1) == 0b1;
+    }
+
+    fn get_pri(self: &Self) -> u8 {
+        return (self.fr & 0b1111) as u8;
+    }
+
+    fn set_aq(self: &mut Self, value: bool) {
+        self.fr = (self.fr & 0b1011111111111111) | ((if value { 0b1 } else { 0b0 }) << 14);
+    }
+
+    fn set_bnk(self: &mut Self, value: bool) {
+        self.fr = (self.fr & 0b1101111111111111) | ((if value { 0b1 } else { 0b0 }) << 13);
+    }
+
+    fn set_fra(self: &mut Self, value: bool) {
+        self.fr = (self.fr & 0b1110111111111111) | ((if value { 0b1 } else { 0b0 }) << 12);
+    }
+
+    fn set_fir(self: &mut Self, value: bool) {
+        self.fr = (self.fr & 0b1111011111111111) | ((if value { 0b1 } else { 0b0 }) << 11);
+    }
+
+    fn set_sb(self: &mut Self, value: u8) {
+        debug_assert!(value < 0b1111);
+        self.fr = (self.fr & 0b1111100001111111) | ((value as u16) << 7);
+    }
+
+    fn set_fiq(self: &mut Self, value: bool) {
+        self.fr = (self.fr & 0b1111111110111111) | ((if value { 0b1 } else { 0b0 }) << 6);
+    }
+
+    fn set_irq(self: &mut Self, value: bool) {
+        self.fr = (self.fr & 0b1111111111011111) | ((if value { 0b1 } else { 0b0 }) << 5);
+    }
+
+    fn set_ine(self: &mut Self, value: bool) {
+        self.fr = (self.fr & 0b1111111111101111) | ((if value { 0b1 } else { 0b0 }) << 4);
+    }
+
+    fn set_pri(self: &mut Self, value: u8) {
+        debug_assert!(value < 0b1111);
+        self.fr = (self.fr & 0b1111111111110000) | (value as u16);
+    }
+
+    //Misc
     fn set_cycle_count(self: &mut Self, value: u8) {
         debug_assert!(value >= 1);
         self.cycle_count = value - 1;//Since the current cycle counts as the first one we must wait

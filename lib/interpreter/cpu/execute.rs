@@ -16,7 +16,7 @@ use crate::logging::log_noln;
 use crate::logging::log_finln;
 use crate::interpreter::memory::MemoryState;
 use super::CPUState;
-use super::decode::*;//TODO only import what is needed
+use super::decode::*;//TODO only import what is needed from here
 use super::decode::DecodedInstruction::*;
 
 /* Constants */
@@ -189,7 +189,7 @@ fn get_cycle_count(inst: &DecodedInstruction) -> u8 {
         FR_Access{..} => { return 2; },
         MUL{..} => { return 12; },
         MULS{..} => {
-            unimplemented!();//TODO
+            unimplemented!();//TODO figure out what N means
         },
         Register_BITOP_Rs{..} => { return 4; }
         Register_BITOP_offset{..} => { return 4; }
@@ -197,13 +197,13 @@ fn get_cycle_count(inst: &DecodedInstruction) -> u8 {
         Memory_BITOP_Rs{..} => { return 7; }
         sixteen_bits_Shift{..} => { return 8; },
         RETI{..} => {
-            unimplemented!();//TODO
+            unimplemented!();//TODO requires accessing CPU state
         },
         RETF{..} => { return 8; },
         Base_plus_Disp6{..} => { return 6; },
         IMM6{..} => { return 2; },
         Branch{..} => {
-            unimplemented!();//TODO
+            unimplemented!();//TODO depends on if branch is taken or not
         },
         Stack_Operation{size, ..} => { return (2 * size) + 4; },
         DS_Indirect{rd, ..} => {
@@ -249,9 +249,8 @@ fn get_cycle_count(inst: &DecodedInstruction) -> u8 {
 fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
     log!(2, "Increment PC if applicable");
     match inst {
-        DSI6{..} => {
-            unimplemented!();//TODO
-        },
+        //TODO combine into individual cases more efficiently (to make more readable)
+        DSI6{..} => { cpu.inc_pc(); },
         CALL{..} => {
             unimplemented!();//TODO
         },
@@ -261,71 +260,77 @@ fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
         JMPR{..} => {
             unimplemented!();//TODO
         },
-        FIR_MOV{..}=> {
-            unimplemented!();//TODO
-        },
-        Fraction{..} => {
-            unimplemented!();//TODO
-        },
-        INT_SET{..} => {
-            unimplemented!();//TODO
-        },
-        IRQ{..} => {
-            unimplemented!();//TODO
-        },
-        SECBANK{..} => {
-            unimplemented!();//TODO
-        },
-        FIQ{..} => {
-            unimplemented!();//TODO
-        },
-        IRQ_Nest_Mode{..} => {
-            unimplemented!();//TODO
-        },
+        FIR_MOV{..}=> { cpu.inc_pc(); },
+        Fraction{..} => { cpu.inc_pc(); },
+        INT_SET{..} => { cpu.inc_pc(); },
+        IRQ{..} => { cpu.inc_pc(); },
+        SECBANK{..} => { cpu.inc_pc(); },
+        FIQ{..} => { cpu.inc_pc(); },
+        IRQ_Nest_Mode{..} => { cpu.inc_pc(); },
         BREAK{..} => {
             unimplemented!();//TODO
         },
         CALLR{..} => {
             unimplemented!();//TODO
         },
-        DIVS{..} => {
-            unimplemented!();//TODO
-        },
-        DIVQ{..} => {
-            unimplemented!();//TODO
-        },
-        EXP{..} => {
-            unimplemented!();//TODO
-        },
-        NOP{..} => {
-            unimplemented!();//TODO
-        },
+        DIVS{..} => { cpu.inc_pc(); },
+        DIVQ{..} => { cpu.inc_pc(); },
+        EXP{..} => { cpu.inc_pc(); },
+        NOP{..} => { cpu.inc_pc(); },
         DS_Access{..} => {
-            unimplemented!();//TODO
+            unimplemented!();//TODO what if rs is the pc?
         },
         FR_Access{..} => {
-            unimplemented!();//TODO
+            unimplemented!();//TODO what if rs is the pc?
         },
-        MUL{..} => {
-            unimplemented!();//TODO
+        MUL{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
-        MULS{..} => {
-            unimplemented!();//TODO
+        MULS{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
-        Register_BITOP_Rs{..} => {
-            unimplemented!();//TODO
+        Register_BITOP_Rs{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
-        Register_BITOP_offset{..} => {
-            unimplemented!();//TODO
+        Register_BITOP_offset{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
-        Memory_BITOP_offset{..} => {
-            unimplemented!();//TODO
+        Memory_BITOP_offset{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
-        Memory_BITOP_Rs{..} => {
-            unimplemented!();//TODO
+        Memory_BITOP_Rs{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
-        sixteen_bits_Shift{..} => {
-            unimplemented!();//TODO
+        sixteen_bits_Shift{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
         RETI{..} => {
             unimplemented!();//TODO
@@ -333,32 +338,64 @@ fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
         RETF{..} => {
             unimplemented!();//TODO
         },
-        Base_plus_Disp6{..} => {
-            unimplemented!();//TODO
+        Base_plus_Disp6{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
-        IMM6{..} => {
-            unimplemented!();//TODO
+        IMM6{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
         Branch{..} => {
             unimplemented!();//TODO
         },
-        Stack_Operation{..} => {
-            unimplemented!();//TODO
+        Stack_Operation{rd_index, ..} => {
+            if *rd_index == 0b111 {//PC is the highest index, so we don't need to worry about size
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
-        DS_Indirect{..} => {
-            unimplemented!();//TODO
+        DS_Indirect{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
-        IMM16{..} => {
-            unimplemented!();//TODO
+        IMM16{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc_by(2);
+            }
         },
-        Direct16{..} => {
-            unimplemented!();//TODO
+        Direct16{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc_by(2);
+            }
         },
-        Direct6{..} => {
-            unimplemented!();//TODO
+        Direct6{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
-        Register{..} => {
-            unimplemented!();//TODO
+        Register{rd, ..} => {
+            if matches!(rd, DecodedRegister::PC) {
+                unimplemented!();//TODO what is the behaviour in this case?
+            } else {
+                cpu.inc_pc();
+            }
         },
 
         InvalidInstructionType => { panic!(); }//TODO proper error handling
