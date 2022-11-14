@@ -137,6 +137,20 @@ macro_rules! Branch_parse {
     }
 }
 
+macro_rules! Register_parse {
+    ($inst_word:expr) => {
+        Register {
+            op: dec_alu_op($inst_word),
+            rd: dec_reg_from_index(rd_index!($inst_word)),
+            sft: dec_sft_op($inst_word),
+            sfc: (($inst_word >> 3) & 0b11) as u8,
+            rs: dec_reg_from_index(rs_index!($inst_word)),
+        }
+    }
+}
+
+
+
 /* Static Variables */
 
 //TODO
@@ -181,7 +195,7 @@ pub(super) enum DecodedInstruction {
     IMM16{op: DecodedALUOp, rd: DecodedRegister, rs: DecodedRegister, imm16: u16},//imm16 is retrived in decode_wg2
     Direct16{op: DecodedALUOp, rd: DecodedRegister, rs: DecodedRegister, a16: u16},//a16 is retrived in decode_wg2
     Direct6{op: DecodedALUOp, rd: DecodedRegister, a6: u8},
-    Register,//TODO
+    Register{op: DecodedALUOp, rd: DecodedRegister, sft: DecodedSFTOp, sfc: u8, rs: DecodedRegister},
 
     InvalidInstructionType,
 }
@@ -566,12 +580,16 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                                     a16: 0,//a16 will be filled in decode_wg2
                                 });
                             },
-                            _ => { return_inst!(6, decoded_inst, Register); },
+                            _ => { return_inst!(6, decoded_inst, Register_parse!(inst_word)); },
                         }
                     },
-                    0b101 | 0b110 => { return_inst!(6, decoded_inst, Register); },
+                    0b101 | 0b110 => { return_inst!(6, decoded_inst, Register_parse!(inst_word)); },
                     0b111 => {
-                        unimplemented!();//TODO what about Direct6 and Register conflict?
+                        return_inst!(6, decoded_inst, Direct6 {
+                            op: dec_alu_op(inst_word),
+                            rd: dec_reg_from_index(rd_index!(inst_word)),
+                            a6: imm6!(inst_word),
+                        });
                     },
                     _ => { panic!(); },//This should never occur
                 }
@@ -673,7 +691,7 @@ fn dec_bit_op(inst_word: u16) -> DecodedBitOp {
 
 fn dec_lsft_op(inst_word: u16) -> DecodedLSFTOp {
     use DecodedLSFTOp::*;
-    match (inst_word >> 4) * 0b111 {
+    match (inst_word >> 4) & 0b111 {
         0b000 => { return ASR; },
         0b001 => { return ASROR; },
         0b010 => { return LSL; },
@@ -683,6 +701,19 @@ fn dec_lsft_op(inst_word: u16) -> DecodedLSFTOp {
         0b110 => { return ROL; },
         0b111 => { return ROR; },
         _ => { panic!(); },//This should never occur
+    }
+}
+
+fn dec_sft_op(inst_word: u16) -> DecodedSFTOp {
+    use DecodedSFTOp::*;
+    match (inst_word >> 5) & 0b111 {
+        0b000 => { return NOP; },
+        0b001 => { return ASR; },
+        0b010 => { return LSL; },
+        0b011 => { return LSR; },
+        0b100 => { return ROL; },
+        0b101 => { return ROR; },
+        _ => { return InvalidSFTOp; },
     }
 }
 
@@ -697,6 +728,6 @@ fn dec_reg_from_index(reg_index: u8) -> DecodedRegister {
         0b101 => { return BP; },
         0b110 => { return SR; },
         0b111 => { return PC; },
-        _ => { return InvalidRegister; },
+        _ => { panic!(); },//This should never occur
     }
 }

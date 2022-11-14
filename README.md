@@ -60,4 +60,4 @@ Note: the upper nibble refers to bits [15:12] of the instruction word and the se
             - IMM16 and Direct16 have "priority": so if bits 5:3 are 001 it is IMM16, and if the bits are 010 or 011 it is Direct16
             - Otherwise it is Register
         - The POP Stack Operation conflicts with RETI and RETF. In MAME, RETI and RETF take priority, so do that too here.
-        - TODO what about Direct6 and Register conflict?
+        - Direct6 and Register have a conflict when the secondary group is 0b111. I tried this with MAME's disassembler unidasm, and it seems to give priority to Direct6. So we do this as well
