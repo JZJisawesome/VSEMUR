@@ -290,7 +290,36 @@ pub(super) fn decode(inst_word: u16) -> DecodedInstructionType {
             }
         },
         upper_nibble => {
-            unimplemented!();//TODO
+            log!(3, "The upper nibble is 0b1110, so let's check if this is a branch");
+
+            let secondary_group = super::secondary_group!(inst_word);
+            if (super::rd_index!(inst_word) == 0b111) && ((secondary_group == 0b000) || (secondary_group == 0b001)) {
+                return_type!(4, DecodedInstructionType::Branch);
+            } else {
+                log!(4, "This isn't a branch, so let's inspect the secondary group: {:#05b}", secondary_group);
+                match secondary_group {
+                    0b000 => { return_type!(5, DecodedInstructionType::Base_plus_Disp6); },
+                    0b001 => { return_type!(5, DecodedInstructionType::IMM6); },
+                    0b010 => {
+                        unimplemented!();//TODO RETI and RETF
+                    },
+                    0b011 => { return_type!(5, DecodedInstructionType::DS_Indirect); },
+                    0b100 => {
+                        let bits_543 = (inst_word >> 3) & 0b111;
+                        log!(5, "The secondary group is 0b100, so let's inspect bits [5:3]: {:#03b}", bits_543);
+                        match bits_543 {
+                            0b001 => { return_type!(6, DecodedInstructionType::IMM16); },
+                            0b010 | 0b011 => { return_type!(6, DecodedInstructionType::Direct16); },
+                            _ => { return_type!(6, DecodedInstructionType::Register); },
+                        }
+                    },
+                    0b101 | 0b110 => { return_type!(6, DecodedInstructionType::Register); },
+                    0b111 => {
+                        unimplemented!();//TODO what about Direct6 and Register conflict?
+                    },
+                    _ => { panic!(); },//This should never occur
+                }
+            }
         },
     }
 }

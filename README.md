@@ -58,3 +58,4 @@ Note: the upper nibble refers to bits [15:12] of the instruction word and the se
         The ISA docs are, again, not clear, but MAME does this:
         - IMM16 and Direct16 have "priority": so if bits 5:3 are 001 it is IMM16, and if the bits are 010 or 011 it is Direct16
         - Otherwise it is Register
+        TODO what about Direct6 and Register conflict?
