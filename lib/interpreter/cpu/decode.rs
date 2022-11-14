@@ -127,6 +127,16 @@ macro_rules! MULS_parse {
     }
 }
 
+macro_rules! Branch_parse {
+    ($inst_word:expr) => {
+        Branch {
+            op: dec_branch_op($inst_word),
+            d: (($inst_word >> 6) & 0b1) == 0b1,
+            imm6: imm6!($inst_word),
+        }
+    }
+}
+
 /* Static Variables */
 
 //TODO
@@ -157,17 +167,17 @@ pub(super) enum DecodedInstruction {
     MUL{s_rs: bool, rd: DecodedRegister, s_rd: bool, rs: DecodedRegister},
     MULS{s_rs: bool, rd: DecodedRegister, s_rd: bool, size: u8, rs: DecodedRegister},
     Register_BITOP_Rs{rd: DecodedRegister, op: DecodedBitOp, rs: DecodedRegister},
-    Register_BITOP_offset,//TODO
-    Memory_BITOP_offset,//TODO
-    Memory_BITOP_Rs,//TODO
-    sixteen_bits_Shift,//TODO
+    Register_BITOP_offset{rd: DecodedRegister, op: DecodedBitOp, offset: u8},
+    Memory_BITOP_offset{rd: DecodedRegister, d: bool, op: DecodedBitOp, offset: u8},
+    Memory_BITOP_Rs{rd: DecodedRegister, d: bool, op: DecodedBitOp, rs: DecodedRegister},
+    sixteen_bits_Shift{rd: DecodedRegister, op: DecodedLSFTOp, rs: DecodedRegister},
     RETI,
     RETF,
-    Base_plus_Disp6,//TODO
+    Base_plus_Disp6{op: DecodedALUOp, rd: DecodedRegister, imm6: u8},
     IMM6{op: DecodedALUOp, rd: DecodedRegister, imm6: u8},
-    Branch,//TODO
-    Stack_Operation,//TODO
-    DS_Indirect,//TODO
+    Branch{op: DecodedBranchOp, d: bool, imm6: u8},
+    Stack_Operation{op: DecodedStackOp, rd_index: u8, size: u8, rs: DecodedRegister},//Providing rd_index instead of rd since it allow for one to just start incrementing/decrementing it right away
+    DS_Indirect{main_op: DecodedALUOp, rd: DecodedRegister, d: bool, rs_op: DecodedAtOp, rs: DecodedRegister},
     IMM16{op: DecodedALUOp, rd: DecodedRegister, rs: DecodedRegister, imm16: u16},//imm16 is retrived in decode_wg2
     Direct16{op: DecodedALUOp, rd: DecodedRegister, rs: DecodedRegister, a16: u16},//a16 is retrived in decode_wg2
     Direct6{op: DecodedALUOp, rd: DecodedRegister, a6: u8},
@@ -222,13 +232,13 @@ pub(super) enum DecodedStackOp {
     InvalidStackOp,
 }
 
-pub(super) enum DecodedDSOp {
+pub(super) enum DecodedAtOp {
     NOP,
     PostDecrement,
     PostIncrement,
     PreIncrement,
 
-    InvalidDSOp,
+    InvalidAtOp,
 }
 
 pub(super) enum DecodedBitOp {
@@ -246,7 +256,7 @@ pub(super) enum DecodedLSFTOp {
     LSL,
     LSLOR,
     LSR,
-    LSLROR,
+    LSROR,
     ROL,
     ROR,
 
@@ -412,7 +422,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
 
             let secondary_group = secondary_group!(inst_word);
             if (rd_index!(inst_word) == 0b111) && ((secondary_group == 0b000) || (secondary_group == 0b001)) {
-                return_inst!(4, decoded_inst, Branch);
+                return_inst!(4, decoded_inst, Branch_parse!(inst_word));
             } else {
                 log!(4, "This isn't a branch, so let's inspect the secondary group: {:#05b}", secondary_group);
                 match secondary_group {
@@ -429,18 +439,40 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                             });
                         }
                     },
-                    0b001 => { return_inst!(5, decoded_inst, Register_BITOP_offset); },
+                    0b001 => {
+                        return_inst!(5, decoded_inst, Register_BITOP_offset {
+                            rd: dec_reg_from_index(rd_index!(inst_word)),
+                            op: dec_bit_op(inst_word),
+                            offset: (inst_word & 0b1111) as u8,
+                        });
+                    },
                     0b010 => { return_inst!(5, decoded_inst, MULS_parse!(inst_word)); },
                     0b100 | 0b101 => {
                         let bit_3 = (inst_word >> 3) & 0b1;
                         log!(5, "The secondary group is 0b000, so let's inspect bit 3: {:#03b}", bit_3);
                         if bit_3 == 0b1 {
-                            return_inst!(6, decoded_inst, sixteen_bits_Shift);
+                            return_inst!(6, decoded_inst, sixteen_bits_Shift {
+                                rd: dec_reg_from_index(rd_index!(inst_word)),
+                                op: dec_lsft_op(inst_word),
+                                rs: dec_reg_from_index(rs_index!(inst_word)),
+                            });
                         } else {
-                            return_inst!(6, decoded_inst, Memory_BITOP_Rs);
+                            return_inst!(6, decoded_inst, Memory_BITOP_Rs {
+                                rd: dec_reg_from_index(rd_index!(inst_word)),
+                                d: ((inst_word >> 6) & 0b1) == 0b1,
+                                op: dec_bit_op(inst_word),
+                                rs: dec_reg_from_index(rs_index!(inst_word)),
+                            });
                         }
                     },
-                    0b110 | 0b111 => { return_inst!(5, decoded_inst, Memory_BITOP_offset); }
+                    0b110 | 0b111 => {
+                        return_inst!(5, decoded_inst, Memory_BITOP_offset {
+                            rd: dec_reg_from_index(rd_index!(inst_word)),
+                            d: ((inst_word >> 6) & 0b1) == 0b1,
+                            op: dec_bit_op(inst_word),
+                            offset: (inst_word & 0b1111) as u8,
+                        });
+                    },
                     _ => { return_inst!(5, decoded_inst, InvalidInstructionType); },
                 }
             }
@@ -449,21 +481,25 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
             log!(3, "The upper nibble indicates this is likely a branch, verifying that it is valid...");
             let secondary_group = secondary_group!(inst_word);
             if (rd_index!(inst_word) == 0b111) && ((secondary_group == 0b000) || (secondary_group == 0b001)) {
-                return_inst!(4, decoded_inst, Branch);
+                return_inst!(4, decoded_inst, Branch_parse!(inst_word));
             } else {
                 return_inst!(4, decoded_inst, InvalidInstructionType);
             }
         },
         upper_nibble => {
-            log!(3, "The upper nibble is 0b1110, so let's check if this is a branch");
-
+            log!(3, "The upper nibble is {}, so let's check if this is a branch", upper_nibble);
             let secondary_group = secondary_group!(inst_word);
             if (rd_index!(inst_word) == 0b111) && ((secondary_group == 0b000) || (secondary_group == 0b001)) {
-                return_inst!(4, decoded_inst, Branch);
+                return_inst!(4, decoded_inst, Branch_parse!(inst_word));
             } else {
                 log!(4, "This isn't a branch, so let's inspect the secondary group: {:#05b}", secondary_group);
                 match secondary_group {
-                    0b000 => { return_inst!(5, decoded_inst, Base_plus_Disp6); },
+                    0b000 => { return_inst!(5, decoded_inst, Base_plus_Disp6{
+                            op: dec_alu_op(inst_word),
+                            rd: dec_reg_from_index(rd_index!(inst_word)),
+                            imm6: imm6!(inst_word),
+                        });
+                    },
                     0b001 => {
                         return_inst!(5, decoded_inst, IMM6 {
                             op: dec_alu_op(inst_word),
@@ -472,15 +508,44 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                         });
                     },
                     0b010 => {
-                        if        inst_word == 0b1001101010011000 {
-                            return_inst!(5, decoded_inst, RETI);
-                        } else if inst_word == 0b1001101010010000 {
-                            return_inst!(5, decoded_inst, RETF);
+                        log!(5, "The secondary group is 0b010, so let's look at the upper nibble to check if this is a PUSH Stack Operation");
+                        if upper_nibble == 0b1101 {
+                            return_inst!(6, decoded_inst, Stack_Operation {
+                                op: DecodedStackOp::PUSH,
+                                rd_index: rd_index!(inst_word) as u8,
+                                size: ((inst_word >> 3) & 0b111) as u8,
+                                rs: dec_reg_from_index(rs_index!(inst_word)),
+                            });
                         } else {
-                            return_inst!(5, decoded_inst, InvalidInstructionType);
+                            log!(6, "Nope! Let's check if it is RETI or RETF");
+                            if        inst_word == 0b1001101010011000 {
+                                return_inst!(7, decoded_inst, RETI);
+                            } else if inst_word == 0b1001101010010000 {
+                                return_inst!(7, decoded_inst, RETF);
+                            } else {
+                                log!(7, "Nope! Let's check the upper nibble to see if it is POP; otherwise it's invalid");
+                                if upper_nibble == 0b1001 {
+                                    return_inst!(8, decoded_inst, Stack_Operation {
+                                        op: DecodedStackOp::POP,
+                                        rd_index: rd_index!(inst_word) as u8,
+                                        size: ((inst_word >> 3) & 0b111) as u8,
+                                        rs: dec_reg_from_index(rs_index!(inst_word)),
+                                    });
+                                } else {
+                                    return_inst!(8, decoded_inst, InvalidInstructionType);
+                                }
+                            }
                         }
                     },
-                    0b011 => { return_inst!(5, decoded_inst, DS_Indirect); },
+                    0b011 => {
+                        return_inst!(5, decoded_inst, DS_Indirect {
+                            main_op: dec_alu_op(inst_word),
+                            rd: dec_reg_from_index(rd_index!(inst_word)),
+                            d: ((inst_word >> 5) & 0b1) == 0b1,
+                            rs_op: dec_at_op(inst_word),
+                            rs: dec_reg_from_index(rs_index!(inst_word)),
+                        });
+                    },
                     0b100 => {
                         let bits_543 = (inst_word >> 3) & 0b111;
                         log!(5, "The secondary group is 0b100, so let's inspect bits [5:3]: {:#03b}", bits_543);
@@ -584,12 +649,14 @@ fn dec_branch_op(inst_word: u16) -> DecodedBranchOp {
     }
 }
 
-fn dec_stack_op(inst_word: u16) -> DecodedStackOp {
-    use DecodedStackOp::*;
-    match upper_nibble!(inst_word) {
-        0b1101 => { return PUSH; },
-        0b1001 => { return POP; },
-        _ => { return InvalidStackOp; },
+fn dec_at_op(inst_word: u16) -> DecodedAtOp {
+    use DecodedAtOp::*;
+    match (inst_word >> 3) & 0b11 {
+        0b00 => { return NOP; },
+        0b01 => { return PostDecrement; },
+        0b10 => { return PostIncrement; },
+        0b11 => { return PreIncrement; },
+        _ => { panic!(); },//This should never occur
     }
 }
 
@@ -600,6 +667,21 @@ fn dec_bit_op(inst_word: u16) -> DecodedBitOp {
         0b01 => { return SETB; },
         0b10 => { return CLRB; },
         0b11 => { return INVB; },
+        _ => { panic!(); },//This should never occur
+    }
+}
+
+fn dec_lsft_op(inst_word: u16) -> DecodedLSFTOp {
+    use DecodedLSFTOp::*;
+    match (inst_word >> 4) * 0b111 {
+        0b000 => { return ASR; },
+        0b001 => { return ASROR; },
+        0b010 => { return LSL; },
+        0b011 => { return LSLOR; },
+        0b100 => { return LSR; },
+        0b101 => { return LSROR; },
+        0b110 => { return ROL; },
+        0b111 => { return ROR; },
         _ => { panic!(); },//This should never occur
     }
 }

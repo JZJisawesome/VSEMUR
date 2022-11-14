@@ -53,9 +53,11 @@ Note: the upper nibble refers to bits [15:12] of the instruction word and the se
     - Verify that Rd is 0b111 and the secondary group is 0b000 or 0b001. If so, it is a Branch, otherwise it's invalid.
 5. For all other upper nibbles, do the following substeps:
     3a. If Rd is 0b111 AND the secondary group is either 0b000 or 0b001, it is Branch. Else keep going
-    3b. It is one of the alu operation instructions. Look at the secondary group to decode it first, then look at the lower bits to figure out the instruction.
-        This is mostly straightforward, except for IMM16 and Direct16, which are easy to tell apart on their own, but are hard when also considering Register (conflict with bits 5:3).
-        The ISA docs are, again, not clear, but MAME does this:
-        - IMM16 and Direct16 have "priority": so if bits 5:3 are 001 it is IMM16, and if the bits are 010 or 011 it is Direct16
-        - Otherwise it is Register
-        TODO what about Direct6 and Register conflict?
+    3b. It is one of the alu operation instructions. Look at the secondary group to decode it first, then look at the lower bits and upper nibble to figure out the instruction.
+        This is mostly straightforward, except for the following issues:
+        - IMM16 and Direct16, which are easy to tell apart on their own, are hard when also considering Register (conflict with bits 5:3).
+            - The ISA docs are, again, not clear, but MAME does this:
+            - IMM16 and Direct16 have "priority": so if bits 5:3 are 001 it is IMM16, and if the bits are 010 or 011 it is Direct16
+            - Otherwise it is Register
+        - The POP Stack Operation conflicts with RETI and RETF. In MAME, RETI and RETF take priority, so do that too here.
+        - TODO what about Direct6 and Register conflict?
