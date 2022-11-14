@@ -150,10 +150,11 @@ impl CPUState {
         let inst_word: u16 = mem.read_page_addr(self.get_cs(), self.pc);
         log!(2, "Instruction word group 1: {:#06X} | {:#018b}", inst_word, inst_word);
 
-        //Decode its type
-        let mut decoded_inst_type = decode::decode(inst_word);
+        //Decode it
+        let mut decoded_inst = decode::DecodedInstruction::InvalidInstructionType;
+        decode::decode(inst_word, &mut decoded_inst);
 
-        //Execute it
+        //Execute the decoded instruction
         execute::execute(self, mem, inst_word);
 
         //TODO handle interrupts, etc
