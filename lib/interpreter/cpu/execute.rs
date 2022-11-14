@@ -11,6 +11,12 @@
 
 /* Imports */
 
+mod alu;
+mod bitop;
+mod control;
+mod muldiv;
+mod stack;
+
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
@@ -50,117 +56,41 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
 fn perform_instruction(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
     log!(2, "Perform instruction operations");
     match inst {
-        DSI6{..} => {
-            unimplemented!();//TODO
+        DSI6{imm6} => { cpu.set_ds(*imm6); },
+        FIR_MOV{fir}=> { cpu.set_fir(*fir); },
+        Fraction{fra} => { cpu.set_fra(*fra); },
+        INT_SET{f, i} => {
+            cpu.set_fiq(*f);
+            cpu.set_irq(*i);
         },
-        CALL{..} => {
-            unimplemented!();//TODO
+        IRQ{i} => { cpu.set_irq(*i); },
+        SECBANK{s} => { cpu.set_bnk(*s); },
+        FIQ{f} => { cpu.set_fiq(*f); },
+        IRQ_Nest_Mode{n} => { cpu.set_ine(*n); },
+        sixteen_bits_Shift{..} | Base_plus_Disp6{..} | IMM6{..} | DS_Indirect{..} | IMM16{..} | Direct16{..} | Direct6{..} | Register{..} => {
+            alu::execute(cpu, mem, inst);
         },
-        JMPF{..} => {
-            unimplemented!();//TODO
+        Register_BITOP_Rs{..} | Register_BITOP_offset{..} | Memory_BITOP_offset{..} | Memory_BITOP_Rs{..} => {
+            bitop::execute(cpu, mem, inst);
         },
-        JMPR{..} => {
-            unimplemented!();//TODO
+        CALL{..} | JMPF{..} | JMPR{..} | BREAK{..} | CALLR{..} | RETI{..} | RETF{..} | Branch{..} => {
+            control::execute(cpu, mem, inst);
         },
-        FIR_MOV{..}=> {
-            unimplemented!();//TODO
-        },
-        Fraction{..} => {
-            unimplemented!();//TODO
-        },
-        INT_SET{..} => {
-            unimplemented!();//TODO
-        },
-        IRQ{..} => {
-            unimplemented!();//TODO
-        },
-        SECBANK{..} => {
-            unimplemented!();//TODO
-        },
-        FIQ{..} => {
-            unimplemented!();//TODO
-        },
-        IRQ_Nest_Mode{..} => {
-            unimplemented!();//TODO
-        },
-        BREAK{..} => {
-            unimplemented!();//TODO
-        },
-        CALLR{..} => {
-            unimplemented!();//TODO
-        },
-        DIVS{..} => {
-            unimplemented!();//TODO
-        },
-        DIVQ{..} => {
-            unimplemented!();//TODO
-        },
-        EXP{..} => {
-            unimplemented!();//TODO
+        DIVS{..} | DIVQ{..} | EXP{..} | MUL{..} | MULS{..} | MULS{..} => {
+            muldiv::execute(cpu, mem, inst);
         },
         NOP => { /* We don't need to do anything! :) */ },
         DS_Access{..} => {
-            unimplemented!();//TODO
+            unimplemented!();//TODO do here
         },
         FR_Access{..} => {
-            unimplemented!();//TODO
-        },
-        MUL{..} => {
-            unimplemented!();//TODO
-        },
-        MULS{..} => {
-            unimplemented!();//TODO
-        },
-        Register_BITOP_Rs{..} => {
-            unimplemented!();//TODO
-        },
-        Register_BITOP_offset{..} => {
-            unimplemented!();//TODO
-        },
-        Memory_BITOP_offset{..} => {
-            unimplemented!();//TODO
-        },
-        Memory_BITOP_Rs{..} => {
-            unimplemented!();//TODO
-        },
-        sixteen_bits_Shift{..} => {
-            unimplemented!();//TODO
-        },
-        RETI{..} => {
-            unimplemented!();//TODO
-        },
-        RETF{..} => {
-            unimplemented!();//TODO
-        },
-        Base_plus_Disp6{..} => {
-            unimplemented!();//TODO
-        },
-        IMM6{..} => {
-            unimplemented!();//TODO
-        },
-        Branch{..} => {
-            unimplemented!();//TODO
+            unimplemented!();//TODO do here
         },
         Stack_Operation{..} => {
-            unimplemented!();//TODO
-        },
-        DS_Indirect{..} => {
-            unimplemented!();//TODO
-        },
-        IMM16{..} => {
-            unimplemented!();//TODO
-        },
-        Direct16{..} => {
-            unimplemented!();//TODO
-        },
-        Direct6{..} => {
-            unimplemented!();//TODO
-        },
-        Register{..} => {
-            unimplemented!();//TODO
+            stack::execute(cpu, mem, inst);
         },
 
-        InvalidInstructionType => { panic!(); }//TODO proper error handling
+        InvalidInstructionType => { panic!(); }//TODO proper error handling?
     }
 }
 
@@ -242,7 +172,7 @@ fn get_cycle_count(inst: &DecodedInstruction) -> u8 {
             }
         },
 
-        InvalidInstructionType => { panic!(); }//TODO proper error handling
+        InvalidInstructionType => { panic!(); }//TODO proper error handling?
     }
 }
 
@@ -398,6 +328,6 @@ fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
             }
         },
 
-        InvalidInstructionType => { panic!(); }//TODO proper error handling
+        InvalidInstructionType => { panic!(); }//TODO proper error handling?
     }
 }
