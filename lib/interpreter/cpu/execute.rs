@@ -57,7 +57,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
 fn perform_instruction(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
     log!(2, "Perform instruction operations");
     match inst {
-        sixteen_bits_Shift{..} | Base_plus_Disp6{..} | IMM6{..} | DS_Indirect{..} | IMM16{..} | Direct16{..} | Direct6{..} | Register{..} => {
+        sixteen_bits_Shift{..} | Base_plus_Disp6{..} | IMM6{..} | DS_Indirect{..} | IMM16{..} | Direct16{..} | Direct6{..} | Register{..} => {//TODO potentiallly move sixteen_bits_Shift elsewhere
             alu::execute(cpu, mem, inst);
         },
         Register_BITOP_Rs{..} | Register_BITOP_offset{..} | Memory_BITOP_offset{..} | Memory_BITOP_Rs{..} => {
@@ -69,9 +69,7 @@ fn perform_instruction(cpu: &mut CPUState, mem: &mut MemoryState, inst: &Decoded
         DIVS{..} | DIVQ{..} | EXP{..} | MUL{..} | MULS{..} => {
             muldiv::execute(cpu, mem, inst);
         },
-        Stack_Operation{op, rd_index, size, rs} => {
-            stack::execute(cpu, mem, *op, *rd_index, *size, *rs);
-        },
+        Stack_Operation{op, rd_index, size, rs} => { stack::execute(cpu, mem, *op, *rd_index, *size, *rs); },
         DSI6{imm6} => { cpu.set_ds(*imm6); },
         FIR_MOV{fir}=> { cpu.set_fir(*fir); },
         Fraction{fra} => { cpu.set_fra(*fra); },

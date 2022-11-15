@@ -16,6 +16,7 @@
 use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
+use crate::logging::log_midln;
 use crate::logging::log_finln;
 use crate::interpreter::memory::MemoryState;
 use super::super::CPUState;
@@ -47,20 +48,20 @@ use DecodedALUOp::*;
 
 pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
     match inst {
-        IMM16{..} | Direct16{..} | Direct6{..} | IMM6{..} | Base_plus_Disp6{..} => { handle_big_5(cpu, mem, inst); }
+        IMM16{..} | Direct16{..} | Direct6{..} | IMM6{..} | Base_plus_Disp6{..} | DS_Indirect{..} => { handle_big_6(cpu, mem, inst); }
         //TODO others
         _ => { debug_panic!(); }//We should not have recieved this type of instruction
     }
 }
 
-fn handle_big_5(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
+fn handle_big_6(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
     //Operation and operands
     let operation: DecodedALUOp;
     let operand1: u16;
     let operand2: u16;
 
     //Get the op field regardless of the instruction type
-    if let IMM16{op, ..} | Direct16{op, ..} | IMM6{op, ..} = inst {//TODO others
+    if let IMM16{op, ..} | Direct16{op, ..} | IMM6{op, ..} | DS_Indirect{op, ..} = inst {//TODO others
         operation = *op;
     } else {
         operation = debug_panic!(DecodedALUOp::Invalid);//We should not have recieved this type of instruction (without an op field)
@@ -90,7 +91,36 @@ fn handle_big_5(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruc
             operand2 = *imm6 as u16;
             log!(3, "Operand 1 is Rd, and operand 2 is IMM6");
         },
-        _ => {unimplemented!();},//TODO
+        DS_Indirect{rd, d, at, rs, ..} => {
+            //Increment Rd if that is the @ operation we must perform
+            if matches!(at, DecodedAtOp::PreIncrement) {
+                let original_ds = cpu.get_ds();
+                let original_rs = cpu.get_reg(*rs);
+                log!(3, "@ operation says to pre-increment DS:Rs (originally {:#04X}_{:04X})", original_ds, original_rs);
+
+                let new_ds_rs_tuple = super::super::inc_page_addr_by(original_ds, original_rs, 1);
+                cpu.set_ds(new_ds_rs_tuple.0);
+                cpu.set_reg(*rs, new_ds_rs_tuple.1);
+            }
+
+            log!(3, "Operand 1 is Rd");
+            operand1 = cpu.get_reg(*rd);
+
+            //Get operand2
+            let page: u8;
+            log_noln!(3, "The D flag is ");
+            if *d {
+                page = cpu.get_ds();
+            } else {
+                page = 0x00;
+                log_midln!("not ");
+            }
+            log_finln!("set, so the page is {:#04X}", page);
+            let addr: u16 = cpu.get_reg(*rs);
+            log!(3, "Rs is {0:#06X}, so operand 2 is [{1:#04X}_{0:04X}]", addr, page);
+            operand2 = mem.read_page_addr(page, addr);
+        },
+        _ => {unimplemented!();},//TODO others
     }
 
     //Perform the operation
@@ -106,10 +136,31 @@ fn handle_big_5(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruc
             debug_assert!(matches!(operation, STORE));//TODO confirm this is a valid asumption
             mem.write_page_addr(result, cpu.get_ds(), *a16);
         },
-        (_, IMM16{rd, ..}) | (_, Direct16{w: false, rd, ..}) | (_, Direct6{rd, ..}) | (_, IMM6{rd, ..}) | (_, Base_plus_Disp6{rd, ..}) => {//Other cases are much simpler; we just write to Rd
+        (_, IMM16{rd, ..}) | (_, Direct16{w: false, rd, ..}) | (_, Direct6{rd, ..}) | (_, IMM6{rd, ..}) | (_, Base_plus_Disp6{rd, ..}) | (_, DS_Indirect{rd, ..}) => {//Other cases are much simpler; we just write to Rd
             cpu.set_reg(*rd, result);
         }
         (_, _) => { debug_panic!(); }//Not a valid instruction/op combination
+    }
+
+    //Potentially increment/decrement Rs if this is DS_Indirect
+    if let DS_Indirect{at, rs, ..} = inst {
+        if matches!(at, DecodedAtOp::PostDecrement) {
+            let original_ds = cpu.get_ds();
+            let original_rs = cpu.get_reg(*rs);
+            log!(3, "@ operation says to post-decrement DS:Rs (originally {:#04X}_{:04X})", original_ds, original_rs);
+
+            let new_ds_rs_tuple = super::super::dec_page_addr_by(original_ds, original_rs, 1);
+            cpu.set_ds(new_ds_rs_tuple.0);
+            cpu.set_reg(*rs, new_ds_rs_tuple.1);
+        } else if matches!(at, DecodedAtOp::PostIncrement) {
+            let original_ds = cpu.get_ds();
+            let original_rs = cpu.get_reg(*rs);
+            log!(3, "@ operation says to post-increment DS:Rs (originally {:#04X}_{:04X})", original_ds, original_rs);
+
+            let new_ds_rs_tuple = super::super::inc_page_addr_by(original_ds, original_rs, 1);
+            cpu.set_ds(new_ds_rs_tuple.0);
+            cpu.set_reg(*rs, new_ds_rs_tuple.1);
+        }
     }
 }
 

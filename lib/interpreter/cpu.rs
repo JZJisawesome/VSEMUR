@@ -376,11 +376,16 @@ impl CPUState {
 
 fn inc_page_addr_by(page: u8, addr: u16, increment_amount: u32) -> (u8, u16) {
     //TODO error checking
+    //TODO ensure wrapping dosn't break anything
     if ((addr as u32) + increment_amount) <= 0xFFFF {
         return (page, addr + (increment_amount as u16));//Safe since at most increment_amount could be 0xFFFF
     } else {
         unimplemented!();//TODO
     }
+}
+
+fn dec_page_addr_by(page: u8, addr: u16, increment_amount: u32) -> (u8, u16) {
+    todo!();//TODO implement
 }
 
 

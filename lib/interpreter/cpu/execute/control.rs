@@ -59,6 +59,9 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
             cpu.set_cs(((a22 >> 16) & 0b111111) as u8);
             cpu.pc = (a22 & 0xFFFF) as u16;
         },
+        Branch{op, d, imm6} => {
+            todo!();//TODO
+        }
         //TODO others
         _ => { debug_panic!(); },//We should not have recieved this type of instruction
     }
