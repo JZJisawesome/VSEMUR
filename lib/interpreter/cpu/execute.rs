@@ -69,8 +69,8 @@ fn perform_instruction(cpu: &mut CPUState, mem: &mut MemoryState, inst: &Decoded
         DIVS{..} | DIVQ{..} | EXP{..} | MUL{..} | MULS{..} => {
             muldiv::execute(cpu, mem, inst);
         },
-        Stack_Operation{..} => {
-            stack::execute(cpu, mem, inst);
+        Stack_Operation{op, rd_index, size, rs} => {
+            stack::execute(cpu, mem, *op, *rd_index, *size, *rs);
         },
         DSI6{imm6} => { cpu.set_ds(*imm6); },
         FIR_MOV{fir}=> { cpu.set_fir(*fir); },

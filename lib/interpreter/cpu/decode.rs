@@ -571,12 +571,12 @@ pub(super) fn decode_wg2(decoded_inst: &mut DecodedInstruction, wg2: u16) {
     log!(1, "CPU: Decode instruction word group 2:");
     match decoded_inst {
         CALL{ref mut a22} => {
-            log!(2, "Fill in the lower 16 bits of a22 for CALL");
+            log!(2, "Fill in the lower 16 bits of A22 for CALL");
             *a22 |= wg2 as u32;
             instruction_printing::log_addr!(3, "A22", *a22);
         },
         JMPF{ref mut a22} => {
-            log!(2, "Fill in the lower 16 bits of a22 for JMPF");
+            log!(2, "Fill in the lower 16 bits of A22 for JMPF");
             *a22 |= wg2 as u32;
             instruction_printing::log_addr!(3, "A22", *a22);
         },

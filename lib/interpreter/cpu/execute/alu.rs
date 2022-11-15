@@ -60,32 +60,35 @@ fn handle_big_5(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruc
     let operand2: u16;
 
     //Get the op field regardless of the instruction type
-    //TODO
+    if let IMM16{op, ..} | Direct16{op, ..} | IMM6{op, ..} = inst {//TODO others
+        operation = *op;
+    } else {
+        operation = debug_panic!(DecodedALUOp::Invalid);//We should not have recieved this type of instruction (without an op field)
+    }
 
     //Perform instruction type-specific setup
     match inst {
-        IMM16{op, rs, imm16, ..} => {
-            operation = *op;
+        IMM16{rs, imm16, ..} => {
             operand1 = cpu.get_reg(*rs);
             operand2 = *imm16;
-            //TODO logging
+            log!(3, "Operand 1 is Rs, and operand 2 is IMM16");
         },
-        Direct16{op, rd, w, rs, a16} => {
-            operation = *op;
-
+        Direct16{rd, w, rs, a16, ..} => {
             if *w {
                 debug_assert!(matches!(operation, STORE));//TODO confirm this is a valid asumption
                 operand1 = cpu.get_reg(*rd);
                 operand2 = cpu.get_reg(*rs);
+                log!(4, "Operand 1 is Rd, and operand 2 is Rs");
             } else {
                 operand1 = cpu.get_reg(*rs);
                 operand2 = mem.read_page_addr(cpu.get_ds(), *a16);
+                log!(4, "Operand 1 is Rs, and operand 2 is [A16]");
             }
         },
-        IMM6{op, rd, imm6} => {
-            operation = *op;
+        IMM6{rd, imm6, ..} => {
             operand1 = cpu.get_reg(*rd);
             operand2 = *imm6 as u16;
+            log!(3, "Operand 1 is Rd, and operand 2 is IMM6");
         },
         _ => {unimplemented!();},//TODO
     }
@@ -111,6 +114,9 @@ fn handle_big_5(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruc
 }
 
 fn alu_operation(cpu: &mut CPUState, alu_op: DecodedALUOp, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
+    log!(4, "Operand 1: {0:#06X} | {0:#018b} | unsigned {0}", operand1);
+    log!(4, "Operand 2: {0:#06X} | {0:#018b} | unsigned {0}", operand2);
+
     use std::num::Wrapping as Wrap;
 
     //We need regular wrapping behaviour to make our lives easier; also do 32 bit operations so we get the carry bit (which is useful) for free
@@ -135,7 +141,7 @@ fn alu_operation(cpu: &mut CPUState, alu_op: DecodedALUOp, operand1: u16, operan
         _ => { result_w = debug_panic!(Wrap(0)); },
     }
     let result: u32 = result_w.0;//We don't need wrapping behaviour anymore
-    log!(4, "Result: {:#06X} | {:#018b} | unsigned {}", (result & 0xFFFF) as u16, (result & 0xFFFF) as u16, (result & 0xFFFF) as u16);
+    log!(3, "Result: {0:#06X} | {0:#018b} | unsigned {0}", (result & 0xFFFF) as u16);
 
     //Set flags
     //TODO logging for flag updates
