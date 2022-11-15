@@ -118,63 +118,27 @@ fn alu_operation(cpu: &mut CPUState, alu_op: DecodedALUOp, operand1: u16, operan
     let operand2_w = Wrap(operand2 as u32);
 
     //Perform operation
-    log_noln!(4, "Operation: ");
     let result_w: Wrap<u32>;
     match alu_op {
-        ADD => {
-            log_finln!("ADD");
-            result_w = operand1_w + operand2_w;
-        },
-        ADC => {
-            log_finln!("ADC");
-            result_w = operand1_w + operand2_w + if cpu.get_c() { Wrap(1) } else { Wrap(0) };
-        },
-        SUB => {
-            log_finln!("SUB");
-            result_w = operand1_w - operand2_w;
-        },
-        SBC => {
-            log_finln!("SBC");
-            result_w = operand1_w + !operand2_w + if cpu.get_c() { Wrap(1) } else { Wrap(0) };
-        },
-        CMP => {
-            log_finln!("CMP");
-            result_w = operand1_w - operand2_w;
-        },
-        NEG => {
-            log_finln!("NEG");
-            result_w = Wrap((-(operand2 as i32)) as u32);//Intentionally not using operand2_w so that we can cast to a signed integer and back//TODO ensure this is valid, else do ~operand2 + 1
-        },
-        XOR => {
-            log_finln!("XOR");
-            result_w = operand1_w ^ operand2_w;
-        },
-        LOAD => {
-            log_finln!("LOAD");
-            result_w = operand2_w;
-        },
-        OR => {
-            log_finln!("OR");
-            result_w = operand1_w | operand2_w;
-        },
-        AND => {
-            log_finln!("AND");
-            result_w = operand1_w & operand2_w;
-        },
-        TEST => {
-            log_finln!("TEST");
-            result_w = operand1_w & operand2_w;
-        },
-        STORE => {
-            log_finln!("STORE");
-            result_w = operand1_w;//No need for any flags to be set with store
-        },
+        ADD => { result_w = operand1_w + operand2_w; },
+        ADC => { result_w = operand1_w + operand2_w + if cpu.get_c() { Wrap(1) } else { Wrap(0) }; },
+        SUB => { result_w = operand1_w - operand2_w; },
+        SBC => { result_w = operand1_w + !operand2_w + if cpu.get_c() { Wrap(1) } else { Wrap(0) }; },
+        CMP => { result_w = operand1_w - operand2_w; },
+        NEG => { result_w = Wrap((-(operand2 as i32)) as u32); },//Intentionally not using operand2_w so that we can cast to a signed integer and back//TODO ensure this is valid, else do ~operand2 + 1
+        XOR => { result_w = operand1_w ^ operand2_w; },
+        LOAD => { result_w = operand2_w; },
+        OR => { result_w = operand1_w | operand2_w; },
+        AND => { result_w = operand1_w & operand2_w; },
+        TEST => { result_w = operand1_w & operand2_w; },
+        STORE => { result_w = operand1_w; },
         _ => { result_w = debug_panic!(Wrap(0)); },
     }
     let result: u32 = result_w.0;//We don't need wrapping behaviour anymore
-    log!(4, "Result:{:#06X} | {:#018b} | unsigned {}", (result & 0xFFFF) as u16, (result & 0xFFFF) as u16, (result & 0xFFFF) as u16);
+    log!(4, "Result: {:#06X} | {:#018b} | unsigned {}", (result & 0xFFFF) as u16, (result & 0xFFFF) as u16, (result & 0xFFFF) as u16);
 
     //Set flags
+    //TODO logging for flag updates
     //FIXME don't update flags if the register is the PC
     //N flag is set if the result's msb is 1
     //Z flag is set if the result is 0

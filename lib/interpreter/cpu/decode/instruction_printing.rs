@@ -73,7 +73,79 @@ macro_rules! reg_string {
         string
     }};
 }
-pub(crate) use reg_string;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+
+macro_rules! alu_op_string {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::interpreter::cpu::decode::DecodedALUOp::*;
+            match $op {
+                ADD => { string = "ADD"; },
+                ADC => { string = "ADC"; },
+                SUB => { string = "SUB"; },
+                SBC => { string = "SBC"; },
+                CMP => { string = "CMP"; },
+                NEG => { string = "NEG"; },
+                XOR => { string = "XOR"; },
+                LOAD => { string = "LOAD"; },
+                OR => { string = "OR"; },
+                AND => { string = "AND"; },
+                TEST => { string = "TEST"; },
+                STORE => { string = "STORE"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+
+macro_rules! branch_op_string {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::interpreter::cpu::decode::DecodedBranchOp::*;
+            match $op {
+                JCC_JB_JNAE => { string = "JCC/JB/JNAE"; },
+                JCS_JNB_JAE => { string = "JCS/JNB/JAE"; },
+                JSC_JGE_JNL => { string = "JSC/JGE/JNL"; },
+                JSS_JNGE_JL => { string = "JSS/JNGE/JL"; },
+                JNE_JNZ => { string = "JNE/JNZ"; },
+                JZ_JE => { string = "JZ/JE"; },
+                JPL => { string = "JPL"; },
+                JMI => { string = "JMI"; },
+                JBE_JNA => { string = "JBE/JNA"; },
+                JNBE_JA => { string = "JNBE/JA"; },
+                JLE_JNG => { string = "JLE/JNG"; },
+                JNLE_JG => { string = "JNLE/JG"; },
+                JVC => { string = "JVC"; },
+                JVS => { string = "JVS"; },
+                JMP => { string = "JMP"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+
+macro_rules! bit_op_string {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::interpreter::cpu::decode::DecodedBitOp::*;
+            match $op {
+                TSTB => { string = "TSTB"; },
+                SETB => { string = "SETB"; },
+                CLRB => { string = "CLRB"; },
+                INVB => { string = "INVB"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
 
 //TODO (also pub(crate) use the_macro statements here too)
 
@@ -171,27 +243,80 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::interpreter::cpu::
                 log!(indent + 1, "S_Rs: {}", *s_rs);
                 log!(indent + 1, "Rd: {}", reg_string!(*rd));
                 log!(indent + 1, "S_Rd: {}", *s_rd);
-                log!(indent + 1, "Size: {}", *size);
+                log_data!(indent + 1, "Size", *size);
                 log!(indent + 1, "Rs: {}", reg_string!(*rs));
             },
-            Register_BITOP_Rs{..} => {//TODO this and the rest
+            Register_BITOP_Rs{rd, op, rs} => {
                 log_finln!("Register BITOP (Rs)");
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Bitop: {}", bit_op_string!(*op));
+                log!(indent + 1, "Rs: {}", reg_string!(*rs));
             },
-            Register_BITOP_offset{..} => { log_finln!("Register BITOP (offset)"); },
-            Memory_BITOP_offset{..} => { log_finln!("Memory BITOP (offset)"); },
-            Memory_BITOP_Rs{..} => { log_finln!("Memory BITOP (Rs)"); },
-            sixteen_bits_Shift{..} => { log_finln!("16 bits Shift"); },
-            RETI{..} => { log_finln!("RETI"); },
-            RETF{..} => { log_finln!("RETF"); },
-            Base_plus_Disp6{..} => { log_finln!("Base+Disp6"); },
-            IMM6{..} => { log_finln!("IMM6"); },
-            Branch{..} => { log_finln!("Branch"); },
-            Stack_Operation{..} => { log_finln!("Stack Operation"); },
-            DS_Indirect{..} => { log_finln!("DS_Indirect"); },
-            IMM16{..} => { log_finln!("IMM16"); },
-            Direct16{..} => { log_finln!("Direct16"); },
-            Direct6{..} => { log_finln!("Direct6"); },
-            Register{..} => { log_finln!("Register"); },
+            Register_BITOP_offset{rd, op, offset} => {
+                log_finln!("Register BITOP (offset)");
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Bitop: {}", bit_op_string!(*op));
+                log_data!(indent + 1, "Offset", *offset);
+            },
+            Memory_BITOP_offset{rd, op, d, offset} => {
+                log_finln!("Memory BITOP (offset)");
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Bitop: {}", bit_op_string!(*op));
+                log!(indent + 1, "D: {}", *d);
+                log_data!(indent + 1, "Offset", *offset);
+            },
+            Memory_BITOP_Rs{rd, op, d, rs} => {
+                log_finln!("Memory BITOP (Rs)");
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Bitop: {}", bit_op_string!(*op));
+                log!(indent + 1, "D: {}", *d);
+                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+            },
+            sixteen_bits_Shift{..} => { log_finln!("16 bits Shift"); },//TODO
+            RETI => { log_finln!("RETI"); },
+            RETF => { log_finln!("RETF"); },
+            Base_plus_Disp6{op, rd, imm6} => {
+                log_finln!("Base+Disp6");
+                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log_data!(indent + 1, "imm6", *imm6);
+            },
+            IMM6{op, rd, imm6} => {
+                log_finln!("IMM6");
+                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log_data!(indent + 1, "imm6", *imm6);
+            },
+            Branch{op, d, imm6} => {
+                log_finln!("Branch");
+                log!(indent + 1, "OP: {}", branch_op_string!(*op));
+                log!(indent + 1, "D: {}", *d);
+                log_data!(indent + 1, "imm6", *imm6);
+            },
+            Stack_Operation{..} => { log_finln!("Stack Operation"); },//TODO
+            DS_Indirect{..} => { log_finln!("DS_Indirect"); },//TODO
+            IMM16{op, rd, rs, imm16} => {
+                log_finln!("IMM16");
+                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log_data!(indent + 1, "imm16", *imm16);
+            },
+            Direct16{op, rd, rs, w, a16} => {
+                log_finln!("Direct16");
+                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "W: {}", *w);
+                log!(indent + 1, "a16: {:#06X}", *a16);
+            },
+            Direct6{op, rd, a6} => {
+                log_finln!("Direct6");
+                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "a6: {:#04X}", *a6);
+            },
+            Register{..} => { log_finln!("Register"); },//TODO
 
             Invalid{..} => { log_finln!("(invalid)"); },
         }

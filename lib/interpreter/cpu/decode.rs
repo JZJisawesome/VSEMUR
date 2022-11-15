@@ -196,7 +196,6 @@ pub(super) enum DecodedBranchOp {
     JVC,
     JVS,
     JMP,
-    JCC_JB,
 
     Invalid,
 }
