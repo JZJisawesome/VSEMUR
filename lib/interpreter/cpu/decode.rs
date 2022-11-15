@@ -27,7 +27,7 @@ use DecodedInstruction::*;
 
 macro_rules! return_inst {
     ($indent:expr, $decoded_inst_out:expr, $inst_type:expr) => {
-        instruction_printing::log_inst!($indent, $inst_type);
+        instruction_printing::log_inst!($indent, &$inst_type);
         *$decoded_inst_out = $inst_type;
         return;
     }
