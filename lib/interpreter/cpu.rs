@@ -73,7 +73,7 @@ impl CPUState {
             cycle_count: 0,
 
             cache_valid: false,
-            decoded_instruction_cache: vec![decode::DecodedInstruction::InvalidInstructionType; crate::interpreter::MEM_SIZE_WORDS].into_boxed_slice(),//TODO avoid allocating anything until we need it
+            decoded_instruction_cache: vec![decode::DecodedInstruction::InvalidInstructionType; 0].into_boxed_slice(),//TODO avoid allocating anything until we need it
         };
     }
 
@@ -96,6 +96,8 @@ impl CPUState {
     pub(super) fn cache(self: &mut Self, mem: &MemoryState) {
         log!(1, "Decoding and caching instructions...");
 
+        self.decoded_instruction_cache = vec![decode::DecodedInstruction::InvalidInstructionType; crate::interpreter::MEM_SIZE_WORDS].into_boxed_slice();
+
         for i in 0..crate::interpreter::MEM_SIZE_WORDS {
 
             //Fetch instruction from memory
@@ -116,6 +118,8 @@ impl CPUState {
             //Add it to the cache
             self.decoded_instruction_cache[i] = decoded_inst;
         }
+
+        self.cache_valid = true;
     }
 
     pub(super) fn tick(self: &mut Self, mem: &mut MemoryState) {
@@ -155,6 +159,7 @@ impl CPUState {
 
     pub(super) fn tick_cached(self: &mut Self, mem: &mut MemoryState) {
         debug_assert!(mem.ready());
+        //TODO check that cache_valid is true (in debug builds only)
 
         //Wait for the proper number of cycles depending on the last instruction executed
         if self.cycle_count != 0 {
@@ -325,17 +330,29 @@ impl CPUState {
     }
 
     fn set_reg(self: &mut Self, reg: decode::DecodedRegister, value: u16) {
-        unimplemented!();//TODO
+        use decode::DecodedRegister::*;
+        match reg {
+            SP => { self.sp = value; },
+            R1_SR1 => { if self.get_bnk() { self.sec_r[0] = value; } else { self.r[0] = value; } },
+            R2_SR2 => { if self.get_bnk() { self.sec_r[1] = value; } else { self.r[1] = value; } },
+            R3_SR3 => { if self.get_bnk() { self.sec_r[2] = value; } else { self.r[2] = value; } },
+            R4_SR4 => { if self.get_bnk() { self.sec_r[3] = value; } else { self.r[3] = value; } },
+            BP => { self.bp = value; },
+            SR => { self.sr = value; },
+            PC => { self.pc = value; },
+
+            InvalidRegister => { panic!(); }//We shouldn't be passed this
+        }
     }
 
     fn get_reg_by_index(self: &mut Self, reg: u8) -> u16 {
         debug_assert!(reg < 8);
         match reg {
             0b000 => { return self.sp; },
-            0b001 => { return if self.get_bnk() { self.sec_r[0] } else {self.r[0]}; },
-            0b010 => { return if self.get_bnk() { self.sec_r[1] } else {self.r[1]}; },
-            0b011 => { return if self.get_bnk() { self.sec_r[2] } else {self.r[2]}; },
-            0b100 => { return if self.get_bnk() { self.sec_r[3] } else {self.r[3]}; },
+            0b001 => { return if self.get_bnk() { self.sec_r[0] } else { self.r[0] }; },
+            0b010 => { return if self.get_bnk() { self.sec_r[1] } else { self.r[1] }; },
+            0b011 => { return if self.get_bnk() { self.sec_r[2] } else { self.r[2] }; },
+            0b100 => { return if self.get_bnk() { self.sec_r[3] } else { self.r[3] }; },
             0b101 => { return self.bp; },
             0b110 => { return self.sr; },
             0b111 => { return self.pc; },

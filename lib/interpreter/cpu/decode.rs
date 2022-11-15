@@ -158,7 +158,7 @@ macro_rules! Register_parse {
 /* Types */
 
 #[allow(non_camel_case_types)]
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub(super) enum DecodedInstruction {
     DSI6{imm6: u8},
     CALL{a22: u32},//Lower 16 bits are retrived in decode_wg2
@@ -201,7 +201,7 @@ pub(super) enum DecodedInstruction {
     InvalidInstructionType,
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub(super) enum DecodedALUOp {
     ADD,
     ADC,
@@ -220,7 +220,7 @@ pub(super) enum DecodedALUOp {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub(super) enum DecodedBranchOp {
     JCC_JB_JNAE,
     JCS_JNB_JAE,
@@ -242,7 +242,7 @@ pub(super) enum DecodedBranchOp {
     InvalidBranchOp,
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub(super) enum DecodedStackOp {
     PUSH,
     POP,
@@ -250,7 +250,7 @@ pub(super) enum DecodedStackOp {
     InvalidStackOp,
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub(super) enum DecodedAtOp {
     NOP,
     PostDecrement,
@@ -260,7 +260,7 @@ pub(super) enum DecodedAtOp {
     InvalidAtOp,
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub(super) enum DecodedBitOp {
     TSTB,
     SETB,
@@ -270,7 +270,7 @@ pub(super) enum DecodedBitOp {
     InvalidBitOp,
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub(super) enum DecodedLSFTOp {
     ASR,
     ASROR,
@@ -284,7 +284,7 @@ pub(super) enum DecodedLSFTOp {
     InvalidLSFTOp,
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub(super) enum DecodedSFTOp {
     NOP,
     ASR,
@@ -297,7 +297,7 @@ pub(super) enum DecodedSFTOp {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub(super) enum DecodedRegister {
     SP,
     R1_SR1,
