@@ -66,7 +66,7 @@ macro_rules! return_inst {
                 Direct6{..} => { log_finln!("Direct6"); }
                 Register{..} => { log_finln!("Register"); }
 
-                InvalidInstructionType{..} => { log_finln!("(invalid)"); }
+                Invalid{..} => { log_finln!("(invalid)"); }
             }
         }
 
@@ -199,7 +199,7 @@ pub(super) enum DecodedInstruction {
     Direct6{op: DecodedALUOp, rd: DecodedRegister, a6: u8},
     Register{op: DecodedALUOp, rd: DecodedRegister, sft: DecodedSFTOp, sfc: u8, rs: DecodedRegister},
 
-    InvalidInstructionType,
+    Invalid,
 }
 
 #[derive(Copy, Clone)]
@@ -217,7 +217,7 @@ pub(super) enum DecodedALUOp {
     TEST,
     STORE,
 
-    InvalidALUOp,
+    Invalid,
 }
 
 #[allow(non_camel_case_types)]
@@ -240,7 +240,7 @@ pub(super) enum DecodedBranchOp {
     JMP,
     JCC_JB,
 
-    InvalidBranchOp,
+    Invalid,
 }
 
 #[derive(Copy, Clone)]
@@ -248,7 +248,7 @@ pub(super) enum DecodedStackOp {
     PUSH,
     POP,
 
-    InvalidStackOp,
+    Invalid,
 }
 
 #[derive(Copy, Clone)]
@@ -258,7 +258,7 @@ pub(super) enum DecodedAtOp {
     PostIncrement,
     PreIncrement,
 
-    InvalidAtOp,
+    Invalid,
 }
 
 #[derive(Copy, Clone)]
@@ -268,7 +268,7 @@ pub(super) enum DecodedBitOp {
     CLRB,
     INVB,
 
-    InvalidBitOp,
+    Invalid,
 }
 
 #[derive(Copy, Clone)]
@@ -282,7 +282,7 @@ pub(super) enum DecodedLSFTOp {
     ROL,
     ROR,
 
-    InvalidLSFTOp,
+    Invalid,
 }
 
 #[derive(Copy, Clone)]
@@ -294,7 +294,7 @@ pub(super) enum DecodedSFTOp {
     ROL,
     ROR,
 
-    InvalidSFTOp,
+    Invalid,
 }
 
 #[allow(non_camel_case_types)]
@@ -309,7 +309,7 @@ pub(super) enum DecodedRegister {
     SR,
     PC,
 
-    InvalidRegister,
+    Invalid,
 }
 
 /* Associated Functions and Methods */
@@ -324,7 +324,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
     log_noln!(2, "First check if the instruction is obviously bad: ");
     if (inst_word == 0xFFFF) || (inst_word == 0x0000) {//All zero or all one instructions are not valid
         log_finln!("Yep.");
-        return_inst!(3, decoded_inst, InvalidInstructionType);
+        return_inst!(3, decoded_inst, Invalid);
     }
     log_finln!("Nope!");
 
@@ -352,7 +352,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                                 });
                             },
                             0b11 => { return_inst!(6, decoded_inst, FR_Access{w: ((inst_word >> 3) & 0b1) == 0b1, rs: dec_reg_from_index(rs_index!(inst_word))}); },
-                            _ => { return_inst!(6, decoded_inst, InvalidInstructionType); },
+                            _ => { return_inst!(6, decoded_inst, Invalid); },
                         }
                     }
                 },
@@ -360,7 +360,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                     let bit_9 = (inst_word >> 9) & 0b1;
                     log!(4, "The secondary group is 0b001, so let's inspect bit 9: {:#03b}", bit_9);
                     if bit_9 == 0b1 {
-                        return_inst!(5, decoded_inst, InvalidInstructionType);
+                        return_inst!(5, decoded_inst, Invalid);
                     } else {
                         //Lower 16 bits will be filled in decode_wg2
                         return_inst!(5, decoded_inst, CALL{a22: ((inst_word as u32) << 16) & 0b1111110000000000000000});
@@ -399,7 +399,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                             0b011 => { return_inst!(6, decoded_inst, DIVQ); },
                             0b100 => { return_inst!(6, decoded_inst, EXP); },
                             0b101 => { return_inst!(6, decoded_inst, NOP); },
-                            _ => { return_inst!(6, decoded_inst, InvalidInstructionType); },
+                            _ => { return_inst!(6, decoded_inst, Invalid); },
                         }
                     } else {
                         let bits_432 = (inst_word >> 2) & 0b111;//Look at bits 4:2 to split things further
@@ -433,7 +433,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                                     return_inst!(7, decoded_inst, FIQ{f: ((inst_word >> 1) & 0b1) == 0b1});
                                 }
                             },
-                            _ => { return_inst!(6, decoded_inst, InvalidInstructionType); },
+                            _ => { return_inst!(6, decoded_inst, Invalid); },
                         }
                     }
                 },
@@ -497,7 +497,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                             offset: (inst_word & 0b1111) as u8,
                         });
                     },
-                    _ => { return_inst!(5, decoded_inst, InvalidInstructionType); },
+                    _ => { return_inst!(5, decoded_inst, Invalid); },
                 }
             }
         },
@@ -507,7 +507,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
             if (rd_index!(inst_word) == 0b111) && ((secondary_group == 0b000) || (secondary_group == 0b001)) {
                 return_inst!(4, decoded_inst, Branch_parse!(inst_word));
             } else {
-                return_inst!(4, decoded_inst, InvalidInstructionType);
+                return_inst!(4, decoded_inst, Invalid);
             }
         },
         upper_nibble => {
@@ -556,7 +556,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                                         rs: dec_reg_from_index(rs_index!(inst_word)),
                                     });
                                 } else {
-                                    return_inst!(8, decoded_inst, InvalidInstructionType);
+                                    return_inst!(8, decoded_inst, Invalid);
                                 }
                             }
                         }
@@ -654,7 +654,7 @@ fn dec_alu_op(inst_word: u16) -> DecodedALUOp {
         0b1011 => { return AND; },
         0b1100 => { return TEST; },
         0b1101 => { return STORE; },
-        _ => { return InvalidALUOp; },
+        _ => { return DecodedALUOp::Invalid; },
     }
 }
 
@@ -676,7 +676,7 @@ fn dec_branch_op(inst_word: u16) -> DecodedBranchOp {
         0b1100 => { return JVC; },
         0b1101 => { return JVS; },
         0b1110 => { return JMP; },
-        _ => { return InvalidBranchOp; },
+        _ => { return DecodedBranchOp::Invalid; },
     }
 }
 
@@ -687,7 +687,7 @@ fn dec_at_op(inst_word: u16) -> DecodedAtOp {
         0b01 => { return PostDecrement; },
         0b10 => { return PostIncrement; },
         0b11 => { return PreIncrement; },
-        _ => { return debug_panic!(InvalidAtOp); },//This should never occur
+        _ => { return debug_panic!(DecodedAtOp::Invalid); },//This should never occur
     }
 }
 
@@ -698,7 +698,7 @@ fn dec_bit_op(inst_word: u16) -> DecodedBitOp {
         0b01 => { return SETB; },
         0b10 => { return CLRB; },
         0b11 => { return INVB; },
-        _ => { return debug_panic!(InvalidBitOp); },//This should never occur
+        _ => { return debug_panic!(DecodedBitOp::Invalid); },//This should never occur
     }
 }
 
@@ -713,7 +713,7 @@ fn dec_lsft_op(inst_word: u16) -> DecodedLSFTOp {
         0b101 => { return LSROR; },
         0b110 => { return ROL; },
         0b111 => { return ROR; },
-        _ => { return debug_panic!(InvalidLSFTOp); },//This should never occur
+        _ => { return debug_panic!(DecodedLSFTOp::Invalid); },//This should never occur
     }
 }
 
@@ -726,7 +726,7 @@ fn dec_sft_op(inst_word: u16) -> DecodedSFTOp {
         0b011 => { return LSR; },
         0b100 => { return ROL; },
         0b101 => { return ROR; },
-        _ => { return InvalidSFTOp; },
+        _ => { return DecodedSFTOp::Invalid; },
     }
 }
 
@@ -741,6 +741,6 @@ fn dec_reg_from_index(reg_index: u8) -> DecodedRegister {
         0b101 => { return BP; },
         0b110 => { return SR; },
         0b111 => { return PC; },
-        _ => { return debug_panic!(InvalidRegister); },//This should never occur
+        _ => { return debug_panic!(DecodedRegister::Invalid); },//This should never occur
     }
 }

@@ -91,7 +91,7 @@ fn perform_instruction(cpu: &mut CPUState, mem: &mut MemoryState, inst: &Decoded
             unimplemented!();//TODO do here
         },
 
-        InvalidInstructionType => { debug_panic!(); }//TODO proper error handling?
+        Invalid => { debug_panic!(); }//TODO proper error handling?
     }
 }
 
@@ -173,7 +173,7 @@ fn get_cycle_count(inst: &DecodedInstruction) -> u8 {
             }
         },
 
-        InvalidInstructionType => { return debug_panic!(0); }//TODO proper error handling?
+        Invalid => { return debug_panic!(0); }//TODO proper error handling?
     }
 }
 
@@ -181,39 +181,20 @@ fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
     log!(2, "Increment PC if applicable");
     match inst {
         //TODO combine into individual cases more efficiently (to make more readable)
-        DSI6{..} => { cpu.inc_pc(); },
-        CALL{..} => {
-            unimplemented!();//TODO
+        CALL{..} | JMPF{..} | JMPR{..} | BREAK{..} | CALLR{..} | RETI{..} | RETF{..} | Branch{..} => {/* PC Not Modified Here */},
+
+        DSI6{..} | FIR_MOV{..} | Fraction{..} | INT_SET{..} | IRQ{..} | SECBANK{..} | FIQ{..} |
+        IRQ_Nest_Mode{..} | DIVS{..} | DIVQ{..} | EXP{..} | NOP{..} => {
+            cpu.inc_pc();
         },
-        JMPF{..} => {
-            unimplemented!();//TODO
-        },
-        JMPR{..} => {
-            unimplemented!();//TODO
-        },
-        FIR_MOV{..}=> { cpu.inc_pc(); },
-        Fraction{..} => { cpu.inc_pc(); },
-        INT_SET{..} => { cpu.inc_pc(); },
-        IRQ{..} => { cpu.inc_pc(); },
-        SECBANK{..} => { cpu.inc_pc(); },
-        FIQ{..} => { cpu.inc_pc(); },
-        IRQ_Nest_Mode{..} => { cpu.inc_pc(); },
-        BREAK{..} => {
-            unimplemented!();//TODO
-        },
-        CALLR{..} => {
-            unimplemented!();//TODO
-        },
-        DIVS{..} => { cpu.inc_pc(); },
-        DIVQ{..} => { cpu.inc_pc(); },
-        EXP{..} => { cpu.inc_pc(); },
-        NOP{..} => { cpu.inc_pc(); },
+
         DS_Access{..} => {
-            unimplemented!();//TODO what if rs is the pc?
+            unimplemented!();//TODO what if Rs is tjePC?
         },
         FR_Access{..} => {
-            unimplemented!();//TODO what if rs is the pc?
+            unimplemented!();//TODO what if Rs is tjePC?
         },
+
         MUL{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
                 unimplemented!();//TODO what is the behaviour in this case?
@@ -263,12 +244,6 @@ fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
                 cpu.inc_pc();
             }
         },
-        RETI{..} => {
-            unimplemented!();//TODO
-        },
-        RETF{..} => {
-            unimplemented!();//TODO
-        },
         Base_plus_Disp6{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
                 unimplemented!();//TODO what is the behaviour in this case?
@@ -282,9 +257,6 @@ fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
             } else {
                 cpu.inc_pc();
             }
-        },
-        Branch{..} => {
-            unimplemented!();//TODO
         },
         Stack_Operation{rd_index, ..} => {
             if *rd_index == 0b111 {//PC is the highest index, so we don't need to worry about size
@@ -329,6 +301,6 @@ fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
             }
         },
 
-        InvalidInstructionType => { debug_panic!(); }//TODO proper error handling?
+        Invalid => { debug_panic!(); }//TODO proper error handling?
     }
 }

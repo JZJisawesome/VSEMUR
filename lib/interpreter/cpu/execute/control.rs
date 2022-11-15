@@ -44,9 +44,12 @@ use super::super::decode::DecodedInstruction::*;
 /* Functions */
 
 pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
-    unimplemented!();//TODO
     match inst {
-        //TODO others
-        _ => { debug_panic!(); }//We should not have recieved this type of instruction
+        CALL{a22} => {
+            let new_page = (a22 >> 16) & 0b111111;
+            let new_addr = a22 & 0xFFFF;
+            unimplemented!();//TODO
+        },
+        _ => { debug_panic!(); },//We should not have recieved this type of instruction
     }
 }

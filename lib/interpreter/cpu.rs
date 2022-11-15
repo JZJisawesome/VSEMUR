@@ -74,7 +74,7 @@ impl CPUState {
             cycle_count: 0,
 
             cache_valid: false,
-            decoded_instruction_cache: vec![decode::DecodedInstruction::InvalidInstructionType; 0].into_boxed_slice(),//TODO avoid allocating anything until we need it
+            decoded_instruction_cache: vec![decode::DecodedInstruction::Invalid; 0].into_boxed_slice(),//TODO avoid allocating anything until we need it
         };
     }
 
@@ -97,7 +97,7 @@ impl CPUState {
     pub(super) fn cache(self: &mut Self, mem: &MemoryState) {
         log!(1, "Decoding and caching instructions...");
 
-        self.decoded_instruction_cache = vec![decode::DecodedInstruction::InvalidInstructionType; crate::interpreter::MEM_SIZE_WORDS].into_boxed_slice();
+        self.decoded_instruction_cache = vec![decode::DecodedInstruction::Invalid; crate::interpreter::MEM_SIZE_WORDS].into_boxed_slice();
 
         for i in 0..crate::interpreter::MEM_SIZE_WORDS {
 
@@ -107,7 +107,7 @@ impl CPUState {
             log!(2, "Instruction word group 1: {:#06X} | {:#018b}", inst_word, inst_word);
 
             //Decode it
-            let mut decoded_inst = decode::DecodedInstruction::InvalidInstructionType;
+            let mut decoded_inst = decode::DecodedInstruction::Invalid;
             decode::decode_wg1(inst_word, &mut decoded_inst);
             if decode::needs_decode_wg2(&decoded_inst) && (i != (crate::interpreter::MEM_SIZE_WORDS - 1)){
                 log!(1, "CPU: Fetch started from CS page, PC address + 1");
@@ -141,7 +141,7 @@ impl CPUState {
         log!(2, "Instruction word group 1: {:#06X} | {:#018b}", inst_word, inst_word);
 
         //Decode it
-        let mut decoded_inst = decode::DecodedInstruction::InvalidInstructionType;
+        let mut decoded_inst = decode::DecodedInstruction::Invalid;
         decode::decode_wg1(inst_word, &mut decoded_inst);
         if decode::needs_decode_wg2(&decoded_inst) {
             log!(1, "CPU: Fetch started from CS page, PC address + 1");
@@ -326,7 +326,7 @@ impl CPUState {
             SR => { return self.sr; },
             PC => { return self.pc; },
 
-            InvalidRegister => { return debug_panic!(0); }//We shouldn't be passed this
+            Invalid => { return debug_panic!(0); }//We shouldn't be passed this
         }
     }
 
@@ -342,7 +342,7 @@ impl CPUState {
             SR => { self.sr = value; },
             PC => { self.pc = value; },
 
-            InvalidRegister => { debug_panic!(); }//We shouldn't be passed this
+            Invalid => { debug_panic!(); }//We shouldn't be passed this
         }
     }
 
