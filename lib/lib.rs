@@ -27,7 +27,21 @@ mod logging;
 
 /* Macros */
 
-//TODO (also pub(crate) use the_macro statements here too)
+macro_rules! debug_panic {
+    () => {
+        if cfg!(debug_assertions) {
+            panic!();
+        }
+    };
+    ($release_value:expr) => {
+        if cfg!(debug_assertions) {
+            panic!();
+        } else {
+            $release_value
+        }
+    };
+}
+pub(crate) use debug_panic;
 
 /* Static Variables */
 

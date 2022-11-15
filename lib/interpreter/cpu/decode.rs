@@ -10,6 +10,7 @@
 
 /* Imports */
 
+use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
@@ -194,7 +195,7 @@ pub(super) enum DecodedInstruction {
     Stack_Operation{op: DecodedStackOp, rd_index: u8, size: u8, rs: DecodedRegister},//Providing rd_index instead of rd since it allow for one to just start incrementing/decrementing it right away
     DS_Indirect{main_op: DecodedALUOp, rd: DecodedRegister, d: bool, rs_op: DecodedAtOp, rs: DecodedRegister},
     IMM16{op: DecodedALUOp, rd: DecodedRegister, rs: DecodedRegister, imm16: u16},//imm16 is retrived in decode_wg2
-    Direct16{op: DecodedALUOp, rd: DecodedRegister, rs: DecodedRegister, a16: u16},//a16 is retrived in decode_wg2
+    Direct16{op: DecodedALUOp, rd: DecodedRegister, w: bool, rs: DecodedRegister, a16: u16},//a16 is retrived in decode_wg2
     Direct6{op: DecodedALUOp, rd: DecodedRegister, a6: u8},
     Register{op: DecodedALUOp, rd: DecodedRegister, sft: DecodedSFTOp, sfc: u8, rs: DecodedRegister},
 
@@ -437,7 +438,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                     }
                 },
                 0b110 | 0b111 => { return_inst!(4, decoded_inst, MULS_parse!(inst_word)); },
-                _ => { panic!(); },//This should never occur
+                _ => { debug_panic!(); },//This should never occur
             }
         },
         0b1110 => {
@@ -585,6 +586,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                                 return_inst!(6, decoded_inst, Direct16 {
                                     op: dec_alu_op(inst_word),
                                     rd: dec_reg_from_index(rd_index!(inst_word)),
+                                    w: ((inst_word >> 3) & 0b1) == 0b1,
                                     rs: dec_reg_from_index(rs_index!(inst_word)),
                                     a16: 0,//a16 will be filled in decode_wg2
                                 });
@@ -600,7 +602,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                             a6: imm6!(inst_word),
                         });
                     },
-                    _ => { panic!(); },//This should never occur
+                    _ => { debug_panic!(); },//This should never occur
                 }
             }
         },
@@ -626,7 +628,7 @@ pub(super) fn decode_wg2(decoded_inst: &mut DecodedInstruction, wg2: u16) {
             log!(2, "Get the 16-bit immediate for Direct16");
             *a16 = wg2;
         },
-        _ => { panic!(); }//This instruction does not need to look at word group 2
+        _ => { debug_panic!(); }//This instruction does not need to look at word group 2
     }
 }
 
@@ -685,7 +687,7 @@ fn dec_at_op(inst_word: u16) -> DecodedAtOp {
         0b01 => { return PostDecrement; },
         0b10 => { return PostIncrement; },
         0b11 => { return PreIncrement; },
-        _ => { panic!(); },//This should never occur
+        _ => { return debug_panic!(InvalidAtOp); },//This should never occur
     }
 }
 
@@ -696,7 +698,7 @@ fn dec_bit_op(inst_word: u16) -> DecodedBitOp {
         0b01 => { return SETB; },
         0b10 => { return CLRB; },
         0b11 => { return INVB; },
-        _ => { panic!(); },//This should never occur
+        _ => { return debug_panic!(InvalidBitOp); },//This should never occur
     }
 }
 
@@ -711,7 +713,7 @@ fn dec_lsft_op(inst_word: u16) -> DecodedLSFTOp {
         0b101 => { return LSROR; },
         0b110 => { return ROL; },
         0b111 => { return ROR; },
-        _ => { panic!(); },//This should never occur
+        _ => { return debug_panic!(InvalidLSFTOp); },//This should never occur
     }
 }
 
@@ -739,6 +741,6 @@ fn dec_reg_from_index(reg_index: u8) -> DecodedRegister {
         0b101 => { return BP; },
         0b110 => { return SR; },
         0b111 => { return PC; },
-        _ => { panic!(); },//This should never occur
+        _ => { return debug_panic!(InvalidRegister); },//This should never occur
     }
 }

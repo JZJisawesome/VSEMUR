@@ -17,6 +17,7 @@ mod control;
 mod muldiv;
 mod stack;
 
+use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
@@ -90,7 +91,7 @@ fn perform_instruction(cpu: &mut CPUState, mem: &mut MemoryState, inst: &Decoded
             unimplemented!();//TODO do here
         },
 
-        InvalidInstructionType => { panic!(); }//TODO proper error handling?
+        InvalidInstructionType => { debug_panic!(); }//TODO proper error handling?
     }
 }
 
@@ -172,7 +173,7 @@ fn get_cycle_count(inst: &DecodedInstruction) -> u8 {
             }
         },
 
-        InvalidInstructionType => { panic!(); }//TODO proper error handling?
+        InvalidInstructionType => { return debug_panic!(0); }//TODO proper error handling?
     }
 }
 
@@ -328,6 +329,6 @@ fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
             }
         },
 
-        InvalidInstructionType => { panic!(); }//TODO proper error handling?
+        InvalidInstructionType => { debug_panic!(); }//TODO proper error handling?
     }
 }

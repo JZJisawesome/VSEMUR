@@ -12,6 +12,7 @@
 
 /* Imports */
 
+use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
@@ -46,6 +47,6 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
     unimplemented!();//TODO
     match inst {
         //TODO others
-        _ => { panic!(); }//We should not have recieved this type of instruction
+        _ => { debug_panic!(); }//We should not have recieved this type of instruction
     }
 }

@@ -15,6 +15,7 @@
 mod decode;
 mod execute;
 
+use crate::debug_panic;
 use crate::logging::log;
 use super::memory::MemoryState;
 use super::MEM_SIZE_WORDS;
@@ -325,7 +326,7 @@ impl CPUState {
             SR => { return self.sr; },
             PC => { return self.pc; },
 
-            InvalidRegister => { panic!(); }//We shouldn't be passed this
+            InvalidRegister => { return debug_panic!(0); }//We shouldn't be passed this
         }
     }
 
@@ -341,7 +342,7 @@ impl CPUState {
             SR => { self.sr = value; },
             PC => { self.pc = value; },
 
-            InvalidRegister => { panic!(); }//We shouldn't be passed this
+            InvalidRegister => { debug_panic!(); }//We shouldn't be passed this
         }
     }
 
@@ -356,7 +357,7 @@ impl CPUState {
             0b101 => { return self.bp; },
             0b110 => { return self.sr; },
             0b111 => { return self.pc; },
-            _ => { panic!(); },//This should never occur
+            _ => { return debug_panic!(0); },//This should never occur
         }
     }
 

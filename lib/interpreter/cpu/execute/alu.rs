@@ -13,6 +13,7 @@
 
 /* Imports */
 
+use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
@@ -48,7 +49,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
     match inst {
         IMM16{..} | Direct16{..} | Direct6{..} | IMM6{..} | Base_plus_Disp6{..} => { handle_big_5(cpu, mem, inst); }
         //TODO others
-        _ => { panic!(); }//We should not have recieved this type of instruction
+        _ => { debug_panic!(); }//We should not have recieved this type of instruction
     }
 }
 
@@ -58,13 +59,33 @@ fn handle_big_5(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruc
     let operand1: u16;
     let operand2: u16;
 
-    //Get the op field regardless of the instruction type, and also perform instruction type-specific setup
+    //Get the op field regardless of the instruction type
+    //TODO
+
+    //Perform instruction type-specific setup
     match inst {
-        IMM16{op, rd, rs, imm16} => {
+        IMM16{op, rs, imm16, ..} => {
             operation = *op;
             operand1 = cpu.get_reg(*rs);
             operand2 = *imm16;
             //TODO logging
+        },
+        Direct16{op, rd, w, rs, a16} => {
+            operation = *op;
+
+            if *w {
+                debug_assert!(matches!(operation, STORE));//TODO confirm this is a valid asumption
+                operand1 = cpu.get_reg(*rd);
+                operand2 = cpu.get_reg(*rs);
+            } else {
+                operand1 = cpu.get_reg(*rs);
+                operand2 = mem.read_page_addr(cpu.get_ds(), *a16);
+            }
+        },
+        IMM6{op, rd, imm6} => {
+            operation = *op;
+            operand1 = cpu.get_reg(*rd);
+            operand2 = *imm6 as u16;
         },
         _ => {unimplemented!();},//TODO
     }
@@ -74,46 +95,19 @@ fn handle_big_5(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruc
 
     //Write to the appropriate (if any) destination
     match (operation, inst) {
-        (CMP, _) | (TEST, _) => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
-        //TODO others
-        (_, IMM16{rd, ..}) | (_, Direct16{rd, ..}) | (_, Direct6{rd, ..}) | (_, IMM6{rd, ..}) | (_, Base_plus_Disp6{rd, ..}) => {//Other cases are much simpler; we just write to Rd
+        (CMP, _) | (TEST, _) => {},//CMP and TEST write to flags like other instructions, but the result is not stored
+
+        //TODO others//NOTE: STOREs can occur with Direct16 (w flag must be set), Direct6, Base+Disp6, and DS_Indirect only
+
+        (_, Direct16{w: true, a16, ..}) => {//Direct16 with the W flag set writes to memory
+            debug_assert!(matches!(operation, STORE));//TODO confirm this is a valid asumption
+            mem.write_page_addr(result, cpu.get_ds(), *a16);
+        },
+        (_, IMM16{rd, ..}) | (_, Direct16{w: false, rd, ..}) | (_, Direct6{rd, ..}) | (_, IMM6{rd, ..}) | (_, Base_plus_Disp6{rd, ..}) => {//Other cases are much simpler; we just write to Rd
             cpu.set_reg(*rd, result);
         }
-        (_, _) => { panic!(); }
+        (_, _) => { debug_panic!(); }//Not a valid instruction/op combination
     }
-
-    /*
-    //Write to the appropriate (if any) destination
-    match (upper_nibble, direct16, direct16_w) {
-        (0b0100, _, _) | (0b1100, _, _) => {},//CMP and TEST write to flags like other instructions, but not to Rd/to memory
-        (0b1101, false, _) => {//IMM16 STORE is invalid (we can't store to an immediate)//TODO should we do some sort of error handling for this (TickFail?), or do we need to jump somewhere if this occurs?
-            log!(5, "This isn't valid: we can't store a result to an immediate!");
-            panic!();
-        },
-        (0b1101, true, true) => {//Direct16 STORE + w flag set stores the result (which is Rd) to Rs
-            let rs_index: u8 = rs_index!(inst_word);
-            set_reg_by_index(cpu, rs_index, result);//rs is rd, and rd is result
-            log_register!(5, "Rs", rs_index, result);
-            //TODO cycle count in this case
-        },
-        (0b1101, true, false) |//Direct16 STORE + w flag not set stores the result (which is Rs) to memory
-        (_, true, true) => {//Direct16 operation with w flag set writes result to memory instead of a register
-            unimplemented!();//TODO (also cycle count in this case)
-        }
-        (_, false, _) | (_, true, false) => {//Other cases are much simpler; we just write to the destination register
-            let rd_index: u8 = rd_index!(inst_word);
-            set_reg_by_index(cpu, rd_index, result);
-            log_register!(5, "Rd", rd_index, result);
-
-            //Determine cycle count in this case
-            if direct16 {
-                cpu.set_cycle_count(if rd_index == 0b111 { 5 } else { 4 });
-            } else {
-                cpu.set_cycle_count(if rd_index == 0b111 { 8 } else { 7 });
-            }
-        }
-    }
-    */
 }
 
 fn alu_operation(cpu: &mut CPUState, alu_op: DecodedALUOp, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
@@ -175,7 +169,7 @@ fn alu_operation(cpu: &mut CPUState, alu_op: DecodedALUOp, operand1: u16, operan
             log_finln!("STORE");
             result_w = operand1_w;//No need for any flags to be set with store
         },
-        _ => { panic!(); },
+        _ => { result_w = debug_panic!(Wrap(0)); },
     }
     let result: u32 = result_w.0;//We don't need wrapping behaviour anymore
     log!(4, "Result:{:#06X} | {:#018b} | unsigned {}", (result & 0xFFFF) as u16, (result & 0xFFFF) as u16, (result & 0xFFFF) as u16);
