@@ -189,10 +189,10 @@ fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
         },
 
         DS_Access{..} => {
-            unimplemented!();//TODO what if Rs is tjePC?
+            unimplemented!();//TODO what if Rs is the PC?
         },
         FR_Access{..} => {
-            unimplemented!();//TODO what if Rs is tjePC?
+            unimplemented!();//TODO what if Rs is the PC?
         },
 
         MUL{rd, ..} => {
