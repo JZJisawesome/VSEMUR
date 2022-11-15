@@ -11,6 +11,7 @@
 /* Imports */
 
 mod instruction_printing;
+mod disassemble;
 
 use crate::debug_panic;
 use crate::logging::log;
@@ -151,7 +152,7 @@ pub(super) enum DecodedInstruction {
     IMM6{op: DecodedALUOp, rd: DecodedRegister, imm6: u8},
     Branch{op: DecodedBranchOp, d: bool, imm6: u8},
     Stack_Operation{op: DecodedStackOp, rd_index: u8, size: u8, rs: DecodedRegister},//Providing rd_index instead of rd since it allow for one to just start incrementing/decrementing it right away
-    DS_Indirect{main_op: DecodedALUOp, rd: DecodedRegister, d: bool, rs_op: DecodedAtOp, rs: DecodedRegister},
+    DS_Indirect{op: DecodedALUOp, rd: DecodedRegister, d: bool, at: DecodedAtOp, rs: DecodedRegister},
     IMM16{op: DecodedALUOp, rd: DecodedRegister, rs: DecodedRegister, imm16: u16},//imm16 is retrived in decode_wg2
     Direct16{op: DecodedALUOp, rd: DecodedRegister, w: bool, rs: DecodedRegister, a16: u16},//a16 is retrived in decode_wg2
     Direct6{op: DecodedALUOp, rd: DecodedRegister, a6: u8},
@@ -286,7 +287,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
     log_finln!("Nope!");
 
     let upper_nibble = upper_nibble!(inst_word);
-    log!(2, "Next let's look at the upper nibble: {:#06X}", upper_nibble);
+    log!(2, "Next let's look at the upper nibble: {:#03X}", upper_nibble);
     match upper_nibble {
         0b1111 => {
             let secondary_group = secondary_group!(inst_word);
@@ -520,10 +521,10 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
                     },
                     0b011 => {
                         return_inst!(5, decoded_inst, DS_Indirect {
-                            main_op: dec_alu_op(inst_word),
+                            op: dec_alu_op(inst_word),
                             rd: dec_reg_from_index(rd_index!(inst_word)),
                             d: ((inst_word >> 5) & 0b1) == 0b1,
-                            rs_op: dec_at_op(inst_word),
+                            at: dec_at_op(inst_word),
                             rs: dec_reg_from_index(rs_index!(inst_word)),
                         });
                     },
@@ -572,22 +573,22 @@ pub(super) fn decode_wg2(decoded_inst: &mut DecodedInstruction, wg2: u16) {
         CALL{ref mut a22} => {
             log!(2, "Fill in the lower 16 bits of a22 for CALL");
             *a22 |= wg2 as u32;
-            instruction_printing::log_addr!(3, "a22", *a22);
+            instruction_printing::log_addr!(3, "A22", *a22);
         },
         JMPF{ref mut a22} => {
             log!(2, "Fill in the lower 16 bits of a22 for JMPF");
             *a22 |= wg2 as u32;
-            instruction_printing::log_addr!(3, "a22", *a22);
+            instruction_printing::log_addr!(3, "A22", *a22);
         },
         IMM16{ref mut imm16, ..} => {
             log!(2, "Get the 16-bit immediate for IMM16");
             *imm16 = wg2;
-            instruction_printing::log_data!(3, "imm16", wg2);
+            instruction_printing::log_data!(3, "IMM16", wg2);
         },
         Direct16{ref mut a16, ..} => {
             log!(2, "Get the 16-bit address for Direct16");
             *a16 = wg2;
-            instruction_printing::log_data!(3, "a16", wg2);
+            instruction_printing::log_data!(3, "A16", wg2);
         },
         _ => { debug_panic!(); }//This instruction does not need to look at word group 2
     }

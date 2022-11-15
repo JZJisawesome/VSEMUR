@@ -18,6 +18,10 @@ path = "src/cli.rs"
 name = "vsemur-gui"
 path = "src/gui.rs"
 
+[[bin]]
+name = "vsemur-disassemble"
+path = "src/disassemble.rs"
+
 [dependencies]
 
 [profile.dev]

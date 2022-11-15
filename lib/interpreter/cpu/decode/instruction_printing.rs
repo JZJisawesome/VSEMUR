@@ -15,19 +15,6 @@
 
 /* Macros */
 
-//TODO move to a seperate disassembly module later
-macro_rules! get_inst_assembly {
-    ($decoded_instruction: expr) => {{
-        let assembly: &str;
-        {
-            use crate::interpreter::cpu::decode::DecodedInstruction::*;
-            assembly = "TODO";//TODO match based on $decoded_instruction and format like assembly
-        }
-        assembly
-    }}
-}
-pub(crate) use get_inst_assembly;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
-
 macro_rules! log_inst {
     ($indent:expr, $decoded_instruction: expr) => {
         //Compile times were getting a bit too long due to the large macro inlining in decode
@@ -129,6 +116,82 @@ macro_rules! branch_op_string {
     }};
 }
 
+macro_rules! stack_op_string {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::interpreter::cpu::decode::DecodedStackOp::*;
+            match $op {
+                PUSH => { string = "PUSH"; },
+                POP => { string = "POP"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+
+macro_rules! at_op_string {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::interpreter::cpu::decode::DecodedAtOp::*;
+            match $op {
+                NOP => { string = "Rs"; },
+                PostDecrement => { string = "Rs--"; },
+                PostIncrement => { string = "Rs++"; },
+                PreIncrement => { string = "++Rs"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+
+macro_rules! lsft_op_string {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::interpreter::cpu::decode::DecodedLSFTOp::*;
+            match $op {
+                ASR => { string = "ASR"; },
+                ASROR => { string = "ASROR"; },
+                LSL => { string = "LSL"; },
+                LSLOR => { string = "LSLOR"; },
+                LSR => { string = "LSR"; },
+                LSROR => { string = "LSROR"; },
+                ROL => { string = "ROL"; },
+                ROR => { string = "ROR"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+
+macro_rules! sft_op_string {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::interpreter::cpu::decode::DecodedSFTOp::*;
+            match $op {
+                NOP => { string = "NOP"; },
+                ASR => { string = "ASR"; },
+                LSL => { string = "LSL"; },
+                LSR => { string = "LSR"; },
+                ROL => { string = "ROL"; },
+                ROR => { string = "ROR"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+
 macro_rules! bit_op_string {
     ($op:expr) => {{
         let string: &str;
@@ -170,7 +233,7 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::interpreter::cpu::
 
     use crate::interpreter::cpu::decode::DecodedInstruction::*;
 
-    log_noln!(indent, "Instruction: ");
+    log_noln!(indent, "Instruction Type: ");
     if cfg!(debug_assertions) {//TODO print sub fields of each type too (on new lines indented under it)
         match decoded_inst {
             DSI6{imm6} => {
@@ -272,35 +335,53 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::interpreter::cpu::
                 log!(indent + 1, "D: {}", *d);
                 log!(indent + 1, "Rs: {}", reg_string!(*rs));
             },
-            sixteen_bits_Shift{..} => { log_finln!("16 bits Shift"); },//TODO
+            sixteen_bits_Shift{rd, op, rs} => {
+                log_finln!("16 bits Shift");
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "OP: {}", lsft_op_string!(*op));
+                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+            },
             RETI => { log_finln!("RETI"); },
             RETF => { log_finln!("RETF"); },
             Base_plus_Disp6{op, rd, imm6} => {
                 log_finln!("Base+Disp6");
                 log!(indent + 1, "OP: {}", alu_op_string!(*op));
                 log!(indent + 1, "Rd: {}", reg_string!(*rd));
-                log_data!(indent + 1, "imm6", *imm6);
+                log_data!(indent + 1, "IMM6", *imm6);
             },
             IMM6{op, rd, imm6} => {
                 log_finln!("IMM6");
                 log!(indent + 1, "OP: {}", alu_op_string!(*op));
                 log!(indent + 1, "Rd: {}", reg_string!(*rd));
-                log_data!(indent + 1, "imm6", *imm6);
+                log_data!(indent + 1, "IMM6", *imm6);
             },
             Branch{op, d, imm6} => {
                 log_finln!("Branch");
                 log!(indent + 1, "OP: {}", branch_op_string!(*op));
                 log!(indent + 1, "D: {}", *d);
-                log_data!(indent + 1, "imm6", *imm6);
+                log_data!(indent + 1, "IMM6", *imm6);
             },
-            Stack_Operation{..} => { log_finln!("Stack Operation"); },//TODO
-            DS_Indirect{..} => { log_finln!("DS_Indirect"); },//TODO
+            Stack_Operation{op, rd_index, size, rs} => {
+                log_finln!("Stack Operation");
+                log!(indent + 1, "OP: {}", stack_op_string!(*op));
+                log!(indent + 1, "Rh/Rd index: {}", *rd_index);
+                log_data!(indent + 1, "Size", *size);
+                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+            },
+            DS_Indirect{op, rd, d, at, rs} => {
+                log_finln!("DS_Indirect");
+                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "D: {}", *d);
+                log!(indent + 1, "@: {}", at_op_string!(*at));
+                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+            },
             IMM16{op, rd, rs, imm16} => {
                 log_finln!("IMM16");
                 log!(indent + 1, "OP: {}", alu_op_string!(*op));
                 log!(indent + 1, "Rd: {}", reg_string!(*rd));
                 log!(indent + 1, "Rs: {}", reg_string!(*rs));
-                log_data!(indent + 1, "imm16", *imm16);
+                log_data!(indent + 1, "IMM16", *imm16);
             },
             Direct16{op, rd, rs, w, a16} => {
                 log_finln!("Direct16");
@@ -308,18 +389,25 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::interpreter::cpu::
                 log!(indent + 1, "Rd: {}", reg_string!(*rd));
                 log!(indent + 1, "Rs: {}", reg_string!(*rs));
                 log!(indent + 1, "W: {}", *w);
-                log!(indent + 1, "a16: {:#06X}", *a16);
+                log!(indent + 1, "A16: {:#06X}", *a16);
             },
             Direct6{op, rd, a6} => {
                 log_finln!("Direct6");
                 log!(indent + 1, "OP: {}", alu_op_string!(*op));
                 log!(indent + 1, "Rd: {}", reg_string!(*rd));
-                log!(indent + 1, "a6: {:#04X}", *a6);
+                log!(indent + 1, "A6: {:#04X}", *a6);
             },
-            Register{..} => { log_finln!("Register"); },//TODO
+            Register{op, rd, sft, sfc, rs} => {
+                log_finln!("Register");
+                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "SFT: {}", sft_op_string!(*sft));
+                log_data!(indent + 1, "SFC", *sfc);
+                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+            },
 
             Invalid{..} => { log_finln!("(invalid)"); },
         }
     }
-    log!(indent + 1, "Assembly: {}", get_inst_assembly!(decoded_instruction));
+    log!(indent + 1, "Assembly: {}", crate::interpreter::cpu::decode::disassemble::disassemble(decoded_inst));
 }
