@@ -23,6 +23,8 @@ name = "vsemur-disassemble"
 path = "src/disassemble.rs"
 
 [dependencies]
+#Only needed for vsemur-gui
+gtk = { version = "0.5.1", package = "gtk4" }
 
 [profile.dev]
 incremental = true
