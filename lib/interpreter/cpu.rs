@@ -375,17 +375,17 @@ impl CPUState {
 /* Functions */
 
 fn inc_page_addr_by(page: u8, addr: u16, increment_amount: u32) -> (u8, u16) {
-    //TODO error checking
-    //TODO ensure wrapping dosn't break anything
-    if ((addr as u32) + increment_amount) <= 0xFFFF {
-        return (page, addr + (increment_amount as u16));//Safe since at most increment_amount could be 0xFFFF
-    } else {
-        unimplemented!();//TODO
-    }
+    //TODO we should just use Wrapping types here
+    let mut combined_addr: u64 = ((page as u64) << 16) | (addr as u64);//64 bit so we don't need to worry about overflow if increment_amount is large
+    combined_addr += increment_amount as u64;
+    return (((combined_addr >> 16) & 0b111111) as u8, (combined_addr & 0xFFFF) as u16);
 }
 
-fn dec_page_addr_by(page: u8, addr: u16, increment_amount: u32) -> (u8, u16) {
-    todo!();//TODO implement
+fn dec_page_addr_by(page: u8, addr: u16, decrement_amount: u32) -> (u8, u16) {
+    //TODO we should just use Wrapping types here
+    let mut combined_addr: u64 = ((page as u64) << 16) | (addr as u64);//64 bit so we don't need to worry about overflow if increment_amount is large
+    combined_addr -= decrement_amount as u64;//FIXME what about underflow?
+    return (((combined_addr >> 16) & 0b111111) as u8, (combined_addr & 0xFFFF) as u16);
 }
 
 

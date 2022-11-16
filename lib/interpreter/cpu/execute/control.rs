@@ -47,8 +47,9 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
     match inst {
         CALL{a22} => {
             //Push the current PC, followed by the current SR, to the stack
-            log!(3, "Push the current PC, follow by the current SR, to the stack");
+            log!(3, "Push the current PC + 2, followed by the current SR, to the stack");
             //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
+            cpu.inc_pc_by(2);//The PC isn't actually kept like this, it is just an easy way to increment it (also affecting the CS field properly too)
             mem.write_page_addr(cpu.pc, 0x00, cpu.sp);
             cpu.sp -= 1;
             mem.write_page_addr(cpu.sr, 0x00, cpu.sp);
@@ -59,8 +60,20 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
             cpu.set_cs(((a22 >> 16) & 0b111111) as u8);
             cpu.pc = (a22 & 0xFFFF) as u16;
         },
+        RETF => {
+            //Pop the current PC, followed by the current SR, from the stack
+            log!(3, "Pop the SR, followed by the PC, from the stack");
+            cpu.sp += 1;
+            cpu.sr = mem.read_page_addr(0x00, cpu.sp);//TODO do we take the whole SR, or just CS and discard the rest?
+            cpu.sp += 1;
+            cpu.pc = mem.read_page_addr(0x00, cpu.sp);
+        },
         Branch{op, d, imm6} => {
-            //TODO log CPU flags
+            log!(3, "Let's look at the CPU's flags:");
+            log!(4, "N: {}", cpu.get_n());
+            log!(4, "Z: {}", cpu.get_z());
+            log!(4, "S: {}", cpu.get_s());
+            log!(4, "C: {}", cpu.get_c());
             if branch_taken(cpu, *op) {
                 log!(3, "The branch is taken");
                 cpu.set_cycle_count(4);
@@ -79,8 +92,6 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
 
                 cpu.set_cs(new_cs_pc_tuple.0);
                 cpu.pc = new_cs_pc_tuple.1;
-
-
             } else {
                 log!(3, "The branch is not taken");
                 cpu.set_cycle_count(2);
