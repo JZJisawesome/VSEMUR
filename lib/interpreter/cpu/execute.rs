@@ -50,7 +50,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
     log!(1, "CPU: Execute instruction");
 
     perform_instruction(cpu, mem, inst);
-    cpu.set_cycle_count(get_cycle_count(inst));
+    configure_cycle_count(cpu, inst);
     increment_pc(cpu, inst);
 }
 
@@ -93,85 +93,83 @@ fn perform_instruction(cpu: &mut CPUState, mem: &mut MemoryState, inst: &Decoded
     }
 }
 
-fn get_cycle_count(inst: &DecodedInstruction) -> u8 {
+fn configure_cycle_count(cpu: &mut CPUState, inst: &DecodedInstruction) {
     log!(2, "Determine clock cycles it will take to execute");
     match inst {
         //TODO combine into individual cases more efficiently (to make more readable)
-        DSI6{..} => { return 2; },
-        CALL{..} => { return 9; },
-        JMPF{..} => { return 5; },
-        JMPR{..} => { return 4; },
-        FIR_MOV{..}=> { return 2; },
-        Fraction{..} => { return 2; },
-        INT_SET{..} => { return 2; },
-        IRQ{..} => { return 2; },
-        SECBANK{..} => { return 2; },
-        FIQ{..} => { return 2; },
-        IRQ_Nest_Mode{..} => { return 2; },
-        BREAK{..} => { return 10; },
-        CALLR{..} => { return 8; },
-        DIVS{..} => { return 2; }
-        DIVQ{..} => { return 3; }
-        EXP{..} => { return 2; }
-        NOP{..} => { return 2; },
-        DS_Access{..} => { return 2; },
-        FR_Access{..} => { return 2; },
-        MUL{..} => { return 12; },
+        DSI6{..} => { cpu.set_cycle_count(2); },
+        CALL{..} => { cpu.set_cycle_count(9); },
+        JMPF{..} => { cpu.set_cycle_count(5); },
+        JMPR{..} => { cpu.set_cycle_count(4); },
+        FIR_MOV{..}=> { cpu.set_cycle_count(2); },
+        Fraction{..} => { cpu.set_cycle_count(2); },
+        INT_SET{..} => { cpu.set_cycle_count(2); },
+        IRQ{..} => { cpu.set_cycle_count(2); },
+        SECBANK{..} => { cpu.set_cycle_count(2); },
+        FIQ{..} => { cpu.set_cycle_count(2); },
+        IRQ_Nest_Mode{..} => { cpu.set_cycle_count(2); },
+        BREAK{..} => { cpu.set_cycle_count(10); },
+        CALLR{..} => { cpu.set_cycle_count(8); },
+        DIVS{..} => { cpu.set_cycle_count(2); }
+        DIVQ{..} => { cpu.set_cycle_count(3); }
+        EXP{..} => { cpu.set_cycle_count(2); }
+        NOP{..} => { cpu.set_cycle_count(2); },
+        DS_Access{..} => { cpu.set_cycle_count(2); },
+        FR_Access{..} => { cpu.set_cycle_count(2); },
+        MUL{..} => { cpu.set_cycle_count(12); },
         MULS{..} => {
-            unimplemented!();//TODO figure out what N means
+            unimplemented!();//TODO figure out what N means (Size?)
         },
-        Register_BITOP_Rs{..} => { return 4; }
-        Register_BITOP_offset{..} => { return 4; }
-        Memory_BITOP_offset{..} => { return 7; }
-        Memory_BITOP_Rs{..} => { return 7; }
-        sixteen_bits_Shift{..} => { return 8; },
+        Register_BITOP_Rs{..} => { cpu.set_cycle_count(4); }
+        Register_BITOP_offset{..} => { cpu.set_cycle_count(4); }
+        Memory_BITOP_offset{..} => { cpu.set_cycle_count(7); }
+        Memory_BITOP_Rs{..} => { cpu.set_cycle_count(7); }
+        sixteen_bits_Shift{..} => { cpu.set_cycle_count(8); },
         RETI{..} => {
             unimplemented!();//TODO requires accessing CPU state
         },
-        RETF{..} => { return 8; },
-        Base_plus_Disp6{..} => { return 6; },
-        IMM6{..} => { return 2; },
-        Branch{..} => {
-            unimplemented!();//TODO depends on if branch is taken or not
-        },
-        Stack_Operation{size, ..} => { return (2 * size) + 4; },
+        RETF{..} => { cpu.set_cycle_count(8); },
+        Base_plus_Disp6{..} => { cpu.set_cycle_count(6); },
+        IMM6{..} => { cpu.set_cycle_count(2); },
+        Branch{..} => { /* Since this depends on whether the branch is taken or not, we decide this earlier, not here */ },
+        Stack_Operation{size, ..} => { cpu.set_cycle_count((2 * size) + 4); },
         DS_Indirect{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                return 7;
+                cpu.set_cycle_count(7);
             } else {
-                return 6;
+                cpu.set_cycle_count(6);
             }
         },
         IMM16{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                return 5;
+                cpu.set_cycle_count(5);
             } else {
-                return 4;
+                cpu.set_cycle_count(4);
             }
         },
         Direct16{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                return 8;
+                cpu.set_cycle_count(8);
             } else {
-                return 7;
+                cpu.set_cycle_count(7);
             }
         },
         Direct6{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                return 6;
+                cpu.set_cycle_count(6);
             } else {
-                return 5;
+                cpu.set_cycle_count(5);
             }
         },
         Register{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                return 5;
+                cpu.set_cycle_count(5);
             } else {
-                return 3;
+                cpu.set_cycle_count(3);
             }
         },
 
-        Invalid => { return debug_panic!(0); }//TODO proper error handling?
+        Invalid => { debug_panic!(); }//TODO proper error handling?
     }
 }
 
