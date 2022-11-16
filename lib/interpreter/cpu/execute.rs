@@ -57,7 +57,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
 fn perform_instruction(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
     log!(2, "Perform instruction operations");
     match inst {
-        sixteen_bits_Shift{..} | Base_plus_Disp6{..} | IMM6{..} | DS_Indirect{..} | IMM16{..} | Direct16{..} | Direct6{..} | Register{..} => {//TODO potentiallly move sixteen_bits_Shift elsewhere
+        sixteen_bits_Shift{..} | Base_plus_Disp6{..} | IMM6{..} | DS_Indirect{..} | IMM16{..} | Direct16{..} | Direct6{..} | Register{..} => {//TODO potentiallly move sixteen_bits_Shift elsewhere (shift16.rs)
             alu::execute(cpu, mem, inst);
         },
         Register_BITOP_Rs{..} | Register_BITOP_offset{..} | Memory_BITOP_offset{..} | Memory_BITOP_Rs{..} => {
@@ -193,69 +193,69 @@ fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
 
         MUL{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
         },
         MULS{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
         },
         Register_BITOP_Rs{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
         },
         Register_BITOP_offset{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
         },
         Memory_BITOP_offset{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
         },
         Memory_BITOP_Rs{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
         },
         sixteen_bits_Shift{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
         },
         Base_plus_Disp6{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
         },
         IMM6{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
         },
         Stack_Operation{rd_index, ..} => {
-            if *rd_index == 0b111 {//PC is the highest index, so we don't need to worry about size
+            if *rd_index == 0b111 {//FIXME this is harder for POP; *rd_index may not be the PC but it could affect it; not needed for push
                 unimplemented!();//TODO what is the behaviour in this case?
             } else {
                 cpu.inc_pc();
@@ -263,35 +263,35 @@ fn increment_pc(cpu: &mut CPUState, inst: &DecodedInstruction) {
         },
         DS_Indirect{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
         },
         IMM16{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc_by(2);
             }
         },
         Direct16{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc_by(2);
             }
         },
         Direct6{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
         },
         Register{rd, ..} => {
             if matches!(rd, DecodedRegister::PC) {
-                unimplemented!();//TODO what is the behaviour in this case?
+                //The PC was updated by the operation, so we don't do anything here//TODO is this correct?
             } else {
                 cpu.inc_pc();
             }
