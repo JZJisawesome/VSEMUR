@@ -61,7 +61,7 @@ fn handle_big_6(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruc
     let operand2: u16;
 
     //Get the op field regardless of the instruction type
-    if let IMM16{op, ..} | Direct16{op, ..} | IMM6{op, ..} | DS_Indirect{op, ..} = inst {//TODO others
+    if let IMM16{op, ..} | Direct16{op, ..} | Direct6{op, ..} | IMM6{op, ..} | Base_plus_Disp6{op, ..} | DS_Indirect{op, ..} = inst {
         operation = *op;
     } else {
         operation = debug_panic!(DecodedALUOp::Invalid);//We should not have recieved this type of instruction (without an op field)
@@ -76,20 +76,34 @@ fn handle_big_6(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruc
         },
         Direct16{rd, w, rs, a16, ..} => {
             if *w {
-                debug_assert!(matches!(operation, STORE));//TODO confirm this is a valid asumption
                 operand1 = cpu.get_reg(*rd);
-                operand2 = cpu.get_reg(*rs);
-                log!(4, "Operand 1 is Rd, and operand 2 is Rs");
+                operand2 = 0;//Could be anything, it dosn't matter
+                log!(3, "Operand 1 is Rd, but we don't care what operand 2 is since this is STORE");
             } else {
                 operand1 = cpu.get_reg(*rs);
                 operand2 = mem.read_page_addr(cpu.get_ds(), *a16);
-                log!(4, "Operand 1 is Rs, and operand 2 is [A16]");
+                log!(3, "Operand 1 is Rs, and operand 2 is [A16]");
             }
+        },
+        Direct6{..} => {
+            todo!();
         },
         IMM6{rd, imm6, ..} => {
             operand1 = cpu.get_reg(*rd);
             operand2 = *imm6 as u16;
             log!(3, "Operand 1 is Rd, and operand 2 is IMM6");
+        },
+        Base_plus_Disp6{rd, imm6, ..} => {
+            log!(3, "Operand 1 is Rd");
+            operand1 = cpu.get_reg(*rd);
+
+            //TODO this is not needed if this is STORE (perhaps be more efficient in this case?; could also be more efficient in other cases)
+            //TODO logging
+            let page = cpu.get_ds();
+            let bp = cpu.bp;
+            let final_page_addr_tuple = super::super::inc_page_addr_by(page, bp, *imm6 as u32);
+
+            operand2 = mem.read_page_addr(final_page_addr_tuple.0, final_page_addr_tuple.1);
         },
         DS_Indirect{rd, d, at, rs, ..} => {
             //Increment Rd if that is the @ operation we must perform
@@ -107,6 +121,7 @@ fn handle_big_6(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruc
             operand1 = cpu.get_reg(*rd);
 
             //Get operand2
+            //TODO this is not needed if this is STORE (perhaps be more efficient in this case?; could also be more efficient in other cases)
             let page: u8;
             log_noln!(3, "The D flag is ");
             if *d {
@@ -127,18 +142,36 @@ fn handle_big_6(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruc
     let result: u16 = alu_operation(cpu, operation, operand1, operand2);
 
     //Write to the appropriate (if any) destination
-    match (operation, inst) {
+    match (operation, inst) {//TODO logging
         (CMP, _) | (TEST, _) => {},//CMP and TEST write to flags like other instructions, but the result is not stored
-
-        //TODO others//NOTE: STOREs can occur with Direct16 (w flag must be set), Direct6, Base+Disp6, and DS_Indirect only
-
-        (_, Direct16{w: true, a16, ..}) => {//Direct16 with the W flag set writes to memory
-            debug_assert!(matches!(operation, STORE));//TODO confirm this is a valid asumption
+        (STORE, Direct16{w: true, a16, ..}) => {//Direct16 with the W flag set writes to memory
             mem.write_page_addr(result, cpu.get_ds(), *a16);
         },
+        (STORE, Direct6{..}) => {
+            todo!();//Store to [A6]
+        },
+        (STORE, Base_plus_Disp6{..}) => {
+            todo!();//Store to [BP+IMM6]
+        },
+        (STORE, DS_Indirect{d, rs, ..}) => {
+            log!(3, "Writing result to {{D:}}[Rs@]");
+            let page: u8;
+            log_noln!(4, "The D flag is ");
+            if *d {
+                page = cpu.get_ds();
+            } else {
+                page = 0x00;
+                log_midln!("not ");
+            }
+            log_finln!("set, so the page is {:#04X}", page);
+            let addr: u16 = cpu.get_reg(*rs);
+            log!(3, "Rs is {0:#06X}, so store to [{1:#04X}_{0:04X}]", addr, page);
+            mem.write_page_addr(result, page, addr);
+        },
         (_, IMM16{rd, ..}) | (_, Direct16{w: false, rd, ..}) | (_, Direct6{rd, ..}) | (_, IMM6{rd, ..}) | (_, Base_plus_Disp6{rd, ..}) | (_, DS_Indirect{rd, ..}) => {//Other cases are much simpler; we just write to Rd
+            log!(3, "Writing result to Rd");
             cpu.set_reg(*rd, result);
-        }
+        },
         (_, _) => { debug_panic!(); }//Not a valid instruction/op combination
     }
 
@@ -165,8 +198,8 @@ fn handle_big_6(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruc
 }
 
 fn alu_operation(cpu: &mut CPUState, alu_op: DecodedALUOp, operand1: u16, operand2: u16) -> u16 {//Needs mutable reference to CPUState to sets flags properly
-    log!(4, "Operand 1: {0:#06X} | {0:#018b} | unsigned {0}", operand1);
-    log!(4, "Operand 2: {0:#06X} | {0:#018b} | unsigned {0}", operand2);
+    log!(3, "Operand 1: {0:#06X} | {0:#018b} | unsigned {0}", operand1);
+    log!(3, "Operand 2: {0:#06X} | {0:#018b} | unsigned {0}", operand2);
 
     use std::num::Wrapping as Wrap;
 
