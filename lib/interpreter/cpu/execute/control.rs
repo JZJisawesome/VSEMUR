@@ -92,12 +92,13 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
 
                 cpu.set_cs(new_cs_pc_tuple.0);
                 cpu.pc = new_cs_pc_tuple.1;
-                //FIXME do we still need to increment the PC in this case?
             } else {
                 log!(3, "The branch is not taken");
                 cpu.set_cycle_count(2);
-                cpu.inc_pc();
             }
+
+            //We always increment the PC for branches no matter what
+            cpu.inc_pc();
         }
         //TODO others
         _ => { debug_panic!(); },//We should not have recieved this type of instruction
