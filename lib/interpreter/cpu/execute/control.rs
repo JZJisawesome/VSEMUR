@@ -17,8 +17,8 @@ use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
 use crate::interpreter::memory::MemoryState;
-use super::super::CPUState;
-use super::super::decode::*;//TODO only import what is needed from here
+use super::CPUState;
+use crate::decode::*;//TODO only import what is needed from here
 
 /* Constants */
 
@@ -43,7 +43,7 @@ use super::super::decode::*;//TODO only import what is needed from here
 /* Functions */
 
 pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
-    use super::super::decode::DecodedInstruction::*;
+    use DecodedInstruction::*;
     match inst {
         CALL{a22} => {
             //Push the current PC, followed by the current SR, to the stack

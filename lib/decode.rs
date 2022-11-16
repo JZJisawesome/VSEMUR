@@ -5,6 +5,20 @@
  *
 */
 
+//!VSEMUR Decode and Disassembler Logic
+//!
+//!By: John Jekel
+//!
+//!Decodes and disassembles unSP instructions.
+//!
+//!See README.md for how this is done (it is black magic).
+//!
+//!# Example usage
+//!
+//!```
+//!//TODO
+//!```
+
 //TODO remove this once everything is implemented
 #![allow(unused_macros)]
 
@@ -12,6 +26,8 @@
 
 mod instruction_printing;
 mod disassemble;
+
+pub use disassemble::disassemble;//In addition to decode functions, this is also useful for vsemur-disassemble
 
 use crate::debug_panic;
 use crate::logging::log;
@@ -119,7 +135,7 @@ macro_rules! Register_parse {
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
-pub(super) enum DecodedInstruction {
+pub enum DecodedInstruction {
     DSI6{imm6: u8},
     CALL{a22: u32},//Lower 16 bits are retrived in decode_wg2
     JMPF{a22: u32},//Lower 16 bits are retrived in decode_wg2
@@ -162,7 +178,7 @@ pub(super) enum DecodedInstruction {
 }
 
 #[derive(Copy, Clone)]
-pub(super) enum DecodedALUOp {
+pub enum DecodedALUOp {
     ADD,
     ADC,
     SUB,
@@ -181,7 +197,7 @@ pub(super) enum DecodedALUOp {
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
-pub(super) enum DecodedBranchOp {
+pub enum DecodedBranchOp {
     JCC_JB_JNAE,
     JCS_JNB_JAE,
     JSC_JGE_JNL,
@@ -202,7 +218,7 @@ pub(super) enum DecodedBranchOp {
 }
 
 #[derive(Copy, Clone)]
-pub(super) enum DecodedStackOp {
+pub enum DecodedStackOp {
     PUSH,
     POP,
 
@@ -210,7 +226,7 @@ pub(super) enum DecodedStackOp {
 }
 
 #[derive(Copy, Clone)]
-pub(super) enum DecodedAtOp {
+pub enum DecodedAtOp {
     NOP,
     PostDecrement,
     PostIncrement,
@@ -220,7 +236,7 @@ pub(super) enum DecodedAtOp {
 }
 
 #[derive(Copy, Clone)]
-pub(super) enum DecodedBitOp {
+pub enum DecodedBitOp {
     TSTB,
     SETB,
     CLRB,
@@ -230,7 +246,7 @@ pub(super) enum DecodedBitOp {
 }
 
 #[derive(Copy, Clone)]
-pub(super) enum DecodedLSFTOp {
+pub enum DecodedLSFTOp {
     ASR,
     ASROR,
     LSL,
@@ -244,7 +260,7 @@ pub(super) enum DecodedLSFTOp {
 }
 
 #[derive(Copy, Clone)]
-pub(super) enum DecodedSFTOp {
+pub enum DecodedSFTOp {
     NOP,
     ASR,
     LSL,
@@ -257,7 +273,7 @@ pub(super) enum DecodedSFTOp {
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
-pub(super) enum DecodedRegister {
+pub enum DecodedRegister {
     SP,
     R1_SR1,
     R2_SR2,
@@ -276,7 +292,7 @@ pub(super) enum DecodedRegister {
 
 /* Functions */
 
-pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
+pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
     log!(1, "CPU: Decode instruction word group 1");
 
     log_noln!(2, "First check if the instruction is obviously bad: ");
@@ -567,7 +583,7 @@ pub(super) fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) 
     }
 }
 
-pub(super) fn decode_wg2(decoded_inst: &mut DecodedInstruction, wg2: u16) {
+pub fn decode_wg2(decoded_inst: &mut DecodedInstruction, wg2: u16) {
     log!(1, "CPU: Decode instruction word group 2:");
     match decoded_inst {
         CALL{ref mut a22} => {
@@ -594,7 +610,7 @@ pub(super) fn decode_wg2(decoded_inst: &mut DecodedInstruction, wg2: u16) {
     }
 }
 
-pub(super) fn needs_decode_wg2(decoded_inst: &DecodedInstruction) -> bool {
+pub fn needs_decode_wg2(decoded_inst: &DecodedInstruction) -> bool {
     match decoded_inst {
         CALL{..} | JMPF{..} | IMM16{..} | Direct16{..} => { return true; }
         _ => { return false; }

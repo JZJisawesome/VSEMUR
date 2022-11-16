@@ -7,8 +7,8 @@
 
 /* Imports */
 
-use crate::interpreter::cpu::decode::DecodedInstruction;
-use crate::interpreter::cpu::decode::DecodedInstruction::*;
+use crate::decode::DecodedInstruction;
+use crate::decode::DecodedInstruction::*;
 
 /* Constants */
 
@@ -32,7 +32,7 @@ use crate::interpreter::cpu::decode::DecodedInstruction::*;
 
 /* Functions */
 
-pub(super) fn disassemble(decoded_inst: &DecodedInstruction) -> String {//TODO expose this from the library in some good way and create a vsemur-disassemble crate
+pub fn disassemble(decoded_inst: &DecodedInstruction) -> String {//TODO expose this from the library in some good way and create a vsemur-disassemble crate
     let assembly: String = "TODO".to_string();
     return assembly;
 }

@@ -19,31 +19,30 @@ macro_rules! log_inst {
     ($indent:expr, $decoded_instruction: expr) => {
         //Compile times were getting a bit too long due to the large macro inlining in decode
         if cfg!(debug_assertions) {
-            crate::interpreter::cpu::decode::instruction_printing::log_inst_func($indent, $decoded_instruction);
+            crate::decode::instruction_printing::log_inst_func($indent, $decoded_instruction);
         }
     };
 }
-pub(crate) use log_inst;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
-
+pub(super) use log_inst;
 macro_rules! log_data {
     ($indent:expr, $pretext:expr, $data:expr) => {
         log!($indent, "{}: {1:#04X} | {1:#08b} | unsigned {1}", $pretext, $data);
     };
 }
-pub(crate) use log_data;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+pub(super) use log_data;
 
 macro_rules! log_addr {
     ($indent:expr, $pretext:expr, $addr:expr) => {
         log!($indent, "{}: {:#04X}_{:04X}", $pretext, $addr >> 16, $addr & 0xFFFF);
     };
 }
-pub(crate) use log_addr;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+pub(super) use log_addr;
 
 macro_rules! reg_string {
     ($reg:expr) => {{
         let string: &str;
         {
-            use crate::interpreter::cpu::decode::DecodedRegister::*;
+            use crate::decode::DecodedRegister::*;
             match $reg  {
                 SP => { string = "SP"; },
                 R1_SR1 => { string = "R1"; },
@@ -65,7 +64,7 @@ macro_rules! alu_op_string {
     ($op:expr) => {{
         let string: &str;
         {
-            use crate::interpreter::cpu::decode::DecodedALUOp::*;
+            use crate::decode::DecodedALUOp::*;
             match $op {
                 ADD => { string = "ADD"; },
                 ADC => { string = "ADC"; },
@@ -91,7 +90,7 @@ macro_rules! branch_op_string {
     ($op:expr) => {{
         let string: &str;
         {
-            use crate::interpreter::cpu::decode::DecodedBranchOp::*;
+            use crate::decode::DecodedBranchOp::*;
             match $op {
                 JCC_JB_JNAE => { string = "JCC/JB/JNAE"; },
                 JCS_JNB_JAE => { string = "JCS/JNB/JAE"; },
@@ -120,7 +119,7 @@ macro_rules! stack_op_string {
     ($op:expr) => {{
         let string: &str;
         {
-            use crate::interpreter::cpu::decode::DecodedStackOp::*;
+            use crate::decode::DecodedStackOp::*;
             match $op {
                 PUSH => { string = "PUSH"; },
                 POP => { string = "POP"; },
@@ -136,7 +135,7 @@ macro_rules! at_op_string {
     ($op:expr) => {{
         let string: &str;
         {
-            use crate::interpreter::cpu::decode::DecodedAtOp::*;
+            use crate::decode::DecodedAtOp::*;
             match $op {
                 NOP => { string = "Rs"; },
                 PostDecrement => { string = "Rs--"; },
@@ -154,7 +153,7 @@ macro_rules! lsft_op_string {
     ($op:expr) => {{
         let string: &str;
         {
-            use crate::interpreter::cpu::decode::DecodedLSFTOp::*;
+            use crate::decode::DecodedLSFTOp::*;
             match $op {
                 ASR => { string = "ASR"; },
                 ASROR => { string = "ASROR"; },
@@ -176,7 +175,7 @@ macro_rules! sft_op_string {
     ($op:expr) => {{
         let string: &str;
         {
-            use crate::interpreter::cpu::decode::DecodedSFTOp::*;
+            use crate::decode::DecodedSFTOp::*;
             match $op {
                 NOP => { string = "NOP"; },
                 ASR => { string = "ASR"; },
@@ -196,7 +195,7 @@ macro_rules! bit_op_string {
     ($op:expr) => {{
         let string: &str;
         {
-            use crate::interpreter::cpu::decode::DecodedBitOp::*;
+            use crate::decode::DecodedBitOp::*;
             match $op {
                 TSTB => { string = "TSTB"; },
                 SETB => { string = "SETB"; },
@@ -226,12 +225,12 @@ macro_rules! bit_op_string {
 
 /* Functions */
 
-pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::interpreter::cpu::decode::DecodedInstruction) {
+pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::decode::DecodedInstruction) {
     use crate::logging::log;
     use crate::logging::log_noln;
     use crate::logging::log_finln;
 
-    use crate::interpreter::cpu::decode::DecodedInstruction::*;
+    use crate::decode::DecodedInstruction::*;
 
     log_noln!(indent, "Instruction Type: ");
     if cfg!(debug_assertions) {//TODO print sub fields of each type too (on new lines indented under it)
@@ -409,5 +408,5 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::interpreter::cpu::
             Invalid{..} => { log_finln!("(invalid)"); },
         }
     }
-    log!(indent + 1, "Assembly: {}", crate::interpreter::cpu::decode::disassemble::disassemble(decoded_inst));
+    log!(indent + 1, "Assembly: {}", crate::decode::disassemble(decoded_inst));
 }

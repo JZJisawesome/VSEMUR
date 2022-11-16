@@ -12,13 +12,13 @@
 
 /* Imports */
 
-mod decode;
 mod execute;
 
 use crate::debug_panic;
 use crate::logging::log;
 use super::memory::MemoryState;
 use super::MEM_SIZE_WORDS;
+use crate::decode;
 
 /* Constants */
 
@@ -362,7 +362,6 @@ impl CPUState {
     }
 
     fn set_reg_by_index(self: &mut Self, reg: u8, value: u16) {
-        use decode::DecodedRegister::*;
         match reg {
             0b000 => { self.sp = value; },
             0b001 => { if self.get_bnk() { self.sec_r[0] = value; } else { self.r[0] = value; } },

@@ -26,7 +26,6 @@ pub(crate) static mut TICK_NUM: u128 = 0;
 
 /* Macros */
 
-//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
 macro_rules! internal_log_prompt {//Helper macro
     ($indent:expr) => {
         eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", crate::logging::internal_log_ticks!());
@@ -35,19 +34,19 @@ macro_rules! internal_log_prompt {//Helper macro
         }
     };
 }
-pub(crate) use internal_log_prompt;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+pub(crate) use internal_log_prompt;
 macro_rules! internal_log_file_open {//Helper macro
     () => {
         std::fs::OpenOptions::new().append(true).write(true).create(true).open(crate::logging::LOG_FILE_PATH).unwrap()
     };
 }
-pub(crate) use internal_log_file_open;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+pub(crate) use internal_log_file_open;
 macro_rules! internal_log_buffer_create {//Helper macro
     ($log_file:expr) => {
         std::io::BufWriter::new($log_file)
     };
 }
-pub(crate) use internal_log_buffer_create;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+pub(crate) use internal_log_buffer_create;
 macro_rules! internal_log_buffer_create_and_prompt {//Helper macro
     ($log_file:expr, $indent:expr) => {{
         let mut log_buffer = crate::logging::internal_log_buffer_create!($log_file);
@@ -59,13 +58,13 @@ macro_rules! internal_log_buffer_create_and_prompt {//Helper macro
         log_buffer
     }};
 }
-pub(crate) use internal_log_buffer_create_and_prompt;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+pub(crate) use internal_log_buffer_create_and_prompt;
 macro_rules! internal_log_ticks {//Helper macro
     () => {
         unsafe { crate::logging::TICK_NUM }
     };
 }
-pub(crate) use internal_log_ticks;//FIXME prevent having to export these helper macros to the whole crate (limitation of rust)
+pub(crate) use internal_log_ticks;
 
 macro_rules! log_reset_ticks {
     () => {

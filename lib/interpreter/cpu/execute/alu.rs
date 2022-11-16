@@ -19,9 +19,9 @@ use crate::logging::log_noln;
 use crate::logging::log_midln;
 use crate::logging::log_finln;
 use crate::interpreter::memory::MemoryState;
-use super::super::CPUState;
-use super::super::decode::*;//TODO only import what is needed from here
-use super::super::decode::DecodedInstruction::*;
+use super::CPUState;
+use crate::decode::*;//TODO only import what is needed from here
+use crate::decode::DecodedInstruction::*;
 use DecodedALUOp::*;
 
 /* Constants */
@@ -47,14 +47,6 @@ use DecodedALUOp::*;
 /* Functions */
 
 pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
-    match inst {
-        IMM16{..} | Direct16{..} | Direct6{..} | IMM6{..} | Base_plus_Disp6{..} | DS_Indirect{..} | Register{..} => { handle_big_7(cpu, mem, inst); }
-        //TODO others
-        _ => { debug_panic!(); }//We should not have recieved this type of instruction
-    }
-}
-
-fn handle_big_7(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
     //Operation and operands
     let operation: DecodedALUOp;
     let operand1: u16;
@@ -291,5 +283,4 @@ fn sft_operation(sft: DecodedSFTOp, sfc: u8, rs: u16) -> u16 {
 
         Invalid => { return debug_panic!(0); },
     }
-    todo!();
 }

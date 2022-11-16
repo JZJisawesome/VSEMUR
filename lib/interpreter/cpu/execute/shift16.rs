@@ -17,8 +17,8 @@ use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
 use crate::interpreter::memory::MemoryState;
-use super::super::CPUState;
-use super::super::decode::*;//TODO only import what is needed from here
+use super::CPUState;
+use crate::decode::*;//TODO only import what is needed from here
 
 /* Imports */
 
