@@ -183,7 +183,8 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
             log!(3, "Rs is {0:#06X}, so store to [{1:#04X}_{0:04X}]", addr, page);
             mem.write_page_addr(result, page, addr);
         },
-        (_, IMM16{rd, ..}) | (_, Direct16{w: false, rd, ..}) | (_, Direct6{rd, ..}) | (_, IMM6{rd, ..}) | (_, Base_plus_Disp6{rd, ..}) | (_, DS_Indirect{rd, ..}) => {//Other cases are much simpler; we just write to Rd
+        (_, IMM16{rd, ..}) | (_, Direct16{w: false, rd, ..}) | (_, Direct6{rd, ..}) | (_, IMM6{rd, ..}) | (_, Base_plus_Disp6{rd, ..}) | (_, DS_Indirect{rd, ..}) | (_, Register{rd, ..}) => {
+            //Other cases are much simpler; we just write to Rd
             log!(3, "Writing result to Rd");
             cpu.set_reg(*rd, result);
         },
@@ -262,7 +263,7 @@ fn alu_operation(cpu: &mut CPUState, alu_op: DecodedALUOp, operand1: u16, operan
                 cpu.set_z(result == 0);
             },
             STORE => {},//STORE dosn't update flags
-            _ => { return 0; },//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
+            _ => { return debug_panic!(0); },//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?
         }
     }
 

@@ -313,8 +313,18 @@ impl CPUState {
         self.fr = (self.fr & 0b1111111111110000) | (value as u16);
     }
 
+    //MR getter and setter
+    fn get_mr(self: &Self) -> u32 {
+        return ((self.get_reg(decode::DecodedRegister::R4_SR4) as u32) << 16) | (self.get_reg(decode::DecodedRegister::R3_SR3) as u32);
+    }
+
+    fn set_mr(self: &mut Self, value: u32) {
+        self.set_reg(decode::DecodedRegister::R4_SR4, ((value >> 16) & 0xFFFF) as u16);
+        self.set_reg(decode::DecodedRegister::R3_SR3, (value & 0xFFFF) as u16);
+    }
+
     //Regular registers
-    fn get_reg(self: &mut Self, reg: decode::DecodedRegister) -> u16 {
+    fn get_reg(self: &Self, reg: decode::DecodedRegister) -> u16 {
         use decode::DecodedRegister::*;
         match reg {
             SP => { return self.sp; },
@@ -346,7 +356,7 @@ impl CPUState {
         }
     }
 
-    fn get_reg_by_index(self: &mut Self, reg: u8) -> u16 {
+    fn get_reg_by_index(self: &Self, reg: u8) -> u16 {
         debug_assert!(reg < 8);
         match reg {
             0b000 => { return self.sp; },
