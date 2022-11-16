@@ -361,8 +361,20 @@ impl CPUState {
         }
     }
 
-    fn set_reg_by_index(self: &mut Self, reg: u8, value: u16) -> u16 {
-        unimplemented!();//TODO
+    fn set_reg_by_index(self: &mut Self, reg: u8, value: u16) {
+        use decode::DecodedRegister::*;
+        match reg {
+            0b000 => { self.sp = value; },
+            0b001 => { if self.get_bnk() { self.sec_r[0] = value; } else { self.r[0] = value; } },
+            0b010 => { if self.get_bnk() { self.sec_r[1] = value; } else { self.r[1] = value; } },
+            0b011 => { if self.get_bnk() { self.sec_r[2] = value; } else { self.r[2] = value; } },
+            0b100 => { if self.get_bnk() { self.sec_r[3] = value; } else { self.r[3] = value; } },
+            0b101 => { self.bp = value; },
+            0b110 => { self.sr = value; },
+            0b111 => { self.pc = value; },
+
+            _ => { debug_panic!(); }//We shouldn't be passed this
+        }
     }
 
     //Misc
