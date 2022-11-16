@@ -9,11 +9,14 @@
 
 /* Imports */
 
-//TODO (include "use" and "mod" here)
+use gtk::prelude::*;
+use gtk::{Application, ApplicationWindow, Button, Text};
 
 /* Constants */
 
-const gtk4_rs_license: &str = "
+const APP_ID: &str = "ca.jekel.vsemur";
+
+const GTK4_RS_LICENSE: &str = "
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the \"Software\"), to deal
 in the Software without restriction, including without limitation the rights
@@ -57,23 +60,62 @@ fn main() {
 
     //Handle command line arguments
     match std::env::args().len() {
+        1 => {},//Continue to the next part of main()
         2 => {
             if std::env::args().nth(1).unwrap() == "--version" {
                 eprintln!("{}", vsemur::about::LICENSE);
 
-                eprintln!("\n\nIn addition, vsemur-gui uses the gtk4-rs project for displaying GUI elements:\n {}", gtk4_rs_license);
+                eprintln!("\n\nIn addition, vsemur-gui uses the gtk4-rs project for displaying GUI elements:\n {}", GTK4_RS_LICENSE);
                 return;
             } else {
                 eprintln!("\x1b[31mError: Invalid argument\x1b[0m\n");
                 return;
             }
         },
-        3 => {},//Continue to the next part of main()
         _ => {
-            eprintln!("\x1b[31mError: Expected 1 or 2 arguments (path to bios, path to rom; or --version)\x1b[0m\n");
+            eprintln!("\x1b[31mError: Expected <= 1 argument (--version or nothing)\x1b[0m\n");
             return;
         },
     }
 
-    eprintln!("Hello, world! (gui)");//TODO other things here
+    //Create a new GTK application and create the window
+    let app = Application::builder().application_id(APP_ID).build();
+    app.connect_activate(build_ui);
+    app.run();
+
+    eprint!("abcd");//Testing
+
+    //TODO emulation loop here
+}
+
+fn build_ui(app: &Application) {
+
+    //let text = Text::builder()
+    //    .build();
+
+        // Create a button with label and margins
+    let button = Button::builder()
+        .label("Press me!")
+        .margin_top(12)
+        .margin_bottom(12)
+        .margin_start(12)
+        .margin_end(12)
+        .build();
+
+        button.connect_clicked(move |button| {
+        // Set the label to "Hello World!" after the button has been clicked on
+        button.set_label("Hello World!");
+    });
+
+
+    // Create a window and set the title
+    let window = ApplicationWindow::builder()
+        .application(app)
+        .title("VSEMUR GUI")
+        //.child(&text)
+        .child(&button)
+        .build();
+
+    // Present window
+    window.present();
 }
