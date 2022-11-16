@@ -14,6 +14,8 @@
 
 use crate::logging::log;
 
+use super::memory::MemoryState;
+
 /* Constants */
 
 //TODO
@@ -43,13 +45,19 @@ impl RenderState {
         //unimplemented!();
     }
 
-    pub(super) fn reset(self: &mut Self) {
+    pub(super) fn reset(self: &mut Self, mem: &mut MemoryState) {
         log!(1, "Resetting render state");
+        //TODO zero out registers in mem
         //unimplemented!();//TODO
     }
 
-    pub fn tick(self: &mut Self) {
+    pub fn tick(self: &mut Self, mem: &mut MemoryState) {
         //unimplemented!();//TODO
+        //TESTING
+        //log!(1, "Printing render register contents");
+        //for i in 0x002800..=0x0028FF {
+        //    log!(2, "{:#08X}: {:#06X}", i, mem.read_addr(i));
+        //}
     }
 }
 

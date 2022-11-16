@@ -13,7 +13,7 @@
 //!
 //!# Example usage
 //!
-//!```
+//!```no_run
 //!use vsemur::interpreter;
 //!
 //!//Initialize state
@@ -169,7 +169,7 @@ impl State {
         }
 
         self.cpu.reset(&mut self.mem);
-        self.render.reset();
+        self.render.reset(&mut self.mem);
         self.sound.reset();
         self.input.reset();
 
@@ -202,7 +202,7 @@ impl State {
 
         //Tick sub-states
         self.cpu.tick(&mut self.mem);
-        self.render.tick();
+        self.render.tick(&mut self.mem);
         self.sound.tick();
 
         log!(0, "Tick ends");
@@ -222,7 +222,7 @@ impl State {
 
         //Tick sub-states
         self.cpu.tick_cached(&mut self.mem);
-        self.render.tick();
+        self.render.tick(&mut self.mem);
         self.sound.tick();
 
         log!(0, "Tick ends");

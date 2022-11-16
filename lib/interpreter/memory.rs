@@ -127,6 +127,8 @@ impl MemoryState {
     //TODO memory access functions (will need to implement the memory map of the processor)
     pub(super) fn read_addr(self: &Self, addr: u32) -> u16 {
         debug_assert!((addr as usize) < MEM_SIZE_WORDS);
+
+        debug_assert!((addr <= 0x3e03) || (addr >= 0x8000));//According to MAME, this is the highest address of a peripheral in the system; 0x8000 is the start of the bios
         return self.mem[addr as usize];
     }
 
@@ -137,6 +139,7 @@ impl MemoryState {
 
     pub(super) fn write_addr(self: &mut Self, data: u16, addr: u32) {
         debug_assert!((addr as usize) < MEM_SIZE_WORDS);
+        debug_assert!(addr <= 0x3e03);//According to MAME, this is the highest address of a peripheral in the system
         self.mem[addr as usize] = data;
     }
 
