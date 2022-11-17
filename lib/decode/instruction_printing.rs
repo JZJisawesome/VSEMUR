@@ -15,15 +15,6 @@
 
 /* Macros */
 
-macro_rules! log_inst {
-    ($indent:expr, $decoded_instruction: expr) => {
-        //Compile times were getting a bit too long due to the large macro inlining in decode
-        if cfg!(debug_assertions) {
-            crate::decode::instruction_printing::log_inst_func($indent, $decoded_instruction);
-        }
-    };
-}
-pub(super) use log_inst;
 macro_rules! log_data {
     ($indent:expr, $pretext:expr, $data:expr) => {
         log!($indent, "{}: {1:#04X} | {1:#08b} | unsigned {1}", $pretext, $data);
@@ -38,27 +29,15 @@ macro_rules! log_addr {
 }
 pub(super) use log_addr;
 
-macro_rules! reg_string {
-    ($reg:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedRegister::*;
-            match $reg  {
-                SP => { string = "SP"; },
-                R1_SR1 => { string = "R1"; },
-                R2_SR2 => { string = "R2"; },
-                R3_SR3 => { string = "R3"; },
-                R4_SR4 => { string = "R4"; },
-                BP => { string = "BP"; },
-                SR => { string = "SR"; },
-                PC => { string = "PC"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
+macro_rules! log_inst {
+    ($indent:expr, $decoded_instruction: expr) => {
+        //Compile times were getting a bit too long due to the large macro inlining in decode
+        if cfg!(debug_assertions) {
+            crate::decode::instruction_printing::log_inst_func($indent, $decoded_instruction);
         }
-        string
-    }};
+    };
 }
+pub(super) use log_inst;
 
 macro_rules! alu_op_string {
     ($op:expr) => {{
@@ -191,24 +170,6 @@ macro_rules! sft_op_string {
     }};
 }
 
-macro_rules! bit_op_string {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedBitOp::*;
-            match $op {
-                TSTB => { string = "TSTB"; },
-                SETB => { string = "SETB"; },
-                CLRB => { string = "CLRB"; },
-                INVB => { string = "INVB"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-
 //TODO (also pub(crate) use the_macro statements here too)
 
 /* Static Variables */
@@ -230,7 +191,8 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::decode::DecodedIns
     use crate::logging::log_noln;
     use crate::logging::log_finln;
 
-    use crate::decode::DecodedInstruction::*;
+    use super::DecodedInstruction::*;
+    use super::common::*;
 
     log_noln!(indent, "Instruction Type: ");
     if cfg!(debug_assertions) {//TODO print sub fields of each type too (on new lines indented under it)
@@ -408,5 +370,5 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::decode::DecodedIns
             Invalid{..} => { log_finln!("(invalid)"); },
         }
     }
-    log!(indent + 1, "Assembly: {}", crate::decode::disassemble(decoded_inst));
+    log!(indent + 1, "Assembly: {}", crate::decode::disassemble_jekel_style(decoded_inst));
 }
