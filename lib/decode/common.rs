@@ -145,6 +145,48 @@ macro_rules! lsft_op_string_lower {
 }
 pub(super) use lsft_op_string_lower;
 
+macro_rules! sft_op_string {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::decode::DecodedSFTOp::*;
+            match $op {
+                NOP => { string = "NOP"; },
+                ASR => { string = "ASR"; },
+                LSL => { string = "LSL"; },
+                LSR => { string = "LSR"; },
+                ROL => { string = "ROL"; },
+                ROR => { string = "ROR"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+pub(super) use sft_op_string;
+
+macro_rules! sft_op_string_lower {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::decode::DecodedSFTOp::*;
+            match $op {
+                NOP => { string = "nop"; },
+                ASR => { string = "asr"; },
+                LSL => { string = "lsl"; },
+                LSR => { string = "lsr"; },
+                ROL => { string = "rol"; },
+                ROR => { string = "ror"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+pub(super) use sft_op_string_lower;
+
 /* Static Variables */
 
 //TODO

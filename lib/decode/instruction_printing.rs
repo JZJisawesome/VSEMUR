@@ -128,26 +128,6 @@ macro_rules! at_op_string {
     }};
 }
 
-macro_rules! sft_op_string {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedSFTOp::*;
-            match $op {
-                NOP => { string = "NOP"; },
-                ASR => { string = "ASR"; },
-                LSL => { string = "LSL"; },
-                LSR => { string = "LSR"; },
-                ROL => { string = "ROL"; },
-                ROR => { string = "ROR"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-
 //TODO (also pub(crate) use the_macro statements here too)
 
 /* Static Variables */

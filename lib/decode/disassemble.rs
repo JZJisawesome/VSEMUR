@@ -46,6 +46,57 @@ macro_rules! branch_op_string_mame {
     }};
 }
 
+macro_rules! auto_alu_op_string_mame {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::decode::DecodedALUOp::*;
+            match $op {
+                ADD | ADC => { string = "+="; },
+                SUB | SBC => { string = "-="; },
+                NEG => { string = "=-"; }
+                XOR => { string = "^="; },
+                LOAD => { string = "="; },
+                OR => { string = "|="; },
+                AND => { string = "&="; },
+                CMP | TEST | STORE => { string = debug_panic!(""); },
+
+                Invalid => { string = "(invalid)"; },
+            }
+        }
+        string
+    }};
+}
+
+macro_rules! carry_string_if_carry_mame {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::decode::DecodedALUOp::*;
+            match $op {
+                ADC | SBC => { string = ", carry"; }
+                _ => { string = ""; }
+            }
+        }
+        string
+    }};
+}
+
+macro_rules! sft_op_amount_string_if_not_nop_mame {
+    ($sft:expr, $shift_amount:expr) => {{//shift_amount is sfc + 1
+        let string: String;
+        {
+            use crate::decode::DecodedSFTOp::*;
+            if matches!($sft, NOP) {
+                string = "".to_string();
+            } else {
+                string = format!(" {} {}", sft_op_string_lower!($sft), $shift_amount);
+            }
+        }
+        string
+    }};
+}
+
 /* Static Variables */
 
 //TODO
@@ -277,33 +328,14 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
             }
 
             //Normal ones: get the operator
-            let operator: &str;
-            match *op {
-                ADD | ADC => { operator = "+="; },
-                SUB | SBC => { operator = "-="; },
-                NEG => { operator = "=-"; }
-                XOR => { operator = "^="; },
-                LOAD => { operator = "="; },
-                OR => { operator = "|="; },
-                AND => { operator = "&="; },
-                CMP | TEST | STORE => { operator = debug_panic!(""); },
-
-                Invalid => { operator = "(invalid)"; },
-            }
-
-            //Determine if we need to append , carry to the end
-            let carry: bool;
-            match *op {
-                ADC | SBC => { carry = true; }
-                _ => { carry = false; }
-            }
+            let operator: &str = auto_alu_op_string_mame!(*op);
 
             //Assemble everything together
             return format!("{} {} [bp+{:02x}]{}",
                 reg_string_lower!(*rd),
                 operator,
                 *imm6,
-                if carry { ", carry" } else { "" },
+                carry_string_if_carry_mame!(*op),
             );
         },
         IMM6{op, rd, imm6} => {
@@ -311,9 +343,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
 
             //Handle special cases
             match *op {
-                STORE => {
-                    return "<BAD>".to_string();
-                },
+                STORE => { return "<BAD>".to_string(); },
                 CMP => {
                     return format!("cmp {}, {:02x}",
                         reg_string_lower!(*rd),
@@ -330,33 +360,14 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
             }
 
             //Normal ones: get the operator
-            let operator: &str;
-            match *op {
-                ADD | ADC => { operator = "+="; },
-                SUB | SBC => { operator = "-="; },
-                NEG => { operator = "=-"; }
-                XOR => { operator = "^="; },
-                LOAD => { operator = "="; },
-                OR => { operator = "|="; },
-                AND => { operator = "&="; },
-                CMP | TEST | STORE => { operator = debug_panic!(""); },
-
-                Invalid => { operator = "(invalid)"; },
-            }
-
-            //Determine if we need to append , carry to the end
-            let carry: bool;
-            match *op {
-                ADC | SBC => { carry = true; }
-                _ => { carry = false; }
-            }
+            let operator: &str = auto_alu_op_string_mame!(*op);
 
             //Assemble everything together
             return format!("{} {} {:02x}{}",
                 reg_string_lower!(*rd),
                 operator,
                 *imm6,
-                if carry { ", carry" } else { "" },
+                carry_string_if_carry_mame!(*op),
             );
         },
         Branch{op, d, imm6} => {
@@ -367,10 +378,102 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
         },//FIXME what about wrapping?
         Stack_Operation{..} => { return "Stack_Operation TODO".to_string(); },
         DS_Indirect{..} => { return "DS_Indirect TODO".to_string(); },
-        IMM16{..} => { return "IMM16 TODO".to_string(); },
+        IMM16{op, rd, rs, imm16} => {
+            use super::DecodedALUOp::*;
+
+            //Handle special cases
+            match *op {
+                LOAD => {
+                    return format!("{} = {:04x}",
+                        reg_string_lower!(*rd),
+                        *imm16,
+                    );
+                },
+                STORE => { return "<BAD>".to_string(); },
+                NEG => {
+                    return format!("{} = -{:04x}",
+                        reg_string_lower!(*rd),
+                        *imm16,
+                    );
+                },
+                CMP => {
+                    return format!("cmp {}, {:04x}",
+                        reg_string_lower!(*rs),//TODO is this rs or rd?
+                        *imm16,
+                    );
+                },
+                TEST => {
+                    return format!("test {}, {:04x}",
+                        reg_string_lower!(*rs),//TODO is this rs or rd?
+                        *imm16,
+                    );
+                },
+                _ => {},//Continue on
+            }
+
+            //Normal ones: get the operator
+            let operator: &str;
+            match *op {
+                ADD | ADC => { operator = "+"; },
+                SUB | SBC => { operator = "-"; },
+                XOR => { operator = "^"; },
+                OR => { operator = "|"; },
+                AND => { operator = "&"; },
+                NEG | LOAD | CMP | TEST | STORE => { operator = debug_panic!(""); },
+
+                Invalid => { operator = "(invalid)"; },
+            }
+
+            //Assemble everything together
+            return format!("{} = {} {} {:04x}{}",
+                reg_string_lower!(*rd),
+                reg_string_lower!(*rs),
+                operator,
+                *imm16,
+                carry_string_if_carry_mame!(*op),
+            );
+        },
         Direct16{..} => { return "Direct16 TODO".to_string(); },
         Direct6{..} => { return "Direct6 TODO".to_string(); },
-        Register{..} => { return "Register TODO".to_string(); },
+        Register{op, rd, sft, sfc, rs} => {
+            use super::DecodedALUOp::*;
+
+            //TODO what if sft is NOP?
+
+            let shift_amount = sfc + 1;
+
+            //Handle special cases
+            match *op {
+                STORE => { return "<BAD>".to_string(); },
+                CMP => {
+                    return format!("cmp {}, {}{}",
+                        reg_string_lower!(*rd),
+                        reg_string_lower!(*rs),
+                        sft_op_amount_string_if_not_nop_mame!(*sft, shift_amount)
+                    );
+                },
+                TEST => {
+                    return format!("test {}, {}{}",
+                        reg_string_lower!(*rd),
+                        reg_string_lower!(*rs),
+                        sft_op_amount_string_if_not_nop_mame!(*sft, shift_amount)
+                    );
+                },
+                _ => {},//Continue on
+            }
+
+            //Normal ones: get the operator
+            let operator: &str = auto_alu_op_string_mame!(*op);
+
+            //Assemble everything together
+            return format!("{} {} {}{}{}",
+                reg_string_lower!(*rd),
+                operator,
+                reg_string_lower!(*rs),
+                sft_op_amount_string_if_not_nop_mame!(*sft, shift_amount),
+                carry_string_if_carry_mame!(*op),
+            );
+        },
 
         Invalid => { return "--".to_string(); },
     }
