@@ -119,6 +119,7 @@ pub fn disassemble_generalplus_style(decoded_inst: &DecodedInstruction) -> Strin
     }
 }
 
+//Not perfect (ex. because unlike MAME we only really have one kind of bad instruction), but aims to be reasonably close
 pub fn disassemble_mame_style(decoded_inst: &DecodedInstruction) -> String {
     use super::common::*;
     match decoded_inst {
@@ -222,50 +223,120 @@ pub fn disassemble_mame_style(decoded_inst: &DecodedInstruction) -> String {
         RETF{..} => { return "retf".to_string(); },
         Base_plus_Disp6{op, rd, imm6} => {
             use super::DecodedALUOp::*;
-            if matches!(op, STORE) {
-                return format!("[bp+{:02x}] = {}",
-                    *imm6,
-                    reg_string_lower!(*rd)
-                );
-            }
 
-            let auto_operator: &str;
+            //Handle special cases
             match *op {
-                ADD | ADC => { auto_operator = "+="; },
-                SUB | SBC => { auto_operator = "-="; },
-                CMP => { auto_operator = "TODO"; },
-                NEG => { auto_operator = ""; },
-                XOR => { auto_operator = "^="; },
-                LOAD => { auto_operator = "TODO"; },
-                OR => { auto_operator = "|="; },
-                AND => { auto_operator = "&="; },
-                TEST => { auto_operator = "TODO"; },
-                STORE => { auto_operator = debug_panic!(""); },
-
-                Invalid => { auto_operator = "(invalid)"; }
+                STORE => {
+                    return format!("[bp+{:02x}] = {}",
+                        *imm6,
+                        reg_string_lower!(*rd),
+                    );
+                },
+                CMP => {
+                    return format!("cmp {}, [bp+{:02x}]",
+                        reg_string_lower!(*rd),
+                        *imm6,
+                    );
+                },
+                TEST => {
+                    return format!("test {}, [bp+{:02x}]",
+                        reg_string_lower!(*rd),
+                        *imm6,
+                    );
+                },
+                _ => {},//Continue on
             }
 
+            //Normal ones: get the operator
+            let operator: &str;
+            match *op {
+                ADD | ADC => { operator = "+="; },
+                SUB | SBC => { operator = "-="; },
+                NEG => { operator = "=-"; }
+                XOR => { operator = "^="; },
+                LOAD => { operator = "="; },
+                OR => { operator = "|="; },
+                AND => { operator = "&="; },
+                CMP | TEST | STORE => { operator = debug_panic!(""); },
+
+                Invalid => { operator = "(invalid)"; },
+            }
+
+            //Determine if we need to append , carry to the end
             let carry: bool;
             match *op {
                 ADC | SBC => { carry = true; }
                 _ => { carry = false; }
             }
 
+            //Assemble everything together
             return format!("{} {} [bp+{:02x}]{}",
                 reg_string_lower!(*rd),
-                auto_operator,
+                operator,
                 *imm6,
                 if carry { ", carry" } else { "" },
             );
         },
-        IMM6{..} => { return "TODO".to_string(); },
-        Branch{..} => { return "TODO".to_string(); },
-        Stack_Operation{..} => { return "TODO".to_string(); },
-        DS_Indirect{..} => { return "TODO".to_string(); },
-        IMM16{..} => { return "TODO".to_string(); },
-        Direct16{..} => { return "TODO".to_string(); },
-        Direct6{..} => { return "TODO".to_string(); },
-        Register{..} => { return "TODO".to_string(); },
+        IMM6{op, rd, imm6} => {
+            use super::DecodedALUOp::*;
+
+            //Handle special cases
+            match *op {
+                STORE => {
+                    return "<BAD>".to_string();
+                },
+                CMP => {
+                    return format!("cmp {}, {:02x}",
+                        reg_string_lower!(*rd),
+                        *imm6,
+                    );
+                },
+                TEST => {
+                    return format!("test {}, {:02x}",
+                        reg_string_lower!(*rd),
+                        *imm6,
+                    );
+                },
+                _ => {},//Continue on
+            }
+
+            //Normal ones: get the operator
+            let operator: &str;
+            match *op {
+                ADD | ADC => { operator = "+="; },
+                SUB | SBC => { operator = "-="; },
+                NEG => { operator = "=-"; }
+                XOR => { operator = "^="; },
+                LOAD => { operator = "="; },
+                OR => { operator = "|="; },
+                AND => { operator = "&="; },
+                CMP | TEST | STORE => { operator = debug_panic!(""); },
+
+                Invalid => { operator = "(invalid)"; },
+            }
+
+            //Determine if we need to append , carry to the end
+            let carry: bool;
+            match *op {
+                ADC | SBC => { carry = true; }
+                _ => { carry = false; }
+            }
+
+            //Assemble everything together
+            return format!("{} {} {:02x}{}",
+                reg_string_lower!(*rd),
+                operator,
+                *imm6,
+                if carry { ", carry" } else { "" },
+            );
+        },
+        Branch{..} => { return "Branch TODO".to_string(); },
+        Stack_Operation{..} => { return "Stack_Operation TODO".to_string(); },
+        DS_Indirect{..} => { return "DS_Indirect TODO".to_string(); },
+        IMM16{..} => { return "IMM16 TODO".to_string(); },
+        Direct16{..} => { return "Direct16 TODO".to_string(); },
+        Direct6{..} => { return "Direct6 TODO".to_string(); },
+        Register{..} => { return "Register TODO".to_string(); },
 
         Invalid => { return "--".to_string(); },
     }
