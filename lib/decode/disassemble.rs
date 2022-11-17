@@ -207,7 +207,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
         CALL{a22} => { return format!("call {:06x}", *a22); },
         JMPF{a22} => { return format!("goto {:06x}", *a22); },
         JMPR{..} => { return "goto mr".to_string(); },
-        FIR_MOV{fir}=> { return format!("fir_mov {}", if *fir { "on" } else { "off" }); },
+        FIR_MOV{fir}=> { return format!("fir_mov {}", if *fir { "off" } else { "on" }); },//That's confusing
         Fraction{fra} => { return format!("fraction {}", if *fra { "on" } else { "off" }); },
         INT_SET{f, i} => {
             let operand: &str;
@@ -259,7 +259,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                 reg_string_lower!(*rs),
                 if *s_rd { "s" } else { "u" },
                 if *s_rs { "s" } else { "u" },
-                size,
+                if *size == 0 { 16 } else { *size },
             );
         },
         Register_BITOP_Rs{rd, op, rs} => {
@@ -343,7 +343,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
 
             //Handle special cases
             match *op {
-                STORE => { return "<BAD>".to_string(); },
+                STORE => { return "--".to_string(); },
                 CMP => {
                     return format!("cmp {}, {:02x}",
                         reg_string_lower!(*rd),
@@ -389,7 +389,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                         *imm16,
                     );
                 },
-                STORE => { return "<BAD>".to_string(); },
+                STORE => { return "--".to_string(); },
                 NEG => {
                     return format!("{} = -{:04x}",
                         reg_string_lower!(*rd),
@@ -433,18 +433,127 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                 carry_string_if_carry_mame!(*op),
             );
         },
-        Direct16{..} => { return "Direct16 TODO".to_string(); },
-        Direct6{..} => { return "Direct6 TODO".to_string(); },
-        Register{op, rd, sft, sfc, rs} => {
+        Direct16{op, rd, w, rs, a16} => {
             use super::DecodedALUOp::*;
 
-            //TODO what if sft is NOP?
+            if *w != matches!(*op, STORE) {//w should only be set if this is a STORE
+                return "--".to_string();
+            }
+
+            //Handle special cases
+            match *op {
+                LOAD => {
+                    return format!("{} = [{:04x}]",
+                        reg_string_lower!(*rs),//TODO is this rs or rd?
+                        *a16,
+                    );
+                },
+                STORE => {
+                    return format!("[{:04x}] = {}",
+                        *a16,
+                        reg_string_lower!(*rs),//TODO is this rs or rd?
+                    );
+                },
+                NEG => {
+                    return format!("{} = -[{:04x}]",
+                        reg_string_lower!(*rs),//TODO is this rs or rd?
+                        *a16,
+                    );
+                },
+                CMP => {
+                    return format!("cmp {}, {:04x}",
+                        reg_string_lower!(*rs),//TODO is this rs or rd?
+                        *a16,
+                    );
+                },
+                TEST => {
+                    return format!("test {}, {:04x}",
+                        reg_string_lower!(*rs),//TODO is this rs or rd?
+                        *a16,
+                    );
+                },
+                _ => {},//Continue on
+            }
+
+            //Normal ones: get the operator
+            let operator: &str;
+            match *op {
+                ADD | ADC => { operator = "+"; },
+                SUB | SBC => { operator = "-"; },
+                XOR => { operator = "^"; },
+                OR => { operator = "|"; },
+                AND => { operator = "&"; },
+                NEG | LOAD | CMP | TEST | STORE => { operator = debug_panic!(""); },
+
+                Invalid => { operator = "(invalid)"; },
+            }
+
+            //Assemble everything together
+            return format!("{} = {} {} [{:04x}]{}",
+                reg_string_lower!(*rd),
+                reg_string_lower!(*rs),
+                operator,
+                *a16,
+                carry_string_if_carry_mame!(*op),
+            );
+        },
+        Direct6{op, rd, a6} => {
+            use super::DecodedALUOp::*;
+
+            //Handle special cases
+            match *op {
+                LOAD => {
+                    return format!("{} = [{:02x}]",
+                        reg_string_lower!(*rd),
+                        *a6,
+                    );
+                },
+                STORE => {
+                    return format!("[{:02x}] = {}",
+                        *a6,
+                        reg_string_lower!(*rd),
+                    );
+                },
+                NEG => {
+                    return format!("{} = -[{:02x}]",
+                        reg_string_lower!(*rd),
+                        *a6,
+                    );
+                },
+                CMP => {
+                    return format!("cmp {}, {:02x}",
+                        reg_string_lower!(*rd),
+                        *a6,
+                    );
+                },
+                TEST => {
+                    return format!("test {}, {:02x}",
+                        reg_string_lower!(*rd),
+                        *a6,
+                    );
+                },
+                _ => {},//Continue on
+            }
+
+            //Normal ones: get the operator
+            let operator: &str = auto_alu_op_string_mame!(*op);
+
+            //Assemble everything together
+            return format!("{} {} [{:02x}]{}",
+                reg_string_lower!(*rd),
+                operator,
+                *a6,
+                carry_string_if_carry_mame!(*op),
+            );
+        },
+        Register{op, rd, sft, sfc, rs} => {
+            use super::DecodedALUOp::*;
 
             let shift_amount = sfc + 1;
 
             //Handle special cases
             match *op {
-                STORE => { return "<BAD>".to_string(); },
+                STORE => { return "--".to_string(); },
                 CMP => {
                     return format!("cmp {}, {}{}",
                         reg_string_lower!(*rd),

@@ -59,7 +59,7 @@ fn main() {
 
     //Open files//TODO proper error handling
     let mut input_file = std::fs::OpenOptions::new().read(true).open(std::env::args().nth(1).unwrap()).unwrap();
-    let output_file = std::fs::OpenOptions::new().write(true).create(true).open(std::env::args().nth(2).unwrap()).unwrap();
+    let output_file = std::fs::OpenOptions::new().write(true).create(true).truncate(true).open(std::env::args().nth(2).unwrap()).unwrap();
     let mut output_file_buffer = std::io::BufWriter::new(output_file);
 
     //Get the length of the input file
