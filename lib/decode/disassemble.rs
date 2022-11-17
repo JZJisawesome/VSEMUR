@@ -436,41 +436,60 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
         Direct16{op, rd, w, rs, a16} => {
             use super::DecodedALUOp::*;
 
-            if *w != matches!(*op, STORE) {//w should only be set if this is a STORE
-                return "--".to_string();
-            }
-
             //Handle special cases
             match *op {
                 LOAD => {
-                    return format!("{} = [{:04x}]",
-                        reg_string_lower!(*rs),//TODO is this rs or rd?
-                        *a16,
-                    );
+                    if *w {
+                        return "--".to_string();
+                    } else {
+                        return format!("{} = [{:04x}]",
+                            reg_string_lower!(*rs),
+                            *a16,
+                        );
+                    }
                 },
                 STORE => {
-                    return format!("[{:04x}] = {}",
-                        *a16,
-                        reg_string_lower!(*rs),//TODO is this rs or rd?
-                    );
+                    if *w {
+                        return format!("[{:04x}] = {}",
+                            *a16,
+                            reg_string_lower!(*rs),
+                        );
+                    } else {
+                        return "--".to_string();
+                    }
                 },
                 NEG => {
-                    return format!("{} = -[{:04x}]",
-                        reg_string_lower!(*rs),//TODO is this rs or rd?
-                        *a16,
-                    );
+                    if *w {
+                        return format!("[{:04x}] = -{}",
+                            *a16,
+                            reg_string_lower!(*rs),
+                        );
+                    } else {
+                        return format!("{} = -[{:04x}]",
+                            reg_string_lower!(*rs),
+                            *a16,
+                        );
+                    }
                 },
                 CMP => {
-                    return format!("cmp {}, {:04x}",
-                        reg_string_lower!(*rs),//TODO is this rs or rd?
-                        *a16,
-                    );
+                    if *w {
+                        return "TODO".to_string();//In this case, should it be cmp Rd, Rs?
+                    } else {
+                        return format!("cmp {}, [{:04x}]",
+                            reg_string_lower!(*rs),
+                            *a16,
+                        );
+                    }
                 },
                 TEST => {
-                    return format!("test {}, {:04x}",
-                        reg_string_lower!(*rs),//TODO is this rs or rd?
-                        *a16,
-                    );
+                    if *w {
+                        return "TODO".to_string();//In this case, should it be test Rd, Rs?
+                    } else {
+                        return format!("test {}, [{:04x}]",
+                            reg_string_lower!(*rs),
+                            *a16,
+                        );
+                    }
                 },
                 _ => {},//Continue on
             }
@@ -502,22 +521,10 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
 
             //Handle special cases
             match *op {
-                LOAD => {
-                    return format!("{} = [{:02x}]",
-                        reg_string_lower!(*rd),
-                        *a6,
-                    );
-                },
                 STORE => {
                     return format!("[{:02x}] = {}",
                         *a6,
                         reg_string_lower!(*rd),
-                    );
-                },
-                NEG => {
-                    return format!("{} = -[{:02x}]",
-                        reg_string_lower!(*rd),
-                        *a6,
                     );
                 },
                 CMP => {
