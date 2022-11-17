@@ -17,6 +17,35 @@ use crate::decode::DecodedInstruction::*;
 
 /* Macros */
 
+macro_rules! branch_op_string_mame {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::decode::DecodedBranchOp::*;
+            match $op {
+                JCC_JB_JNAE => { string = "jb"; },
+                JCS_JNB_JAE => { string = "jae"; },
+                JSC_JGE_JNL => { string = "jge"; },
+                JSS_JNGE_JL => { string = "jl"; },
+                JNE_JNZ => { string = "jne"; },
+                JZ_JE => { string = "je"; },
+                JPL => { string = "jpl"; },
+                JMI => { string = "jmi"; },
+                JBE_JNA => { string = "jbe"; },
+                JNBE_JA => { string = "ja"; },
+                JLE_JNG => { string = "jle"; },
+                JNLE_JG => { string = "jg"; },
+                JVC => { string = "jvc"; },
+                JVS => { string = "jvs"; },
+                JMP => { string = "jmp"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+
 /* Static Variables */
 
 //TODO
@@ -120,7 +149,7 @@ pub fn disassemble_generalplus_style(decoded_inst: &DecodedInstruction) -> Strin
 }
 
 //Not perfect (ex. because unlike MAME we only really have one kind of bad instruction), but aims to be reasonably close
-pub fn disassemble_mame_style(decoded_inst: &DecodedInstruction) -> String {
+pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> String {
     use super::common::*;
     match decoded_inst {
         DSI6{imm6} => { return format!("ds = {:04x}", *imm6); },
@@ -330,7 +359,12 @@ pub fn disassemble_mame_style(decoded_inst: &DecodedInstruction) -> String {
                 if carry { ", carry" } else { "" },
             );
         },
-        Branch{..} => { return "Branch TODO".to_string(); },
+        Branch{op, d, imm6} => {
+            return format!("{} {:04x}",
+                branch_op_string_mame!(*op),
+                if *d { addr - (*imm6 as u32) + 1 } else { addr + (*imm6 as u32) + 1 },
+            );
+        },//FIXME what about wrapping?
         Stack_Operation{..} => { return "Stack_Operation TODO".to_string(); },
         DS_Indirect{..} => { return "DS_Indirect TODO".to_string(); },
         IMM16{..} => { return "IMM16 TODO".to_string(); },

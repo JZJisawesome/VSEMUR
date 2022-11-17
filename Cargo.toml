@@ -19,6 +19,10 @@ name = "vsemur-gui"
 path = "src/gui.rs"
 
 [[bin]]
+name = "vsemur-assemble"
+path = "src/assemble.rs"
+
+[[bin]]
 name = "vsemur-disassemble"
 path = "src/disassemble.rs"
 
