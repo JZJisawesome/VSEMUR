@@ -29,8 +29,8 @@ mod disassemble;
 mod common;
 
 pub use disassemble::disassemble_jekel_style;//Style for vsemur-disassemble
-pub use disassemble::disassemble_generalplus_style;//Style for decode functions (logging), and for vsemur-disassemble
-pub use disassemble::disassemble_mame_style;//Style for vsemur-disassemble
+pub use disassemble::disassemble_generalplus_style;//Style for vsemur-disassemble
+pub use disassemble::disassemble_mame_style;//Style for decode functions (logging), and for vsemur-disassemble
 
 use crate::debug_panic;
 use crate::logging::log;

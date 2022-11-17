@@ -128,28 +128,6 @@ macro_rules! at_op_string {
     }};
 }
 
-macro_rules! lsft_op_string {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedLSFTOp::*;
-            match $op {
-                ASR => { string = "ASR"; },
-                ASROR => { string = "ASROR"; },
-                LSL => { string = "LSL"; },
-                LSLOR => { string = "LSLOR"; },
-                LSR => { string = "LSR"; },
-                LSROR => { string = "LSROR"; },
-                ROL => { string = "ROL"; },
-                ROR => { string = "ROR"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-
 macro_rules! sft_op_string {
     ($op:expr) => {{
         let string: &str;

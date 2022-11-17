@@ -99,6 +99,52 @@ macro_rules! bit_op_string_lower {
 }
 pub(super) use bit_op_string_lower;
 
+macro_rules! lsft_op_string {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::decode::DecodedLSFTOp::*;
+            match $op {
+                ASR => { string = "ASR"; },
+                ASROR => { string = "ASROR"; },
+                LSL => { string = "LSL"; },
+                LSLOR => { string = "LSLOR"; },
+                LSR => { string = "LSR"; },
+                LSROR => { string = "LSROR"; },
+                ROL => { string = "ROL"; },
+                ROR => { string = "ROR"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+pub(super) use lsft_op_string;
+
+macro_rules! lsft_op_string_lower {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::decode::DecodedLSFTOp::*;
+            match $op {
+                ASR => { string = "asr"; },
+                ASROR => { string = "asror"; },
+                LSL => { string = "lsl"; },
+                LSLOR => { string = "lslor"; },
+                LSR => { string = "lsr"; },
+                LSROR => { string = "lsror"; },
+                ROL => { string = "rol"; },
+                ROR => { string = "ror"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+pub(super) use lsft_op_string_lower;
+
 /* Static Variables */
 
 //TODO

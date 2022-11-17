@@ -7,6 +7,7 @@
 
 /* Imports */
 
+use crate::debug_panic;
 use crate::decode::DecodedInstruction;
 use crate::decode::DecodedInstruction::*;
 
@@ -15,8 +16,6 @@ use crate::decode::DecodedInstruction::*;
 //TODO
 
 /* Macros */
-
-//TODO (also pub(crate) use the_macro statements here too)
 
 /* Static Variables */
 
@@ -32,7 +31,7 @@ use crate::decode::DecodedInstruction::*;
 
 /* Functions */
 
-pub fn disassemble_jekel_style(decoded_inst: &DecodedInstruction) -> String {
+pub fn disassemble_jekel_style(decoded_inst: &DecodedInstruction) -> String {//WIP
     match decoded_inst {
         DSI6{imm6} => { return format!("dsi6 {:#04X}", *imm6); },
         CALL{..} => { return "todo".to_string(); },
@@ -76,7 +75,7 @@ pub fn disassemble_jekel_style(decoded_inst: &DecodedInstruction) -> String {
     }
 }
 
-pub fn disassemble_generalplus_style(decoded_inst: &DecodedInstruction) -> String {
+pub fn disassemble_generalplus_style(decoded_inst: &DecodedInstruction) -> String {//WIP
     match decoded_inst {
         DSI6{imm6} => { return format!("DS = {:#04X}", *imm6); },
         CALL{..} => { return "todo".to_string(); },
@@ -121,8 +120,7 @@ pub fn disassemble_generalplus_style(decoded_inst: &DecodedInstruction) -> Strin
 }
 
 pub fn disassemble_mame_style(decoded_inst: &DecodedInstruction) -> String {
-    use super::common::reg_string_lower;
-    use super::common::bit_op_string_lower;
+    use super::common::*;
     match decoded_inst {
         DSI6{imm6} => { return format!("ds = {:04x}", *imm6); },
         CALL{a22} => { return format!("call {:06x}", *a22); },
@@ -197,12 +195,69 @@ pub fn disassemble_mame_style(decoded_inst: &DecodedInstruction) -> String {
                 offset,
             );
         },
-        Memory_BITOP_offset{..} => { return "TODO".to_string(); },
-        Memory_BITOP_Rs{..} => { return "TODO".to_string(); },
-        sixteen_bits_Shift{..} => { return "TODO".to_string(); },
+        Memory_BITOP_offset{rd, d, op, offset} => {
+            return format!("{} {}[{}],{}",
+                bit_op_string_lower!(*op),
+                if *d { "ds:" } else { "" },
+                reg_string_lower!(*rd),
+                offset,
+            );
+        },
+        Memory_BITOP_Rs{rd, d, op, rs} => {
+            return format!("{} {}[{}],{}",
+                bit_op_string_lower!(*op),
+                if *d { "ds:" } else { "" },
+                reg_string_lower!(*rd),
+                reg_string_lower!(*rs),
+            );
+        },
+        sixteen_bits_Shift{rd, op, rs} => {
+            return format!("{0} = {0} {1} {2}",
+                reg_string_lower!(*rd),
+                lsft_op_string_lower!(*op),
+                reg_string_lower!(*rs),
+            );
+        },
         RETI{..} => { return "reti".to_string(); },
         RETF{..} => { return "retf".to_string(); },
-        Base_plus_Disp6{..} => { return "TODO".to_string(); },
+        Base_plus_Disp6{op, rd, imm6} => {
+            use super::DecodedALUOp::*;
+            if matches!(op, STORE) {
+                return format!("[bp+{:02x}] = {}",
+                    *imm6,
+                    reg_string_lower!(*rd)
+                );
+            }
+
+            let auto_operator: &str;
+            match *op {
+                ADD | ADC => { auto_operator = "+="; },
+                SUB | SBC => { auto_operator = "-="; },
+                CMP => { auto_operator = "TODO"; },
+                NEG => { auto_operator = ""; },
+                XOR => { auto_operator = "^="; },
+                LOAD => { auto_operator = "TODO"; },
+                OR => { auto_operator = "|="; },
+                AND => { auto_operator = "&="; },
+                TEST => { auto_operator = "TODO"; },
+                STORE => { auto_operator = debug_panic!(""); },
+
+                Invalid => { auto_operator = "(invalid)"; }
+            }
+
+            let carry: bool;
+            match *op {
+                ADC | SBC => { carry = true; }
+                _ => { carry = false; }
+            }
+
+            return format!("{} {} [bp+{:02x}]{}",
+                reg_string_lower!(*rd),
+                auto_operator,
+                *imm6,
+                if carry { ", carry" } else { "" },
+            );
+        },
         IMM6{..} => { return "TODO".to_string(); },
         Branch{..} => { return "TODO".to_string(); },
         Stack_Operation{..} => { return "TODO".to_string(); },
