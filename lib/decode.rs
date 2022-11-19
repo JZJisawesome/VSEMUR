@@ -447,7 +447,7 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
                             offset: (inst_word & 0b1111) as u8,
                         });
                     },
-                    0b010 => { return_inst!(5, decoded_inst, MULS_parse!(inst_word)); },
+                    0b010 | 0b011 => { return_inst!(5, decoded_inst, MULS_parse!(inst_word)); },
                     0b100 | 0b101 => {
                         let bit_3 = (inst_word >> 3) & 0b1;
                         log!(5, "The secondary group is 0b000, so let's inspect bit 3: {:#03b}", bit_3);

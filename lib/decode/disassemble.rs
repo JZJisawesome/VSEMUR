@@ -111,7 +111,7 @@ macro_rules! sft_op_amount_string_if_not_nop_mame {
 
 /* Functions */
 
-//TODO move to their own modules
+//TODO move these disassembly functions to their own modules
 
 pub fn disassemble_jekel_style(decoded_inst: &DecodedInstruction) -> String {//WIP
     match decoded_inst {
@@ -248,6 +248,12 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
             }
         },
         MUL{s_rs, rd, s_rd, rs} => {
+            //NOTE: When comparing to MAME we seem to miss some of these
+            //However we're actually correct. Consider 0xFC13 for example.
+            //Since bit 3 is 0 and not 1, this means the instruction is not MUL (there are other ways to tell too)
+            //Thus this instruction is invalid in this case, but MAME thinks it's MR = sr*r3, us
+            //To be fair, we also think that some invalid instructions are valid MULs while MAME correctly catches them as invalid (ex. 0xFF37)
+            //Since those instructions should never be executed, it really don't matter though
             return format!("MR = {}*{}, {}{}",
                 reg_string_lower!(*rd),
                 reg_string_lower!(*rs),

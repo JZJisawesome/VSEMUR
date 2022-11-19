@@ -42,7 +42,7 @@ Note: the upper nibble refers to bits [15:12] of the instruction word and the se
         Case secondary group is 0b010:
             - It is MULS
         Case secondary group is 0b011:
-            - It is invalid
+            - It is MULS
         Case secondary group is 0b100 or 0b101:
             - If bit 3 is set, it is 16 bits Shift, else it is Memory BITOP (Rs)
         Case secondary group is 0b110:
