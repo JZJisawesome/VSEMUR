@@ -7,7 +7,7 @@
 
 /* Imports */
 
-//TODO (include "use" and "mod" here)
+use crate::decode::*;
 
 /* Constants */
 
@@ -15,255 +15,7 @@
 
 /* Macros */
 
-macro_rules! reg_string {
-    ($reg:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedRegister::*;
-            match $reg  {
-                SP => { string = "SP"; },
-                R1_SR1 => { string = "R1"; },
-                R2_SR2 => { string = "R2"; },
-                R3_SR3 => { string = "R3"; },
-                R4_SR4 => { string = "R4"; },
-                BP => { string = "BP"; },
-                SR => { string = "SR"; },
-                PC => { string = "PC"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use reg_string;
-
-macro_rules! reg_string_lower {
-    ($reg:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedRegister::*;
-            match $reg  {
-                SP => { string = "sp"; },
-                R1_SR1 => { string = "r1"; },
-                R2_SR2 => { string = "r2"; },
-                R3_SR3 => { string = "r3"; },
-                R4_SR4 => { string = "r4"; },
-                BP => { string = "bp"; },
-                SR => { string = "sr"; },
-                PC => { string = "pc"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use reg_string_lower;
-
-macro_rules! reg_string_by_index {
-    ($index:expr) => {{
-        let string: &str;
-        {
-            match $index  {
-                0b000 => { string = "SP"; },
-                0b001 => { string = "R1"; },
-                0b010 => { string = "R2"; },
-                0b011 => { string = "R3"; },
-                0b100 => { string = "R4"; },
-                0b101 => { string = "BP"; },
-                0b110 => { string = "SR"; },
-                0b111 => { string = "PC"; },
-
-                _ => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use reg_string_by_index;
-
-macro_rules! reg_string_by_index_lower {
-    ($index:expr) => {{
-        let string: &str;
-        {
-            match $index  {
-                0b000 => { string = "sp"; },
-                0b001 => { string = "r1"; },
-                0b010 => { string = "r2"; },
-                0b011 => { string = "r3"; },
-                0b100 => { string = "r4"; },
-                0b101 => { string = "bp"; },
-                0b110 => { string = "sr"; },
-                0b111 => { string = "pc"; },
-
-                _ => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use reg_string_by_index_lower;
-
-macro_rules! bit_op_string {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedBitOp::*;
-            match $op {
-                TSTB => { string = "TSTB"; },
-                SETB => { string = "SETB"; },
-                CLRB => { string = "CLRB"; },
-                INVB => { string = "INVB"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use bit_op_string;
-
-macro_rules! bit_op_string_lower {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedBitOp::*;
-            match $op {
-                TSTB => { string = "tstb"; },
-                SETB => { string = "setb"; },
-                CLRB => { string = "clrb"; },
-                INVB => { string = "invb"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use bit_op_string_lower;
-
-macro_rules! lsft_op_string {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedLSFTOp::*;
-            match $op {
-                ASR => { string = "ASR"; },
-                ASROR => { string = "ASROR"; },
-                LSL => { string = "LSL"; },
-                LSLOR => { string = "LSLOR"; },
-                LSR => { string = "LSR"; },
-                LSROR => { string = "LSROR"; },
-                ROL => { string = "ROL"; },
-                ROR => { string = "ROR"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use lsft_op_string;
-
-macro_rules! lsft_op_string_lower {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedLSFTOp::*;
-            match $op {
-                ASR => { string = "asr"; },
-                ASROR => { string = "asror"; },
-                LSL => { string = "lsl"; },
-                LSLOR => { string = "lslor"; },
-                LSR => { string = "lsr"; },
-                LSROR => { string = "lsror"; },
-                ROL => { string = "rol"; },
-                ROR => { string = "ror"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use lsft_op_string_lower;
-
-macro_rules! sft_op_string {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedSFTOp::*;
-            match $op {
-                NOP => { string = "NOP"; },
-                ASR => { string = "ASR"; },
-                LSL => { string = "LSL"; },
-                LSR => { string = "LSR"; },
-                ROL => { string = "ROL"; },
-                ROR => { string = "ROR"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use sft_op_string;
-
-macro_rules! sft_op_string_lower {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedSFTOp::*;
-            match $op {
-                NOP => { string = "nop"; },
-                ASR => { string = "asr"; },
-                LSL => { string = "lsl"; },
-                LSR => { string = "lsr"; },
-                ROL => { string = "rol"; },
-                ROR => { string = "ror"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use sft_op_string_lower;
-
-macro_rules! stack_op_string {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedStackOp::*;
-            match $op {
-                PUSH => { string = "PUSH"; },
-                POP => { string = "POP"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use stack_op_string;
-
-macro_rules! stack_op_string_lower {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedStackOp::*;
-            match $op {
-                PUSH => { string = "push"; },
-                POP => { string = "pop"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-pub(super) use stack_op_string_lower;
+//TODO make these functions
 
 /* Static Variables */
 
@@ -279,4 +31,168 @@ pub(super) use stack_op_string_lower;
 
 /* Functions */
 
-//TODO
+pub(super) fn reg_string(reg: DecodedRegister) -> &'static str {
+    use DecodedRegister::*;
+    match reg  {
+        SP => { return "SP"; },
+        R1_SR1 => { return "R1"; },
+        R2_SR2 => { return "R2"; },
+        R3_SR3 => { return "R3"; },
+        R4_SR4 => { return "R4"; },
+        BP => { return "BP"; },
+        SR => { return "SR"; },
+        PC => { return "PC"; },
+
+        Invalid => { return "(invalid)"; }
+    }
+}
+
+pub(super) fn reg_string_lower(reg: DecodedRegister) -> &'static str {
+    use DecodedRegister::*;
+    match reg  {
+        SP => { return "sp"; },
+        R1_SR1 => { return "r1"; },
+        R2_SR2 => { return "r2"; },
+        R3_SR3 => { return "r3"; },
+        R4_SR4 => { return "r4"; },
+        BP => { return "bp"; },
+        SR => { return "sr"; },
+        PC => { return "pc"; },
+
+        Invalid => { return "(invalid)"; }
+    }
+}
+
+pub(super) fn reg_string_by_index(index: u8) -> &'static str {
+    match index  {
+        0b000 => { return "SP"; },
+        0b001 => { return "R1"; },
+        0b010 => { return "R2"; },
+        0b011 => { return "R3"; },
+        0b100 => { return "R4"; },
+        0b101 => { return "BP"; },
+        0b110 => { return "SR"; },
+        0b111 => { return "PC"; },
+
+        _ => { return "(invalid)"; }
+    }
+}
+
+pub(super) fn reg_string_by_index_lower(index: u8) -> &'static str {
+    match index  {
+        0b000 => { return "sp"; },
+        0b001 => { return "r1"; },
+        0b010 => { return "r2"; },
+        0b011 => { return "r3"; },
+        0b100 => { return "r4"; },
+        0b101 => { return "bp"; },
+        0b110 => { return "sr"; },
+        0b111 => { return "pc"; },
+
+        _ => { return "(invalid)"; }
+    }
+}
+
+pub(super) fn bit_op_string(op: DecodedBitOp) -> &'static str {
+    use DecodedBitOp::*;
+    match op {
+        TSTB => { return "TSTB"; },
+        SETB => { return "SETB"; },
+        CLRB => { return "CLRB"; },
+        INVB => { return "INVB"; },
+
+        Invalid => { return "(invalid)"; }
+    }
+}
+
+pub(super) fn bit_op_string_lower(op: DecodedBitOp) -> &'static str {
+    use DecodedBitOp::*;
+    match op {
+        TSTB => { return "tstb"; },
+        SETB => { return "setb"; },
+        CLRB => { return "clrb"; },
+        INVB => { return "invb"; },
+
+        Invalid => { return "(invalid)"; }
+    }
+}
+
+pub(super) fn lsft_op_string(op: DecodedLSFTOp) -> &'static str {
+    use DecodedLSFTOp::*;
+    match op {
+        ASR => { return "ASR"; },
+        ASROR => { return "ASROR"; },
+        LSL => { return "LSL"; },
+        LSLOR => { return "LSLOR"; },
+        LSR => { return "LSR"; },
+        LSROR => { return "LSROR"; },
+        ROL => { return "ROL"; },
+        ROR => { return "ROR"; },
+
+        Invalid => { return "(invalid)"; }
+    }
+}
+
+pub(super) fn lsft_op_string_lower(op: DecodedLSFTOp) -> &'static str {
+    use DecodedLSFTOp::*;
+    match op {
+        ASR => { return "asr"; },
+        ASROR => { return "asror"; },
+        LSL => { return "lsl"; },
+        LSLOR => { return "lslor"; },
+        LSR => { return "lsr"; },
+        LSROR => { return "lsror"; },
+        ROL => { return "rol"; },
+        ROR => { return "ror"; },
+
+        Invalid => { return "(invalid)"; }
+    }
+}
+
+pub(super) fn sft_op_string(op: DecodedSFTOp) -> &'static str {
+    use DecodedSFTOp::*;
+    match op {
+        NOP => { return "NOP"; },
+        ASR => { return "ASR"; },
+        LSL => { return "LSL"; },
+        LSR => { return "LSR"; },
+        ROL => { return "ROL"; },
+        ROR => { return "ROR"; },
+
+        Invalid => { return "(invalid)"; }
+    }
+}
+
+pub(super) fn sft_op_string_lower(op: DecodedSFTOp) -> &'static str {
+    use DecodedSFTOp::*;
+    match op {
+        NOP => { return "nop"; },
+        ASR => { return "asr"; },
+        LSL => { return "lsl"; },
+        LSR => { return "lsr"; },
+        ROL => { return "rol"; },
+        ROR => { return "ror"; },
+
+        Invalid => { return "(invalid)"; }
+    }
+}
+
+pub(super) fn stack_op_string(op: DecodedStackOp) -> &'static str {
+    use DecodedStackOp::*;
+    match op {
+        PUSH => { return "PUSH"; },
+        POP => { return "POP"; },
+
+        Invalid => { return "(invalid)"; }
+    }
+}
+
+pub(super) fn stack_op_string_lower(op: DecodedStackOp) -> &'static str {
+    use DecodedStackOp::*;
+    match op {
+        PUSH => { return "push"; },
+        POP => { return "pop"; },
+
+        Invalid => { return "(invalid)"; }
+    }
+}

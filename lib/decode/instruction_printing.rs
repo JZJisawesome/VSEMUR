@@ -39,6 +39,8 @@ macro_rules! log_inst {
 }
 pub(super) use log_inst;
 
+//TODO turn macros after this point into functions
+//Also move to common
 macro_rules! alu_op_string {
     ($op:expr) => {{
         let string: &str;
@@ -190,72 +192,72 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::decode::DecodedIns
             DS_Access{w, rs} => {
                 log_finln!("DS Access");
                 log!(indent + 1, "W: {}", *w);
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
             },
             FR_Access{w, rs} => {
                 log_finln!("FR Access");
                 log!(indent + 1, "W: {}", *w);
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
             },
             MUL{s_rs, rd, s_rd, rs} => {
                 log_finln!("MUL");
                 log!(indent + 1, "S_Rs: {}", *s_rs);
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log!(indent + 1, "S_Rd: {}", *s_rd);
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
             },
             MULS{s_rs, rd, s_rd, size, rs} => {
                 log_finln!("MULS");
                 log!(indent + 1, "S_Rs: {}", *s_rs);
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log!(indent + 1, "S_Rd: {}", *s_rd);
                 log_data!(indent + 1, "Size", *size);
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
             },
             Register_BITOP_Rs{rd, op, rs} => {
                 log_finln!("Register BITOP (Rs)");
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
-                log!(indent + 1, "Bitop: {}", bit_op_string!(*op));
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
+                log!(indent + 1, "Bitop: {}", bit_op_string(*op));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
             },
             Register_BITOP_offset{rd, op, offset} => {
                 log_finln!("Register BITOP (offset)");
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
-                log!(indent + 1, "Bitop: {}", bit_op_string!(*op));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
+                log!(indent + 1, "Bitop: {}", bit_op_string(*op));
                 log_data!(indent + 1, "Offset", *offset);
             },
             Memory_BITOP_offset{rd, op, d, offset} => {
                 log_finln!("Memory BITOP (offset)");
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
-                log!(indent + 1, "Bitop: {}", bit_op_string!(*op));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
+                log!(indent + 1, "Bitop: {}", bit_op_string(*op));
                 log!(indent + 1, "D: {}", *d);
                 log_data!(indent + 1, "Offset", *offset);
             },
             Memory_BITOP_Rs{rd, op, d, rs} => {
                 log_finln!("Memory BITOP (Rs)");
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
-                log!(indent + 1, "Bitop: {}", bit_op_string!(*op));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
+                log!(indent + 1, "Bitop: {}", bit_op_string(*op));
                 log!(indent + 1, "D: {}", *d);
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
             },
             sixteen_bits_Shift{rd, op, rs} => {
                 log_finln!("16 bits Shift");
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
-                log!(indent + 1, "OP: {}", lsft_op_string!(*op));
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
+                log!(indent + 1, "OP: {}", lsft_op_string(*op));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
             },
             RETI => { log_finln!("RETI"); },
             RETF => { log_finln!("RETF"); },
             Base_plus_Disp6{op, rd, imm6} => {
                 log_finln!("Base+Disp6");
                 log!(indent + 1, "OP: {}", alu_op_string!(*op));
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log_data!(indent + 1, "IMM6", *imm6);
             },
             IMM6{op, rd, imm6} => {
                 log_finln!("IMM6");
                 log!(indent + 1, "OP: {}", alu_op_string!(*op));
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log_data!(indent + 1, "IMM6", *imm6);
             },
             Branch{op, d, imm6} => {
@@ -266,47 +268,47 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::decode::DecodedIns
             },
             Stack_Operation{op, rd_index, size, rs} => {
                 log_finln!("Stack Operation");
-                log!(indent + 1, "OP: {}", stack_op_string!(*op));
+                log!(indent + 1, "OP: {}", stack_op_string(*op));
                 log!(indent + 1, "Rh/Rd index: {}", *rd_index);
                 log_data!(indent + 1, "Size", *size);
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
             },
             DS_Indirect{op, rd, d, at, rs} => {
                 log_finln!("DS_Indirect");
                 log!(indent + 1, "OP: {}", alu_op_string!(*op));
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log!(indent + 1, "D: {}", *d);
                 log!(indent + 1, "@: {}", at_op_string!(*at));
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
             },
             IMM16{op, rd, rs, imm16} => {
                 log_finln!("IMM16");
                 log!(indent + 1, "OP: {}", alu_op_string!(*op));
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
                 log_data!(indent + 1, "IMM16", *imm16);
             },
             Direct16{op, rd, rs, w, a16} => {
                 log_finln!("Direct16");
                 log!(indent + 1, "OP: {}", alu_op_string!(*op));
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
                 log!(indent + 1, "W: {}", *w);
                 log!(indent + 1, "A16: {:#06X}", *a16);
             },
             Direct6{op, rd, a6} => {
                 log_finln!("Direct6");
                 log!(indent + 1, "OP: {}", alu_op_string!(*op));
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log!(indent + 1, "A6: {:#04X}", *a6);
             },
             Register{op, rd, sft, sfc, rs} => {
                 log_finln!("Register");
                 log!(indent + 1, "OP: {}", alu_op_string!(*op));
-                log!(indent + 1, "Rd: {}", reg_string!(*rd));
-                log!(indent + 1, "SFT: {}", sft_op_string!(*sft));
+                log!(indent + 1, "Rd: {}", reg_string(*rd));
+                log!(indent + 1, "SFT: {}", sft_op_string(*sft));
                 log_data!(indent + 1, "SFC", *sfc);
-                log!(indent + 1, "Rs: {}", reg_string!(*rs));
+                log!(indent + 1, "Rs: {}", reg_string(*rs));
             },
 
             Invalid{..} => { log_finln!("(invalid)"); },

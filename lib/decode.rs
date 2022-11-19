@@ -83,53 +83,6 @@ macro_rules! secondary_group {
     };
 }
 
-macro_rules! MUL_parse {
-    ($inst_word:expr) => {
-        MUL {
-            s_rs: (($inst_word >> 12) & 0b1) == 0b1,
-            rd: dec_reg_from_index(rd_index!($inst_word)),
-            s_rd: (($inst_word >> 8) & 0b1) == 0b1,
-            rs: dec_reg_from_index(rs_index!($inst_word)),
-        }
-    }
-}
-
-macro_rules! MULS_parse {
-    ($inst_word:expr) => {
-        MULS {
-            s_rs: (($inst_word >> 12) & 0b1) == 0b1,
-            rd: dec_reg_from_index(rd_index!($inst_word)),
-            s_rd: (($inst_word >> 8) & 0b1) == 0b1,
-            size: (($inst_word >> 3) & 0b1111) as u8,
-            rs: dec_reg_from_index(rs_index!($inst_word)),
-        }
-    }
-}
-
-macro_rules! Branch_parse {
-    ($inst_word:expr) => {
-        Branch {
-            op: dec_branch_op($inst_word),
-            d: (($inst_word >> 6) & 0b1) == 0b1,
-            imm6: imm6!($inst_word),
-        }
-    }
-}
-
-macro_rules! Register_parse {
-    ($inst_word:expr) => {
-        Register {
-            op: dec_alu_op($inst_word),
-            rd: dec_reg_from_index(rd_index!($inst_word)),
-            sft: dec_sft_op($inst_word),
-            sfc: (($inst_word >> 3) & 0b11) as u8,
-            rs: dec_reg_from_index(rs_index!($inst_word)),
-        }
-    }
-}
-
-
-
 /* Static Variables */
 
 //TODO
@@ -321,7 +274,7 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
                         let bits_54 = (inst_word >> 4) & 0b11;
                         log!(5, "Rd is not 0b111, so inspect bits [5:4]: {:#04b}", bits_54);
                         match bits_54 {
-                            0b00 => { return_inst!(6, decoded_inst, MUL_parse!(inst_word)); },
+                            0b00 => { return_inst!(6, decoded_inst, dec_MUL(inst_word)); },
                             0b10 => {
                                 return_inst!(6, decoded_inst, DS_Access {
                                     w: ((inst_word >> 3) & 0b1) == 0b1,
@@ -350,7 +303,7 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
                         //Lower 16 bits will be filled in decode_wg2
                         return_inst!(5, decoded_inst, JMPF{a22: ((inst_word as u32) << 16) & 0b1111110000000000000000});
                     } else {
-                        return_inst!(5, decoded_inst, MULS_parse!(inst_word));
+                        return_inst!(5, decoded_inst, dec_MULS(inst_word));
                     }
                 },
                 0b011 => {
@@ -359,10 +312,10 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
                     if rd_index == 0b111 {
                         return_inst!(5, decoded_inst, JMPR);
                     } else {
-                        return_inst!(5, decoded_inst, MULS_parse!(inst_word));
+                        return_inst!(5, decoded_inst, dec_MULS(inst_word));
                     }
                 },
-                0b100 => { return_inst!(4, decoded_inst, MUL_parse!(inst_word)); },
+                0b100 => { return_inst!(4, decoded_inst, dec_MUL(inst_word)); },
                 0b101 => {
                     let bit_5 = (inst_word >> 5) & 0b1;//Look at bit 5 first to split the opcode space in twoish
                     log!(4, "The secondary group is 0b101, so let's inspect bit 5: {:#03b}", bit_5);
@@ -414,7 +367,7 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
                         }
                     }
                 },
-                0b110 | 0b111 => { return_inst!(4, decoded_inst, MULS_parse!(inst_word)); },
+                0b110 | 0b111 => { return_inst!(4, decoded_inst, dec_MULS(inst_word)); },
                 _ => { debug_panic!(); },//This should never occur
             }
         },
@@ -423,7 +376,7 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
 
             let secondary_group = secondary_group!(inst_word);
             if (rd_index!(inst_word) == 0b111) && ((secondary_group == 0b000) || (secondary_group == 0b001)) {
-                return_inst!(4, decoded_inst, Branch_parse!(inst_word));
+                return_inst!(4, decoded_inst, dec_Branch(inst_word));
             } else {
                 log!(4, "This isn't a branch, so let's inspect the secondary group: {:#05b}", secondary_group);
                 match secondary_group {
@@ -431,7 +384,7 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
                         let bit_3 = (inst_word >> 3) & 0b1;
                         log!(5, "The secondary group is 0b000, so let's inspect bit 3: {:#03b}", bit_3);
                         if bit_3 == 0b1 {
-                            return_inst!(6, decoded_inst, MUL_parse!(inst_word));
+                            return_inst!(6, decoded_inst, dec_MUL(inst_word));
                         } else {
                             return_inst!(6, decoded_inst, Register_BITOP_Rs {
                                 rd: dec_reg_from_index(rd_index!(inst_word)),
@@ -447,7 +400,7 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
                             offset: (inst_word & 0b1111) as u8,
                         });
                     },
-                    0b010 | 0b011 => { return_inst!(5, decoded_inst, MULS_parse!(inst_word)); },
+                    0b010 | 0b011 => { return_inst!(5, decoded_inst, dec_MULS(inst_word)); },
                     0b100 | 0b101 => {
                         let bit_3 = (inst_word >> 3) & 0b1;
                         log!(5, "The secondary group is 0b000, so let's inspect bit 3: {:#03b}", bit_3);
@@ -482,7 +435,7 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
             log!(3, "The upper nibble indicates this is likely a branch, verifying that it is valid...");
             let secondary_group = secondary_group!(inst_word);
             if (rd_index!(inst_word) == 0b111) && ((secondary_group == 0b000) || (secondary_group == 0b001)) {
-                return_inst!(4, decoded_inst, Branch_parse!(inst_word));
+                return_inst!(4, decoded_inst, dec_Branch(inst_word));
             } else {
                 return_inst!(4, decoded_inst, Invalid);
             }
@@ -491,7 +444,7 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
             log!(3, "The upper nibble is {}, so let's check if this is a branch", upper_nibble);
             let secondary_group = secondary_group!(inst_word);
             if (rd_index!(inst_word) == 0b111) && ((secondary_group == 0b000) || (secondary_group == 0b001)) {
-                return_inst!(4, decoded_inst, Branch_parse!(inst_word));
+                return_inst!(4, decoded_inst, dec_Branch(inst_word));
             } else {
                 log!(4, "This isn't a branch, so let's inspect the secondary group: {:#05b}", secondary_group);
                 match secondary_group {
@@ -568,10 +521,10 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
                                     a16: 0,//a16 will be filled in decode_wg2
                                 });
                             },
-                            _ => { return_inst!(6, decoded_inst, Register_parse!(inst_word)); },
+                            _ => { return_inst!(6, decoded_inst, dec_Register(inst_word)); },
                         }
                     },
-                    0b101 | 0b110 => { return_inst!(6, decoded_inst, Register_parse!(inst_word)); },
+                    0b101 | 0b110 => { return_inst!(6, decoded_inst, dec_Register(inst_word)); },
                     0b111 => {
                         return_inst!(6, decoded_inst, Direct6 {
                             op: dec_alu_op(inst_word),
@@ -723,5 +676,42 @@ fn dec_reg_from_index(reg_index: u8) -> DecodedRegister {
         0b110 => { return SR; },
         0b111 => { return PC; },
         _ => { return debug_panic!(DecodedRegister::Invalid); },//This should never occur
+    }
+}
+
+fn dec_MUL(inst_word: u16) -> DecodedInstruction {
+    return MUL {
+        s_rs: ((inst_word >> 12) & 0b1) == 0b1,
+        rd: dec_reg_from_index(rd_index!(inst_word)),
+        s_rd: ((inst_word >> 8) & 0b1) == 0b1,
+        rs: dec_reg_from_index(rs_index!(inst_word)),
+    };
+}
+
+fn dec_MULS(inst_word: u16) -> DecodedInstruction {
+    return MULS {
+        s_rs: ((inst_word >> 12) & 0b1) == 0b1,
+        rd: dec_reg_from_index(rd_index!(inst_word)),
+        s_rd: ((inst_word >> 8) & 0b1) == 0b1,
+        size: ((inst_word >> 3) & 0b1111) as u8,
+        rs: dec_reg_from_index(rs_index!(inst_word)),
+    };
+}
+
+fn dec_Branch(inst_word: u16) -> DecodedInstruction {
+    return Branch {
+        op: dec_branch_op(inst_word),
+        d: ((inst_word >> 6) & 0b1) == 0b1,
+        imm6: imm6!(inst_word),
+    };
+}
+
+fn dec_Register(inst_word: u16) -> DecodedInstruction {
+    return Register {
+        op: dec_alu_op(inst_word),
+        rd: dec_reg_from_index(rd_index!(inst_word)),
+        sft: dec_sft_op(inst_word),
+        sfc: ((inst_word >> 3) & 0b11) as u8,
+        rs: dec_reg_from_index(rs_index!(inst_word)),
     }
 }

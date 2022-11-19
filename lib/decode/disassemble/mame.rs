@@ -18,7 +18,7 @@ use crate::decode::common::*;
 
 /* Macros */
 
-macro_rules! carry_string_if_carry_mame {
+macro_rules! carry_string_if_carry {
     ($op:expr) => {{
         let string: &str;
         {
@@ -32,7 +32,7 @@ macro_rules! carry_string_if_carry_mame {
     }};
 }
 
-macro_rules! sft_op_amount_string_if_not_nop_mame {
+macro_rules! sft_op_amount_string_if_not_nop {
     ($sft:expr, $shift_amount:expr) => {{//shift_amount is sfc + 1
         let string: String;
         {
@@ -40,7 +40,7 @@ macro_rules! sft_op_amount_string_if_not_nop_mame {
             if matches!($sft, NOP) {
                 string = "".to_string();
             } else {
-                string = format!(" {} {}", sft_op_string_lower!($sft), $shift_amount);
+                string = format!(" {} {}", sft_op_string_lower($sft), $shift_amount);
             }
         }
         string
@@ -91,7 +91,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
         EXP{..} => { return "r2 = exp r4".to_string(); },
         NOP{..} => { return "nop".to_string(); },
         DS_Access{w, rs} => {
-            let reg = reg_string_lower!(*rs);
+            let reg = reg_string_lower(*rs);
             if *w {
                 return format!("ds = {}", reg);
             } else {
@@ -99,7 +99,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
             }
         },
         FR_Access{w, rs} => {
-            let reg = reg_string_lower!(*rs);
+            let reg = reg_string_lower(*rs);
             if *w {
                 return format!("fr = {}", reg);
             } else {
@@ -114,16 +114,16 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
             //To be fair, we also think that some invalid instructions are valid MULs while MAME correctly catches them as invalid (ex. 0xFF37)
             //Since those instructions should never be executed, it really don't matter though
             return format!("MR = {}*{}, {}{}",
-                reg_string_lower!(*rd),
-                reg_string_lower!(*rs),
+                reg_string_lower(*rd),
+                reg_string_lower(*rs),
                 if *s_rd { "s" } else { "u" },
                 if *s_rs { "s" } else { "u" },
             );
         },
         MULS{s_rs, rd, s_rd, size, rs} => {
             return format!("MR = [{}]*[{}], {}{}, {}",
-                reg_string_lower!(*rd),
-                reg_string_lower!(*rs),
+                reg_string_lower(*rd),
+                reg_string_lower(*rs),
                 if *s_rd { "s" } else { "u" },
                 if *s_rs { "s" } else { "u" },
                 if *size == 0 { 16 } else { *size },
@@ -131,39 +131,39 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
         },
         Register_BITOP_Rs{rd, op, rs} => {
             return format!("{} {},{}",
-                bit_op_string_lower!(*op),
-                reg_string_lower!(*rd),
-                reg_string_lower!(*rs),
+                bit_op_string_lower(*op),
+                reg_string_lower(*rd),
+                reg_string_lower(*rs),
             );
         },
         Register_BITOP_offset{rd, op, offset} => {
             return format!("{} {},{}",
-                bit_op_string_lower!(*op),
-                reg_string_lower!(*rd),
+                bit_op_string_lower(*op),
+                reg_string_lower(*rd),
                 offset,
             );
         },
         Memory_BITOP_offset{rd, d, op, offset} => {
             return format!("{} {}[{}],{}",
-                bit_op_string_lower!(*op),
+                bit_op_string_lower(*op),
                 if *d { "ds:" } else { "" },
-                reg_string_lower!(*rd),
+                reg_string_lower(*rd),
                 offset,
             );
         },
         Memory_BITOP_Rs{rd, d, op, rs} => {
             return format!("{} {}[{}],{}",
-                bit_op_string_lower!(*op),
+                bit_op_string_lower(*op),
                 if *d { "ds:" } else { "" },
-                reg_string_lower!(*rd),
-                reg_string_lower!(*rs),
+                reg_string_lower(*rd),
+                reg_string_lower(*rs),
             );
         },
         sixteen_bits_Shift{rd, op, rs} => {
             return format!("{0} = {0} {1} {2}",
-                reg_string_lower!(*rd),
-                lsft_op_string_lower!(*op),
-                reg_string_lower!(*rs),
+                reg_string_lower(*rd),
+                lsft_op_string_lower(*op),
+                reg_string_lower(*rs),
             );
         },
         RETI{..} => { return "reti".to_string(); },
@@ -176,18 +176,18 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                 STORE => {
                     return format!("[bp+{:02x}] = {}",
                         *imm6,
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                     );
                 },
                 CMP => {
                     return format!("cmp {}, [bp+{:02x}]",
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                         *imm6,
                     );
                 },
                 TEST => {
                     return format!("test {}, [bp+{:02x}]",
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                         *imm6,
                     );
                 },
@@ -199,10 +199,10 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
 
             //Assemble everything together
             return format!("{} {} [bp+{:02x}]{}",
-                reg_string_lower!(*rd),
+                reg_string_lower(*rd),
                 operator,
                 *imm6,
-                carry_string_if_carry_mame!(*op),
+                carry_string_if_carry!(*op),
             );
         },
         IMM6{op, rd, imm6} => {
@@ -213,13 +213,13 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                 STORE => { return "--".to_string(); },
                 CMP => {
                     return format!("cmp {}, {:02x}",
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                         *imm6,
                     );
                 },
                 TEST => {
                     return format!("test {}, {:02x}",
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                         *imm6,
                     );
                 },
@@ -231,10 +231,10 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
 
             //Assemble everything together
             return format!("{} {} {:02x}{}",
-                reg_string_lower!(*rd),
+                reg_string_lower(*rd),
                 operator,
                 *imm6,
-                carry_string_if_carry_mame!(*op),
+                carry_string_if_carry!(*op),
             );
         },
         Branch{op, d, imm6} => {
@@ -269,18 +269,18 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
             }
 
             return format!("{} {}, {} {} [{}]",
-                stack_op_string_lower!(*op),
-                reg_string_by_index_lower!(first_index),
-                reg_string_by_index_lower!(second_index),
+                stack_op_string_lower(*op),
+                reg_string_by_index_lower(first_index),
+                reg_string_by_index_lower(second_index),
                 if matches!(op, PUSH) { "to" } else { "from" },
-                reg_string_lower!(*rs),
+                reg_string_lower(*rs),
             );
         },
         DS_Indirect{op, rd, d, at, rs} => {
             use crate::decode::DecodedALUOp::*;
 
             let ds_string_if_d: &str = if *d { "ds:" } else { "" };
-            let mut rs_string: String = reg_string_lower!(*rs).to_string();
+            let mut rs_string: String = reg_string_lower(*rs).to_string();
             match *at {
                 crate::decode::DecodedAtOp::NOP => {},//Just leave it as-is
                 crate::decode::DecodedAtOp::PostDecrement => { rs_string.push_str("--"); },
@@ -295,19 +295,19 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                     return format!("{}[{}] = {}",
                         ds_string_if_d,
                         rs_string,
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                     );
                 },
                 CMP => {
                     return format!("cmp {}, {}[{}]",
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                         ds_string_if_d,
                         rs_string,
                     );
                 },
                 TEST => {
                     return format!("test {}, {}[{}]",
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                         ds_string_if_d,
                         rs_string,
                     );
@@ -320,11 +320,11 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
 
             //Assemble everything together
             return format!("{} {} {}[{}]{}",
-                reg_string_lower!(*rd),
+                reg_string_lower(*rd),
                 operator,
                 ds_string_if_d,
                 rs_string,
-                carry_string_if_carry_mame!(*op),
+                carry_string_if_carry!(*op),
             );
         },
         IMM16{op, rd, rs, imm16} => {
@@ -334,26 +334,26 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
             match *op {
                 LOAD => {
                     return format!("{} = {:04x}",
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                         *imm16,
                     );
                 },
                 STORE => { return "--".to_string(); },
                 NEG => {
                     return format!("{} = -{:04x}",
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                         *imm16,
                     );
                 },
                 CMP => {
                     return format!("cmp {}, {:04x}",
-                        reg_string_lower!(*rs),//TODO is this rs or rd?
+                        reg_string_lower(*rs),//TODO is this rs or rd?
                         *imm16,
                     );
                 },
                 TEST => {
                     return format!("test {}, {:04x}",
-                        reg_string_lower!(*rs),//TODO is this rs or rd?
+                        reg_string_lower(*rs),//TODO is this rs or rd?
                         *imm16,
                     );
                 },
@@ -361,25 +361,15 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
             }
 
             //Normal ones: get the operator
-            let operator: &str;
-            match *op {
-                ADD | ADC => { operator = "+"; },
-                SUB | SBC => { operator = "-"; },
-                XOR => { operator = "^"; },
-                OR => { operator = "|"; },
-                AND => { operator = "&"; },
-                NEG | LOAD | CMP | TEST | STORE => { operator = debug_panic!(""); },
-
-                Invalid => { operator = "(invalid)"; },
-            }
+            let operator: &str = alu_op_string(*op);
 
             //Assemble everything together
             return format!("{} = {} {} {:04x}{}",
-                reg_string_lower!(*rd),
-                reg_string_lower!(*rs),
+                reg_string_lower(*rd),
+                reg_string_lower(*rs),
                 operator,
                 *imm16,
-                carry_string_if_carry_mame!(*op),
+                carry_string_if_carry!(*op),
             );
         },
         Direct16{op, rd, w, rs, a16} => {
@@ -392,7 +382,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                         return "--".to_string();
                     } else {
                         return format!("{} = [{:04x}]",
-                            reg_string_lower!(*rd),
+                            reg_string_lower(*rd),
                             *a16,
                         );
                     }
@@ -401,7 +391,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                     if *w {
                         return format!("[{:04x}] = {}",
                             *a16,
-                            reg_string_lower!(*rs),
+                            reg_string_lower(*rs),
                         );
                     } else {
                         return "--".to_string();
@@ -411,11 +401,11 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                     if *w {
                         return format!("[{:04x}] = -{}",
                             *a16,
-                            reg_string_lower!(*rs),
+                            reg_string_lower(*rs),
                         );
                     } else {
                         return format!("{} = -[{:04x}]",
-                            reg_string_lower!(*rs),
+                            reg_string_lower(*rs),
                             *a16,
                         );
                     }
@@ -425,7 +415,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                         return "TODO".to_string();//In this case, should it be cmp Rd, Rs?
                     } else {
                         return format!("cmp {}, [{:04x}]",
-                            reg_string_lower!(*rs),
+                            reg_string_lower(*rs),
                             *a16,
                         );
                     }
@@ -435,7 +425,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                         return "TODO".to_string();//In this case, should it be test Rd, Rs?
                     } else {
                         return format!("test {}, [{:04x}]",
-                            reg_string_lower!(*rs),
+                            reg_string_lower(*rs),
                             *a16,
                         );
                     }
@@ -444,17 +434,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
             }
 
             //Normal ones: get the operator
-            let operator: &str;
-            match *op {
-                ADD | ADC => { operator = "+"; },
-                SUB | SBC => { operator = "-"; },
-                XOR => { operator = "^"; },
-                OR => { operator = "|"; },
-                AND => { operator = "&"; },
-                NEG | LOAD | CMP | TEST | STORE => { operator = debug_panic!(""); },
-
-                Invalid => { operator = "(invalid)"; },
-            }
+            let operator: &str = alu_op_string(*op);
 
             //Assemble everything together
             if *w {
@@ -464,18 +444,18 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                 //This dosn't matter for and, but for things like CMP, subtraction, etc. it is a problem
                 return format!("[{:04x}] = {} {} {}{}",
                     *a16,
-                    reg_string_lower!(*rd),
+                    reg_string_lower(*rd),
                     operator,
-                    reg_string_lower!(*rs),
-                    carry_string_if_carry_mame!(*op),
+                    reg_string_lower(*rs),
+                    carry_string_if_carry!(*op),
                 );
             } else {
                 return format!("{} = {} {} [{:04x}]{}",
-                    reg_string_lower!(*rd),
-                    reg_string_lower!(*rs),
+                    reg_string_lower(*rd),
+                    reg_string_lower(*rs),
                     operator,
                     *a16,
-                    carry_string_if_carry_mame!(*op),
+                    carry_string_if_carry!(*op),
                 );
             }
         },
@@ -487,18 +467,18 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                 STORE => {
                     return format!("[{:02x}] = {}",
                         *a6,
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                     );
                 },
                 CMP => {
                     return format!("cmp {}, [{:02x}]",
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                         *a6,
                     );
                 },
                 TEST => {
                     return format!("test {}, [{:02x}]",
-                        reg_string_lower!(*rd),
+                        reg_string_lower(*rd),
                         *a6,
                     );
                 },
@@ -510,10 +490,10 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
 
             //Assemble everything together
             return format!("{} {} [{:02x}]{}",
-                reg_string_lower!(*rd),
+                reg_string_lower(*rd),
                 operator,
                 *a6,
-                carry_string_if_carry_mame!(*op),
+                carry_string_if_carry!(*op),
             );
         },
         Register{op, rd, sft, sfc, rs} => {
@@ -526,16 +506,16 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                 STORE => { return "--".to_string(); },
                 CMP => {
                     return format!("cmp {}, {}{}",
-                        reg_string_lower!(*rd),
-                        reg_string_lower!(*rs),
-                        sft_op_amount_string_if_not_nop_mame!(*sft, shift_amount)
+                        reg_string_lower(*rd),
+                        reg_string_lower(*rs),
+                        sft_op_amount_string_if_not_nop!(*sft, shift_amount)
                     );
                 },
                 TEST => {
                     return format!("test {}, {}{}",
-                        reg_string_lower!(*rd),
-                        reg_string_lower!(*rs),
-                        sft_op_amount_string_if_not_nop_mame!(*sft, shift_amount)
+                        reg_string_lower(*rd),
+                        reg_string_lower(*rs),
+                        sft_op_amount_string_if_not_nop!(*sft, shift_amount)
                     );
                 },
                 _ => {},//Continue on
@@ -546,11 +526,11 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
 
             //Assemble everything together
             return format!("{} {} {}{}{}",
-                reg_string_lower!(*rd),
+                reg_string_lower(*rd),
                 operator,
-                reg_string_lower!(*rs),
-                sft_op_amount_string_if_not_nop_mame!(*sft, shift_amount),
-                carry_string_if_carry_mame!(*op),
+                reg_string_lower(*rs),
+                sft_op_amount_string_if_not_nop!(*sft, shift_amount),
+                carry_string_if_carry!(*op),
             );
         },
 
@@ -592,6 +572,20 @@ fn auto_alu_op_string(op: DecodedALUOp) -> &'static str {
         OR => { return "|="; },
         AND => { return "&="; },
         CMP | TEST | STORE => { return debug_panic!(""); },
+
+        Invalid => { return "(invalid)"; },
+    }
+}
+
+fn alu_op_string(op: DecodedALUOp) -> &'static str {
+    use DecodedALUOp::*;
+    match op {
+        ADD | ADC => { return "+"; },
+        SUB | SBC => { return "-"; },
+        XOR => { return "^"; },
+        OR => { return "|"; },
+        AND => { return "&"; },
+        NEG | LOAD | CMP | TEST | STORE => { return debug_panic!(""); },
 
         Invalid => { return "(invalid)"; },
     }
