@@ -89,7 +89,7 @@ fn main() {
     eprint!("{}", addr_width);
 
     let mut byte_buffer: Box<[u8]> = vec![0u8; metadata.len() as usize].into_boxed_slice();//TODO avoid overhead of zeroing out contents, as well as overhead of needing to copy to buffer instead of reading to it directly
-    let bytes_read = input_file.read(&mut byte_buffer).unwrap();
+    input_file.read(&mut byte_buffer).unwrap();
 
     //Disassembly loop (Files are little-endian)
     let mut addr: usize = 0;

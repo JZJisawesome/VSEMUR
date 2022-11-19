@@ -7,6 +7,8 @@
 
 //!Holds information about the libvsemur library for compatibilty, versioning, and licensing
 
+//Note: we use static so that the values that aren't functions can be accessed through their memory addresses (allows for symbol lookup/future compatibilty)
+
 ///libvsemur version information
 pub mod version {
     ///str of libvsemur's semantic version
