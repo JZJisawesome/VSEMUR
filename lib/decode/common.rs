@@ -61,6 +61,50 @@ macro_rules! reg_string_lower {
 }
 pub(super) use reg_string_lower;
 
+macro_rules! reg_string_by_index {
+    ($index:expr) => {{
+        let string: &str;
+        {
+            match $index  {
+                0b000 => { string = "SP"; },
+                0b001 => { string = "R1"; },
+                0b010 => { string = "R2"; },
+                0b011 => { string = "R3"; },
+                0b100 => { string = "R4"; },
+                0b101 => { string = "BP"; },
+                0b110 => { string = "SR"; },
+                0b111 => { string = "PC"; },
+
+                _ => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+pub(super) use reg_string_by_index;
+
+macro_rules! reg_string_by_index_lower {
+    ($index:expr) => {{
+        let string: &str;
+        {
+            match $index  {
+                0b000 => { string = "sp"; },
+                0b001 => { string = "r1"; },
+                0b010 => { string = "r2"; },
+                0b011 => { string = "r3"; },
+                0b100 => { string = "r4"; },
+                0b101 => { string = "bp"; },
+                0b110 => { string = "sr"; },
+                0b111 => { string = "pc"; },
+
+                _ => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+pub(super) use reg_string_by_index_lower;
+
 macro_rules! bit_op_string {
     ($op:expr) => {{
         let string: &str;
@@ -186,6 +230,40 @@ macro_rules! sft_op_string_lower {
     }};
 }
 pub(super) use sft_op_string_lower;
+
+macro_rules! stack_op_string {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::decode::DecodedStackOp::*;
+            match $op {
+                PUSH => { string = "PUSH"; },
+                POP => { string = "POP"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+pub(super) use stack_op_string;
+
+macro_rules! stack_op_string_lower {
+    ($op:expr) => {{
+        let string: &str;
+        {
+            use crate::decode::DecodedStackOp::*;
+            match $op {
+                PUSH => { string = "push"; },
+                POP => { string = "pop"; },
+
+                Invalid => { string = "(invalid)"; }
+            }
+        }
+        string
+    }};
+}
+pub(super) use stack_op_string_lower;
 
 /* Static Variables */
 

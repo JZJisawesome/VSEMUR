@@ -94,22 +94,6 @@ macro_rules! branch_op_string {
     }};
 }
 
-macro_rules! stack_op_string {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedStackOp::*;
-            match $op {
-                PUSH => { string = "PUSH"; },
-                POP => { string = "POP"; },
-
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
-}
-
 macro_rules! at_op_string {
     ($op:expr) => {{
         let string: &str;

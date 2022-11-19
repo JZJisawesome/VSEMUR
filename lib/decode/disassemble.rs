@@ -111,6 +111,8 @@ macro_rules! sft_op_amount_string_if_not_nop_mame {
 
 /* Functions */
 
+//TODO move to their own modules
+
 pub fn disassemble_jekel_style(decoded_inst: &DecodedInstruction) -> String {//WIP
     match decoded_inst {
         DSI6{imm6} => { return format!("dsi6 {:#04X}", *imm6); },
@@ -376,7 +378,39 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                 if *d { addr - (*imm6 as u32) + 1 } else { addr + (*imm6 as u32) + 1 },
             );
         },//FIXME what about wrapping (underflow)?
-        Stack_Operation{..} => { return "Stack_Operation TODO".to_string(); },
+        Stack_Operation{op, rd_index, size, rs} => {
+            use super::DecodedStackOp::*;
+
+            let first_index;
+            let second_index;
+            match *op {
+                PUSH => {
+                    if *size <= (*rd_index + 1) {
+                        first_index = *rd_index + 1 - *size;
+                        second_index = *rd_index;
+                    } else {
+                        return "--".to_string();
+                    }
+                },
+                POP => {
+                    first_index = *rd_index + 1;
+                    second_index = *rd_index + *size;
+                },
+                _ => { return "--".to_string(); }
+            }
+
+            if (first_index > 0b111) || (second_index > 0b111) {
+                return "--".to_string();
+            }
+
+            return format!("{} {}, {} {} [{}]",
+                stack_op_string_lower!(*op),
+                reg_string_by_index_lower!(first_index),
+                reg_string_by_index_lower!(second_index),
+                if matches!(op, PUSH) { "to" } else { "from" },
+                reg_string_lower!(*rs),
+            );
+        },
         DS_Indirect{op, rd, d, at, rs} => {
             use super::DecodedALUOp::*;
 
