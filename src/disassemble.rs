@@ -3,9 +3,12 @@
  *
  * Command-line frontend for exposed libvsemur disassembler facilities
  *
+ * A great way to validate the correctness of VSEMUR's decode logic by comparing the output to MAME's unidasm
 */
 
 //!Command-line frontend for exposed libvsemur disassembler facilities
+//!
+//!A great way to validate the correctness of VSEMUR's decode logic by comparing the output to MAME's unidasm
 
 /* Imports */
 

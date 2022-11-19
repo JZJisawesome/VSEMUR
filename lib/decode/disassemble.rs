@@ -203,7 +203,7 @@ pub fn disassemble_generalplus_style(decoded_inst: &DecodedInstruction) -> Strin
 pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> String {
     use super::common::*;
     match decoded_inst {
-        DSI6{imm6} => { return format!("ds = {:04x}", *imm6); },
+        DSI6{imm6} => { return format!("ds = {:02x}", *imm6); },
         CALL{a22} => { return format!("call {:06x}", *a22); },
         JMPF{a22} => { return format!("goto {:06x}", *a22); },
         JMPR{..} => { return "goto mr".to_string(); },
@@ -375,9 +375,59 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                 branch_op_string_mame!(*op),
                 if *d { addr - (*imm6 as u32) + 1 } else { addr + (*imm6 as u32) + 1 },
             );
-        },//FIXME what about wrapping?
+        },//FIXME what about wrapping (underflow)?
         Stack_Operation{..} => { return "Stack_Operation TODO".to_string(); },
-        DS_Indirect{..} => { return "DS_Indirect TODO".to_string(); },
+        DS_Indirect{op, rd, d, at, rs} => {
+            use super::DecodedALUOp::*;
+
+            let ds_string_if_d: &str = if *d { "ds:" } else { "" };
+            let mut rs_string: String = reg_string_lower!(*rs).to_string();
+            match *at {
+                super::DecodedAtOp::NOP => {},//Just leave it as-is
+                super::DecodedAtOp::PostDecrement => { rs_string.push_str("--"); },
+                super::DecodedAtOp::PostIncrement => { rs_string.push_str("++"); },
+                super::DecodedAtOp::PreIncrement => { rs_string = "++".to_string() + &rs_string; },
+                super::DecodedAtOp::Invalid => { debug_panic!(); }
+            }
+
+            //Handle special cases
+            match *op {
+                STORE => {
+                    return format!("{}[{}] = {}",
+                        ds_string_if_d,
+                        rs_string,
+                        reg_string_lower!(*rd),
+                    );
+                },
+                CMP => {
+                    return format!("cmp {}, {}[{}]",
+                        reg_string_lower!(*rd),
+                        ds_string_if_d,
+                        rs_string,
+                    );
+                },
+                TEST => {
+                    return format!("test {}, {}[{}]",
+                        reg_string_lower!(*rd),
+                        ds_string_if_d,
+                        rs_string,
+                    );
+                },
+                _ => {},//Continue on
+            }
+
+            //Normal ones: get the operator
+            let operator: &str = auto_alu_op_string_mame!(*op);
+
+            //Assemble everything together
+            return format!("{} {} {}[{}]{}",
+                reg_string_lower!(*rd),
+                operator,
+                ds_string_if_d,
+                rs_string,
+                carry_string_if_carry_mame!(*op),
+            );
+        },
         IMM16{op, rd, rs, imm16} => {
             use super::DecodedALUOp::*;
 
@@ -443,7 +493,7 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                         return "--".to_string();
                     } else {
                         return format!("{} = [{:04x}]",
-                            reg_string_lower!(*rs),
+                            reg_string_lower!(*rd),
                             *a16,
                         );
                     }
@@ -508,13 +558,27 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
             }
 
             //Assemble everything together
-            return format!("{} = {} {} [{:04x}]{}",
-                reg_string_lower!(*rd),
-                reg_string_lower!(*rs),
-                operator,
-                *a16,
-                carry_string_if_carry_mame!(*op),
-            );
+            if *w {
+                //NOTE: MAME says that rs should come before rd, but I believe this is a bug in MAME
+                //Ex, the instruction 0xb91b 0x2075 is AND, has the W bit set, rd is 0b100, rs is 0b011, and A16 is 0x2075
+                //We print [2075] = r4 & r3, but MAME prints [2075] = r3 & r4
+                //This dosn't matter for and, but for things like CMP, subtraction, etc. it is a problem
+                return format!("[{:04x}] = {} {} {}{}",
+                    *a16,
+                    reg_string_lower!(*rd),
+                    operator,
+                    reg_string_lower!(*rs),
+                    carry_string_if_carry_mame!(*op),
+                );
+            } else {
+                return format!("{} = {} {} [{:04x}]{}",
+                    reg_string_lower!(*rd),
+                    reg_string_lower!(*rs),
+                    operator,
+                    *a16,
+                    carry_string_if_carry_mame!(*op),
+                );
+            }
         },
         Direct6{op, rd, a6} => {
             use super::DecodedALUOp::*;
@@ -528,13 +592,13 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
                     );
                 },
                 CMP => {
-                    return format!("cmp {}, {:02x}",
+                    return format!("cmp {}, [{:02x}]",
                         reg_string_lower!(*rd),
                         *a6,
                     );
                 },
                 TEST => {
-                    return format!("test {}, {:02x}",
+                    return format!("test {}, [{:02x}]",
                         reg_string_lower!(*rd),
                         *a6,
                     );
