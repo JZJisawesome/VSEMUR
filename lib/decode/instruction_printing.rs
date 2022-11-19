@@ -39,79 +39,59 @@ macro_rules! log_inst {
 }
 pub(super) use log_inst;
 
-//TODO turn macros after this point into functions
-//Also move to common
-macro_rules! alu_op_string {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedALUOp::*;
-            match $op {
-                ADD => { string = "ADD"; },
-                ADC => { string = "ADC"; },
-                SUB => { string = "SUB"; },
-                SBC => { string = "SBC"; },
-                CMP => { string = "CMP"; },
-                NEG => { string = "NEG"; },
-                XOR => { string = "XOR"; },
-                LOAD => { string = "LOAD"; },
-                OR => { string = "OR"; },
-                AND => { string = "AND"; },
-                TEST => { string = "TEST"; },
-                STORE => { string = "STORE"; },
+fn alu_op_string(op: super::DecodedALUOp) -> &'static str {
+    use super::DecodedALUOp::*;
+    match op {
+        ADD => { return "ADD"; },
+        ADC => { return "ADC"; },
+        SUB => { return "SUB"; },
+        SBC => { return "SBC"; },
+        CMP => { return "CMP"; },
+        NEG => { return "NEG"; },
+        XOR => { return "XOR"; },
+        LOAD => { return "LOAD"; },
+        OR => { return "OR"; },
+        AND => { return "AND"; },
+        TEST => { return "TEST"; },
+        STORE => { return "STORE"; },
 
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
+        Invalid => { return "(invalid)"; }
+    }
 }
 
-macro_rules! branch_op_string {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedBranchOp::*;
-            match $op {
-                JCC_JB_JNAE => { string = "JCC/JB/JNAE"; },
-                JCS_JNB_JAE => { string = "JCS/JNB/JAE"; },
-                JSC_JGE_JNL => { string = "JSC/JGE/JNL"; },
-                JSS_JNGE_JL => { string = "JSS/JNGE/JL"; },
-                JNE_JNZ => { string = "JNE/JNZ"; },
-                JZ_JE => { string = "JZ/JE"; },
-                JPL => { string = "JPL"; },
-                JMI => { string = "JMI"; },
-                JBE_JNA => { string = "JBE/JNA"; },
-                JNBE_JA => { string = "JNBE/JA"; },
-                JLE_JNG => { string = "JLE/JNG"; },
-                JNLE_JG => { string = "JNLE/JG"; },
-                JVC => { string = "JVC"; },
-                JVS => { string = "JVS"; },
-                JMP => { string = "JMP"; },
+fn branch_op_string(op: super::DecodedBranchOp) -> &'static str {
+    use super::DecodedBranchOp::*;
+    match op {
+        JCC_JB_JNAE => { return "JCC/JB/JNAE"; },
+        JCS_JNB_JAE => { return "JCS/JNB/JAE"; },
+        JSC_JGE_JNL => { return "JSC/JGE/JNL"; },
+        JSS_JNGE_JL => { return "JSS/JNGE/JL"; },
+        JNE_JNZ => { return "JNE/JNZ"; },
+        JZ_JE => { return "JZ/JE"; },
+        JPL => { return "JPL"; },
+        JMI => { return "JMI"; },
+        JBE_JNA => { return "JBE/JNA"; },
+        JNBE_JA => { return "JNBE/JA"; },
+        JLE_JNG => { return "JLE/JNG"; },
+        JNLE_JG => { return "JNLE/JG"; },
+        JVC => { return "JVC"; },
+        JVS => { return "JVS"; },
+        JMP => { return "JMP"; },
 
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
+        Invalid => { return "(invalid)"; }
+    }
 }
 
-macro_rules! at_op_string {
-    ($op:expr) => {{
-        let string: &str;
-        {
-            use crate::decode::DecodedAtOp::*;
-            match $op {
-                NOP => { string = "Rs"; },
-                PostDecrement => { string = "Rs--"; },
-                PostIncrement => { string = "Rs++"; },
-                PreIncrement => { string = "++Rs"; },
+fn at_op_string(op: super::DecodedAtOp) -> &'static str {
+    use super::DecodedAtOp::*;
+    match op {
+        NOP => { return "Rs"; },
+        PostDecrement => { return "Rs--"; },
+        PostIncrement => { return "Rs++"; },
+        PreIncrement => { return "++Rs"; },
 
-                Invalid => { string = "(invalid)"; }
-            }
-        }
-        string
-    }};
+        Invalid => { return "(invalid)"; }
+    }
 }
 
 //TODO (also pub(crate) use the_macro statements here too)
@@ -250,19 +230,19 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::decode::DecodedIns
             RETF => { log_finln!("RETF"); },
             Base_plus_Disp6{op, rd, imm6} => {
                 log_finln!("Base+Disp6");
-                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "OP: {}", alu_op_string(*op));
                 log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log_data!(indent + 1, "IMM6", *imm6);
             },
             IMM6{op, rd, imm6} => {
                 log_finln!("IMM6");
-                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "OP: {}", alu_op_string(*op));
                 log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log_data!(indent + 1, "IMM6", *imm6);
             },
             Branch{op, d, imm6} => {
                 log_finln!("Branch");
-                log!(indent + 1, "OP: {}", branch_op_string!(*op));
+                log!(indent + 1, "OP: {}", branch_op_string(*op));
                 log!(indent + 1, "D: {}", *d);
                 log_data!(indent + 1, "IMM6", *imm6);
             },
@@ -275,22 +255,22 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::decode::DecodedIns
             },
             DS_Indirect{op, rd, d, at, rs} => {
                 log_finln!("DS_Indirect");
-                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "OP: {}", alu_op_string(*op));
                 log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log!(indent + 1, "D: {}", *d);
-                log!(indent + 1, "@: {}", at_op_string!(*at));
+                log!(indent + 1, "@: {}", at_op_string(*at));
                 log!(indent + 1, "Rs: {}", reg_string(*rs));
             },
             IMM16{op, rd, rs, imm16} => {
                 log_finln!("IMM16");
-                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "OP: {}", alu_op_string(*op));
                 log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log!(indent + 1, "Rs: {}", reg_string(*rs));
                 log_data!(indent + 1, "IMM16", *imm16);
             },
             Direct16{op, rd, rs, w, a16} => {
                 log_finln!("Direct16");
-                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "OP: {}", alu_op_string(*op));
                 log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log!(indent + 1, "Rs: {}", reg_string(*rs));
                 log!(indent + 1, "W: {}", *w);
@@ -298,13 +278,13 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::decode::DecodedIns
             },
             Direct6{op, rd, a6} => {
                 log_finln!("Direct6");
-                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "OP: {}", alu_op_string(*op));
                 log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log!(indent + 1, "A6: {:#04X}", *a6);
             },
             Register{op, rd, sft, sfc, rs} => {
                 log_finln!("Register");
-                log!(indent + 1, "OP: {}", alu_op_string!(*op));
+                log!(indent + 1, "OP: {}", alu_op_string(*op));
                 log!(indent + 1, "Rd: {}", reg_string(*rd));
                 log!(indent + 1, "SFT: {}", sft_op_string(*sft));
                 log_data!(indent + 1, "SFC", *sfc);
@@ -314,5 +294,6 @@ pub(super) fn log_inst_func(indent: u8, decoded_inst: &crate::decode::DecodedIns
             Invalid{..} => { log_finln!("(invalid)"); },
         }
     }
-    log!(indent + 1, "Assembly: {}", crate::decode::disassemble_jekel_style(decoded_inst));
+    //log!(indent + 1, "Assembly: {}", crate::decode::disassemble_jekel_style(decoded_inst));//TODO use this once jekel style is implemented
+    log!(indent + 1, "Assembly: {}", crate::decode::disassemble_mame_style(decoded_inst, false, 0));
 }

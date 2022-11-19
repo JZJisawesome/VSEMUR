@@ -62,7 +62,7 @@ macro_rules! sft_op_amount_string_if_not_nop {
 /* Functions */
 
 //Not perfect (ex. because unlike MAME we only really have one kind of bad instruction), but aims to be reasonably close
-pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> String {
+pub fn disassemble_mame_style(decoded_inst: &DecodedInstruction, use_addr: bool, addr: u32) -> String {
     match decoded_inst {
         DSI6{imm6} => { return format!("ds = {:02x}", *imm6); },
         CALL{a22} => { return format!("call {:06x}", *a22); },
@@ -238,11 +238,27 @@ pub fn disassemble_mame_style(addr: u32, decoded_inst: &DecodedInstruction) -> S
             );
         },
         Branch{op, d, imm6} => {
-            return format!("{} {:04x}",
-                branch_op_string(*op),
-                if *d { addr - (*imm6 as u32) + 1 } else { addr + (*imm6 as u32) + 1 },
-            );
-        },//FIXME what about wrapping (underflow)?
+            if use_addr {
+                if (((*imm6 as u32) <= (addr + 1)) && *d) || (!*d) {
+                    return format!("{} {:04x}",
+                        branch_op_string(*op),
+                        if *d { addr + 1 - (*imm6 as u32) } else { addr + (*imm6 as u32) + 1 },
+                    );
+                } else {
+                    return format!("{} back 0x{:02x}",//TODO do this properly how MAME does
+                        branch_op_string(*op),
+                        *imm6,
+                    );
+                }
+            } else {
+                //This isn't MAME style at all
+                return format!("{} {} 0x{:02x}",
+                    branch_op_string(*op),
+                    if *d { "back" } else { "forward" },
+                    *imm6,
+                );
+            }
+        },
         Stack_Operation{op, rd_index, size, rs} => {
             use crate::decode::DecodedStackOp::*;
 

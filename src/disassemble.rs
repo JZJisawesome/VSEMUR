@@ -112,7 +112,7 @@ fn main() {
                 addr,
                 wg1,
                 wg2,
-                vsemur::decode::disassemble_mame_style(addr as u32, &decoded_inst),//TODO switch between this and other styles based on a command line param
+                vsemur::decode::disassemble_mame_style(&decoded_inst, true, addr as u32),//TODO switch between this and other styles based on a command line param
                 width = addr_width).unwrap();
 
             //Increment the address
@@ -122,7 +122,7 @@ fn main() {
             writeln!(&mut output_file_buffer, "{:0width$x}: {:04x}       {}",
                 addr,
                 wg1,
-                vsemur::decode::disassemble_mame_style(addr as u32, &decoded_inst),
+                vsemur::decode::disassemble_mame_style(&decoded_inst, true, addr as u32),
                 width = addr_width).unwrap();
 
             //Increment the address
