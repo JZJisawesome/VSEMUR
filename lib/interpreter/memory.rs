@@ -43,6 +43,8 @@ pub(super) struct MemoryState {
     bios: Box<[u16]>,
     rom: Box<[u16]>,
     mem: Box<[u16]>,
+
+    //peripherals_accessed_since_last_tick: bool,//TODO come up with a scheme for dealing with peripheral registers
 }
 
 /* Associated Functions and Methods */
@@ -128,7 +130,12 @@ impl MemoryState {
     pub(super) fn read_addr(self: &Self, addr: u32) -> u16 {
         debug_assert!((addr as usize) < MEM_SIZE_WORDS);
 
-        debug_assert!((addr <= 0x3e03) || (addr >= 0x8000));//According to MAME, this is the highest address of a peripheral in the system; 0x8000 is the start of the bios
+        //debug_assert!((addr <= 0x3e03) || (addr >= 0x8000));//According to MAME, this is the highest address of a peripheral in the system; 0x8000 is the start of the bios
+
+        if (addr >= 0x2800) && (addr <= 0x7FFF) {//TESTING
+            log_ansi!(0, "\x1b[31m", "Read from location outside of memory or bios/rom: {:#06X}", addr);
+        }
+
         return self.mem[addr as usize];
     }
 
@@ -139,7 +146,13 @@ impl MemoryState {
 
     pub(super) fn write_addr(self: &mut Self, data: u16, addr: u32) {
         debug_assert!((addr as usize) < MEM_SIZE_WORDS);
-        debug_assert!(addr <= 0x3e03);//According to MAME, this is the highest address of a peripheral in the system
+        //debug_assert!(addr <= 0x3e03);//According to MAME, this is the highest address of a peripheral in the system
+
+
+        if addr >= 0x2800 {//TESTING
+            log_ansi!(0, "\x1b[31m", "Write to location outside of memory: {:#06X}", addr);
+        }
+
         self.mem[addr as usize] = data;
     }
 

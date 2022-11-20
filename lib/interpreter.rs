@@ -59,7 +59,7 @@
 /* Imports */
 
 mod cpu;
-mod input;
+mod io;
 mod memory;
 mod render;
 mod sound;
@@ -97,7 +97,7 @@ pub struct State {
     cpu: cpu::CPUState,
     render: render::RenderState,
     sound: sound::SoundState,
-    input: input::InputState,
+    io: io::IOState,
     mem: memory::MemoryState,
 }
 
@@ -143,7 +143,7 @@ impl State {
             cpu: cpu::CPUState::new(),
             render: render::RenderState::new(),
             sound: sound::SoundState::new(),
-            input: input::InputState::new(),
+            io: io::IOState::new(),
             mem: memory::MemoryState::new(),
         };
 
@@ -171,7 +171,7 @@ impl State {
         self.cpu.reset(&mut self.mem);
         self.render.reset(&mut self.mem);
         self.sound.reset();
-        self.input.reset();
+        self.io.reset(&mut self.mem);
 
         log!(0, "Reset complete");
         self.reset_needed = false;
@@ -204,6 +204,7 @@ impl State {
         self.cpu.tick(&mut self.mem);
         self.render.tick(&mut self.mem);
         self.sound.tick();
+        self.io.tick(&mut self.mem);
 
         log!(0, "Tick ends");
         return ReturnCode::TickOk;
