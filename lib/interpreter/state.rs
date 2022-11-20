@@ -12,7 +12,23 @@ use super::*;
 
 /* Constants */
 
-//TODO
+//TODO deal with banking
+
+//All inclusive
+const WORK_RAM_BEGIN_ADDR: u32 = 0x000000;
+const WORK_RAM_END_ADDR: u32 = 0x0027FF;
+const RENDER_BEGIN_ADDR: u32 = 0x002800;
+const RENDER_END_ADDR: u32 = 0x002FFF;
+const SOUND_BEGIN_ADDR: u32 = 0x003000;
+const SOUND_END_ADDR: u32 = 0x0037FF;
+const IO_BEGIN_ADDR: u32 = 0x003D00;
+const IO_END_ADDR: u32 = 0x003DFF;
+const DMA_BEGIN_ADDR: u32 = 0x003E00;
+const DMA_END_ADDR: u32 = 0x003E03;
+const BIOS_BEGIN_ADDR: u32 = 0x003E04;//TODO figure out what this is
+const BIOS_END_ADDR: u32 = 0x0FFFFF;//TODO figure out what this is
+const ROM_BEGIN_ADDR: u32 = 0x100000;//TODO figure out what this is
+const ROM_END_ADDR: u32 = 0x3FFFFF;//TODO figure out what this is
 
 /* Macros */
 
@@ -208,32 +224,46 @@ impl State {
 
     pub(super) fn read_addr(self: &Self, addr: u32) -> u16 {
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
-        match addr {//TODO define these ranges elsewhere using constants for consistency
-            0x000000..=0x0027FF => { todo!(); },//TODO main physical memory
-            0x002800..=0x002FFF => { todo!(); },//TODO renderer registers and memory (further split in render.rs and its submodules)
-            0x003000..=0x0037FF => { todo!(); },//TODO sound registers (further split in sound.rs and its submodules)
-            //TODO extra unused address space
-            0x003D00..=0x003DFF => { todo!(); },//TODO i/o registers (further split in io.rs and its submodules)
-            0x003E00..=0x003E03 => { todo!(); },//TODO dma
-            //TODO extra unused address space
-            //TODO BIOS/ROM/NVRAM addresses
-            _ => { return debug_panic!(0); },//Invalid address
+
+        if (addr >= 0x2800) && (addr <= 0x7FFF) {//TESTING
+            log_ansi!(0, "\x1b[31m", "Read from location outside of memory or bios/rom: {:#06X}", addr);
         }
+        //TODO for now we only read from memory
+        return self.mem.read_addr(addr);
+        /*match addr {
+            WORK_RAM_BEGIN_ADDR..=WORK_RAM_END_ADDR => { todo!(); },
+            RENDER_BEGIN_ADDR..=RENDER_END_ADDR => { todo!(); },
+            SOUND_BEGIN_ADDR..=SOUND_END_ADDR => { todo!(); },
+            IO_BEGIN_ADDR..=IO_END_ADDR => { todo!(); },
+            DMA_BEGIN_ADDR..=DMA_END_ADDR => { todo!(); },
+            BIOS_BEGIN_ADDR..=BIOS_END_ADDR => { todo!(); },
+            ROM_BEGIN_ADDR..=ROM_END_ADDR => { todo!(); },
+            _ => { return debug_panic!(0); },//Invalid address or access to unallocated address space
+        }
+        */
     }
 
     pub(super) fn write_addr(self: &mut Self, addr: u32, data: u16) {
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
-        match addr {//TODO define these ranges elsewhere using constants for consistency
-            0x000000..=0x0027FF => { todo!(); },//TODO main physical memory
-            0x002800..=0x002FFF => { todo!(); },//TODO renderer registers and memory (further split in render.rs and its submodules)
-            0x003000..=0x0037FF => { todo!(); },//TODO sound registers (further split in sound.rs and its submodules)
-            //TODO extra unused address space
-            0x003D00..=0x003DFF => { todo!(); },//TODO i/o registers (further split in io.rs and its submodules)
-            0x003E00..=0x003E03 => { todo!(); },//TODO dma
-            //TODO extra unused address space
-            //TODO BIOS/ROM/NVRAM addresses
-            _ => { debug_panic!(); },//Invalid address
+
+                if addr >= 0x2800 {//TESTING
+            log_ansi!(0, "\x1b[31m", "Write to location outside of memory: {:#06X}", addr);
         }
+
+        //TODO for now we only write to memory
+        return self.mem.write_addr(data, addr);
+
+        /*match addr {
+            WORK_RAM_BEGIN_ADDR..=WORK_RAM_END_ADDR => { todo!(); },
+            RENDER_BEGIN_ADDR..=RENDER_END_ADDR => { todo!(); },
+            SOUND_BEGIN_ADDR..=SOUND_END_ADDR => { todo!(); },
+            IO_BEGIN_ADDR..=IO_END_ADDR => { todo!(); },
+            DMA_BEGIN_ADDR..=DMA_END_ADDR => { todo!(); },
+            BIOS_BEGIN_ADDR..=BIOS_END_ADDR => { todo!(); },
+            ROM_BEGIN_ADDR..=ROM_END_ADDR => { todo!(); },
+            _ => { return debug_panic!(0); },//Invalid address or access to unallocated address space
+        }
+        */
     }
 
     pub(super) fn fetch_page_addr(self: &Self, page: u8, addr: u16) -> u16 {

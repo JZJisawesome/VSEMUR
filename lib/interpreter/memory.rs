@@ -134,10 +134,6 @@ impl MemoryState {
 
         //debug_assert!((addr <= 0x3e03) || (addr >= 0x8000));//According to MAME, this is the highest address of a peripheral in the system; 0x8000 is the start of the bios
 
-        if (addr >= 0x2800) && (addr <= 0x7FFF) {//TESTING
-            log_ansi!(0, "\x1b[31m", "Read from location outside of memory or bios/rom: {:#06X}", addr);
-        }
-
         return self.mem[addr as usize];
     }
 
@@ -153,9 +149,7 @@ impl MemoryState {
         //TODO we'll need a match statement here to decide what to do with the write based on the address
 
 
-        if addr >= 0x2800 {//TESTING
-            log_ansi!(0, "\x1b[31m", "Write to location outside of memory: {:#06X}", addr);
-        }
+
 
         self.mem[addr as usize] = data;
     }
