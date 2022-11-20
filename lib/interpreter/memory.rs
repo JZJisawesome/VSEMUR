@@ -130,6 +130,8 @@ impl MemoryState {
     pub(super) fn read_addr(self: &Self, addr: u32) -> u16 {
         debug_assert!((addr as usize) < MEM_SIZE_WORDS);
 
+        //TODO we'll need a match statement here to decide what to do with the read based on the address
+
         //debug_assert!((addr <= 0x3e03) || (addr >= 0x8000));//According to MAME, this is the highest address of a peripheral in the system; 0x8000 is the start of the bios
 
         if (addr >= 0x2800) && (addr <= 0x7FFF) {//TESTING
@@ -147,6 +149,8 @@ impl MemoryState {
     pub(super) fn write_addr(self: &mut Self, data: u16, addr: u32) {
         debug_assert!((addr as usize) < MEM_SIZE_WORDS);
         //debug_assert!(addr <= 0x3e03);//According to MAME, this is the highest address of a peripheral in the system
+
+        //TODO we'll need a match statement here to decide what to do with the write based on the address
 
 
         if addr >= 0x2800 {//TESTING
