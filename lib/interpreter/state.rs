@@ -9,6 +9,7 @@
 
 use crate::debug_panic;
 use super::*;
+use super::common::Memory;
 
 /* Constants */
 
@@ -99,7 +100,7 @@ impl State {
             }
         }
 
-        self.cpu.reset(&mut self.mem);
+        self.cpu.reset(self);
         self.render.reset(&mut self.mem);
         self.sound.reset();
         self.io.reset(&mut self.mem);
@@ -109,9 +110,9 @@ impl State {
         return ReturnCode::ResetOk;
     }
 
-    pub fn cache(self: &mut Self) {
+    /*pub fn cache(self: &mut Self) {
         self.cpu.cache(&mut self.mem);
-    }
+    }*/
 
     ///Performs one "tick" of the emulated system, equivalent to one clock cycle.
     ///
@@ -132,7 +133,7 @@ impl State {
         log_ansi!(0, "\x1b[1;97m", "Tick begins");
 
         //Tick sub-states
-        self.cpu.tick(&mut self.mem);
+        self.cpu.tick(self);
         self.render.tick(&mut self.mem);
         self.sound.tick();
         self.io.tick(&mut self.mem);
@@ -141,7 +142,7 @@ impl State {
         return ReturnCode::TickOk;
     }
 
-    pub fn tick_cached(self: &mut Self) -> ReturnCode {
+    /*pub fn tick_cached(self: &mut Self) -> ReturnCode {
         if cfg!(debug_assertions) {
             if self.reset_needed {
                 return ReturnCode::TickFail;
@@ -160,6 +161,7 @@ impl State {
         log!(0, "Tick ends");
         return ReturnCode::TickOk;
     }
+    */
 
     ///Loads a VSmile BIOS file from disk at the path specified.
     ///
@@ -211,18 +213,20 @@ impl State {
     //State::render() returns the rendered framebuffer (the user can call this in a seperate thread)
 }
 
-//Private methods
-impl State {
+impl Memory for State {
     /* Memory access functions */
 
     //Instead of accessing other children directly for memory accesses, modules should use these functions as they correctly map the address space to the appropriate location
-    pub(super) fn fetch_addr(self: &Self, addr: u32) -> u16 {//Faster than read_addr, but it only can access the ROM/BIOS memory locations
+    /*pub(super) fn fetch_addr(self: &Self, addr: u32) -> u16 {//Faster than read_addr, but it only can access the ROM/BIOS memory locations
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
         debug_assert!(addr >= 0x008000);
-        todo!();
+        //todo!();
+        //TODO for now we only read from memory
+        return self.mem.read_addr(addr);
     }
+    */
 
-    pub(super) fn read_addr(self: &Self, addr: u32) -> u16 {
+    fn read_addr(self: &Self, addr: u32) -> u16 {
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
 
         if (addr >= 0x2800) && (addr <= 0x7FFF) {//TESTING
@@ -243,7 +247,7 @@ impl State {
         */
     }
 
-    pub(super) fn write_addr(self: &mut Self, addr: u32, data: u16) {
+    fn write_addr(self: &mut Self, addr: u32, data: u16) {
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
 
                 if addr >= 0x2800 {//TESTING
@@ -266,19 +270,9 @@ impl State {
         */
     }
 
-    pub(super) fn fetch_page_addr(self: &Self, page: u8, addr: u16) -> u16 {
+    /*pub(super) fn fetch_page_addr(self: &Self, page: u8, addr: u16) -> u16 {
         return self.fetch_addr(((page as u32) << 16) | (addr as u32));
-    }
-
-    pub(super) fn read_page_addr(self: &Self, page: u8, addr: u16) -> u16 {
-        return self.read_addr(((page as u32) << 16) | (addr as u32));
-    }
-
-    pub(super) fn write_page_addr(self: &mut Self, page: u8, addr: u16, data: u16) {
-        self.write_addr(((page as u32) << 16) | (addr as u32), data);
-    }
+    }*/
 }
 
 /* Functions */
-
-//TODO

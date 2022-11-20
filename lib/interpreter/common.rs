@@ -23,7 +23,18 @@
 
 /* Types */
 
-//TODO
+pub(super) trait Memory {
+    fn read_addr(self: &Self, addr: u32) -> u16;
+    fn write_addr(self: &mut Self, addr: u32, data: u16);
+
+    fn read_page_addr(self: &Self, page: u8, addr: u16) -> u16 {
+        return self.read_addr(((page as u32) << 16) | (addr as u32));
+    }
+
+    fn write_page_addr(self: &mut Self, page: u8, addr: u16, data: u16) {
+        self.write_addr(((page as u32) << 16) | (addr as u32), data);
+    }
+}
 
 /* Associated Functions and Methods */
 

@@ -64,6 +64,7 @@ mod io;
 mod memory;
 mod render;
 mod sound;
+mod common;
 
 pub use state::State;
 

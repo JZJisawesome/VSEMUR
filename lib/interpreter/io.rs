@@ -15,6 +15,7 @@
 use crate::logging::log;
 
 use super::memory::MemoryState;
+use super::common::Memory;
 
 /* Constants */
 
@@ -150,6 +151,16 @@ impl IOState {
         //for i in 0x002800..=0x0028FF {
         //    log!(2, "{:#08X}: {:#06X}", i, mem.read_addr(i));
         //}
+    }
+}
+
+impl Memory for IOState {
+    fn read_addr(self: &Self, addr: u32) -> u16 {
+        todo!();
+    }
+
+    fn write_addr(self: &mut Self, addr: u32, data: u16) {
+        todo!();
     }
 }
 
