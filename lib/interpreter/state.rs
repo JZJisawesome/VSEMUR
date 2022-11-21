@@ -121,10 +121,7 @@ impl State {
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, [`ReturnCode::LoadFailOpen`] if there was a filesystem issue, [`ReturnCode::LoadFailSize`] if the file was an invalid size.
     pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
-        /*self.reset_needed = true;
-        return self.mem.load_bios_file(path);
-        */
-        todo!();
+        return self.peripherals.load_bios_file(path);
     }
 
     ///Loads a VSmile BIOS from the memory contained within the given slice.
@@ -133,10 +130,7 @@ impl State {
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, or [`ReturnCode::LoadFailSize`] if the slice was an invalid size.
     pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> ReturnCode {
-        /*self.reset_needed = true;
-        return self.mem.load_bios_mem(bios_mem);
-        */
-        todo!();
+        return self.peripherals.load_bios_mem(bios_mem);
     }
 
     ///Loads a VSmile rom file from disk at the path specified.
@@ -145,10 +139,7 @@ impl State {
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, [`ReturnCode::LoadFailOpen`] if there was a filesystem issue, [`ReturnCode::LoadFailSize`] if the file was an invalid size.
     pub fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
-        /*self.reset_needed = true;
-        return self.mem.load_rom_file(path);
-        */
-        todo!();
+        return self.peripherals.load_rom_file(path);
     }
 
     ///Loads a VSmile rom from the memory contained within the given slice.
@@ -157,10 +148,7 @@ impl State {
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, or [`ReturnCode::LoadFailSize`] if the slice was an invalid size.
     pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> ReturnCode {
-        /*self.reset_needed = true;
-        return self.mem.load_rom_mem(rom_mem);
-        */
-        todo!();
+        return self.peripherals.load_rom_mem(rom_mem);
     }
 
     //TODO functions to read frambuffer so the user can display it as they wish

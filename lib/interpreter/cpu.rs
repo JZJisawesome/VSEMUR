@@ -12,7 +12,7 @@
 
 /* Imports */
 
-mod execute;
+//mod execute;
 
 use crate::debug_panic;
 use crate::logging::log;

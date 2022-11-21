@@ -60,10 +60,6 @@
 
 mod state;
 mod cpu;
-mod io;
-mod memory;
-mod render;
-mod sound;
 mod common;
 mod peripherals;
 

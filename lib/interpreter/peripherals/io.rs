@@ -14,8 +14,7 @@
 
 use crate::logging::log;
 
-use super::memory::MemoryState;
-use super::common::Memory;
+use crate::interpreter::common::Memory;
 
 /* Constants */
 
@@ -137,13 +136,13 @@ impl IOState {
         //unimplemented!();
     }
 
-    pub(super) fn reset(self: &mut Self, mem: &mut MemoryState) {
+    pub(super) fn reset(self: &mut Self) {
         log!(1, "Resetting I/O state");
         //TODO zero out registers in mem
         //unimplemented!();//TODO
     }
 
-    pub fn tick(self: &mut Self, mem: &mut MemoryState) {
+    pub fn tick(self: &mut Self) {
         log!(1, "I/O: TODO describe what we're doing");
         //unimplemented!();//TODO
         //TESTING

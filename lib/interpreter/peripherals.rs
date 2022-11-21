@@ -15,10 +15,12 @@ use crate::logging::log_ansi;
 use super::common::Memory;
 use super::common::MEM_SIZE_WORDS;
 
-use super::render;
-use super::sound;
-use super::io;
-use super::memory;
+use crate::interpreter::ReturnCode;
+
+mod io;
+mod memory;
+mod render;
+mod sound;
 
 /* Constants */
 
@@ -75,9 +77,9 @@ impl Peripherals {
         log!(1, "Resetting peripherals");
 
         self.mem.reset();
-        self.render.reset(&mut self.mem);
+        self.render.reset();
         self.sound.reset();
-        self.io.reset(&mut self.mem);
+        self.io.reset();
     }
 
     pub fn tick(self: &mut Self) {
@@ -87,6 +89,22 @@ impl Peripherals {
         //for i in 0x002800..=0x0028FF {
         //    log!(2, "{:#08X}: {:#06X}", i, mem.read_addr(i));
         //}
+    }
+
+    pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
+        return self.mem.load_bios_file(path);
+    }
+
+    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> ReturnCode {
+        return self.mem.load_bios_mem(bios_mem);
+    }
+
+    pub fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
+        return self.mem.load_rom_file(path);
+    }
+
+    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> ReturnCode {
+        return self.mem.load_rom_mem(rom_mem);
     }
 }
 
