@@ -16,7 +16,7 @@ use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
-use crate::interpreter::memory::MemoryState;
+use crate::interpreter::common::Memory;
 use super::CPUState;
 use crate::decode::*;//TODO only import what is needed from here
 use crate::decode::DecodedInstruction::*;
@@ -43,7 +43,7 @@ use crate::decode::DecodedInstruction::*;
 
 /* Functions */
 
-pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
+pub(super) fn execute(cpu: &mut CPUState, mem: &mut impl Memory, inst: &DecodedInstruction) {
     match inst {
         MUL{s_rs, rd, s_rd, rs} => {
             match (s_rd, s_rs) {

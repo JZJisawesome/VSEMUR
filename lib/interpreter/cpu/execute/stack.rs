@@ -16,7 +16,7 @@ use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
-use crate::interpreter::memory::MemoryState;
+use crate::interpreter::common::Memory;
 use super::CPUState;
 use crate::decode::*;//TODO only import what is needed from here
 use crate::decode::DecodedStackOp::*;
@@ -43,7 +43,7 @@ use crate::decode::DecodedStackOp::*;
 
 /* Functions */
 
-pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, op: DecodedStackOp, rd_index: u8, size: u8, rs: DecodedRegister) {
+pub(super) fn execute(cpu: &mut CPUState, mem: &mut impl Memory, op: DecodedStackOp, rd_index: u8, size: u8, rs: DecodedRegister) {
     //The ISA docs are really confusing about how to properly interpret the rd/rh and size fields, and the direction to access the registers in
     //Looking at MAME clears things up. PUSH pushes from rd_index + 1 - size to rd_index (both inclusive) downwards
     //POP pops from rd_index + 1 to rd_index + size (both inclusive) upwards
@@ -62,7 +62,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, op: DecodedStac
             for i in max_index..=min_index {
                 let data = cpu.get_reg_by_index(i);
                 log!(4, "Push register with index {0:#05b}, containing {1:#04X} | {1:#08b} | unsigned {1}, to address 0x00_{2:04X}", i, data, new_rs);
-                mem.write_page_addr(data, 0x00, new_rs);
+                mem.write_page_addr(0x00, new_rs, data);
                 new_rs -= 1;
             }
         },

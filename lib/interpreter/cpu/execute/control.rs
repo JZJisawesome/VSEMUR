@@ -16,7 +16,7 @@ use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
-use crate::interpreter::memory::MemoryState;
+use crate::interpreter::common::Memory;
 use super::CPUState;
 use crate::decode::*;//TODO only import what is needed from here
 
@@ -42,7 +42,7 @@ use crate::decode::*;//TODO only import what is needed from here
 
 /* Functions */
 
-pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
+pub(super) fn execute(cpu: &mut CPUState, mem: &mut impl Memory, inst: &DecodedInstruction) {
     use DecodedInstruction::*;
     match inst {
         CALL{a22} => {
@@ -50,9 +50,9 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
             log!(3, "Push the current PC + 2, followed by the current SR, to the stack");
             //HACK We assume the SP will always point to page 0 (where memory is on the vsmile), so we never update the ds register here for speed
             cpu.inc_pc_by(2);//The PC isn't actually kept like this, it is just an easy way to increment it (also affecting the CS field properly too)
-            mem.write_page_addr(cpu.pc, 0x00, cpu.sp);
+            mem.write_page_addr(0x00, cpu.sp, cpu.pc);
             cpu.sp -= 1;
-            mem.write_page_addr(cpu.sr, 0x00, cpu.sp);
+            mem.write_page_addr(0x00, cpu.sp, cpu.sr);
             cpu.sp -= 1;
 
             //Update the CS (which is contained within SR) and the PC

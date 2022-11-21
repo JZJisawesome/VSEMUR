@@ -12,7 +12,7 @@
 
 /* Imports */
 
-//mod execute;
+mod execute;
 
 use crate::debug_panic;
 use crate::logging::log;
@@ -189,7 +189,7 @@ impl CPUState {
         }
 
         //Execute the decoded instruction
-        //execute::execute(self, mem, &decoded_inst);
+        execute::execute(self, mem, &decoded_inst);
 
         //TODO handle interrupts, etc
 

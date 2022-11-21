@@ -18,7 +18,7 @@ use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_midln;
 use crate::logging::log_finln;
-use crate::interpreter::memory::MemoryState;
+use crate::interpreter::common::Memory;
 use super::CPUState;
 use crate::decode::*;//TODO only import what is needed from here
 use crate::decode::DecodedInstruction::*;
@@ -46,7 +46,7 @@ use DecodedALUOp::*;
 
 /* Functions */
 
-pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedInstruction) {
+pub(super) fn execute(cpu: &mut CPUState, mem: &mut impl Memory, inst: &DecodedInstruction) {
     //Operation and operands
     let operation: DecodedALUOp;
     let operand1: u16;
@@ -164,7 +164,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
             let bp = cpu.bp;
             let final_page_addr_tuple = super::super::inc_page_addr_by(page, bp, *imm6 as u32);
 
-            mem.write_page_addr(result, final_page_addr_tuple.0, final_page_addr_tuple.1);
+            mem.write_page_addr(final_page_addr_tuple.0, final_page_addr_tuple.1, result);
         },
         (STORE, DS_Indirect{d, rs, ..}) => {
             log!(3, "Writing result to {{D:}}[Rs@]");
@@ -179,12 +179,12 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut MemoryState, inst: &DecodedI
             log_finln!("set, so the page is {:#04X}", page);
             let addr: u16 = cpu.get_reg(*rs);
             log!(3, "Rs is {0:#06X}, so store to [{1:#04X}_{0:04X}]", addr, page);
-            mem.write_page_addr(result, page, addr);
+            mem.write_page_addr(page, addr, result);
         },
         (LOAD, Direct16{w: true, a16, ..}) | (STORE, Direct16{w: false, a16, ..}) => { debug_panic!(); }//Not a valid instruction/op combination
         (_, Direct16{w: true, a16, ..}) => {//When the Direct16 w flag is set, we are writing to memory
             //TODO logging
-            mem.write_page_addr(result, cpu.get_ds(), *a16);
+            mem.write_page_addr(cpu.get_ds(), *a16, result);
         },
         (_, IMM16{rd, ..}) | (_, Direct16{w: false, rd, ..}) | (_, Direct6{rd, ..}) | (_, IMM6{rd, ..}) | (_, Base_plus_Disp6{rd, ..}) | (_, DS_Indirect{rd, ..}) | (_, Register{rd, ..}) => {
             //Other cases are much simpler; we just write to Rd
