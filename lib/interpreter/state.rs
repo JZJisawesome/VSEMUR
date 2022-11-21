@@ -111,7 +111,11 @@ impl State {
     //In this mode, the user will get callbacks for ex. sound and graphics and can
     //call functions to update input
     //TODO set that all up
-    pub fn launch_emulation_thread(self: &mut Self) {
+    pub fn launch_emulation_thread(self: &mut Self, buffer_depth: usize) {//TODO you can choose the size of buffer_depth to decide how far ahead you want to allow the rendering to run from your sound/image output
+        //TODO return a sync_channel reciever that sends either sound or image update requests/structs
+        //The sender will be a member of State and will have a reference passed from it to the Peripherals::tick() function so they can send messages
+        //Or should we duplicate the senders and let each peripheral in Peripherals get its own access to the message queue?
+        //TODO what about input back to the emulated system? Functions to update_input(), or perhaps a second channel going the other way?
         todo!();
     }
 
