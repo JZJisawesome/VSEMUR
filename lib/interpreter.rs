@@ -65,14 +65,9 @@ mod memory;
 mod render;
 mod sound;
 mod common;
+mod peripherals;
 
 pub use state::State;
-
-use crate::logging::log;
-use crate::logging::log_ansi;
-use crate::logging::log_reset_file;
-use crate::logging::log_increment_ticks;
-use crate::logging::log_reset_ticks;
 
 /* Constants */
 

@@ -179,7 +179,7 @@ impl CPUState {
         log!(2, "Instruction word group 1: {:#06X} | {:#018b}", inst_word, inst_word);
 
         //Decode it
-        /*let mut decoded_inst = decode::DecodedInstruction::Invalid;
+        let mut decoded_inst = decode::DecodedInstruction::Invalid;
         decode::decode_wg1(inst_word, &mut decoded_inst);
         if decode::needs_decode_wg2(&decoded_inst) {
             log!(1, "CPU: Fetch started from CS page, PC address + 1");
@@ -187,7 +187,6 @@ impl CPUState {
             log!(2, "Instruction word group 2: {:#06X} | {:#018b}", wg2, wg2);
             decode::decode_wg2(&mut decoded_inst, wg2);
         }
-        */
 
         //Execute the decoded instruction
         //execute::execute(self, mem, &decoded_inst);

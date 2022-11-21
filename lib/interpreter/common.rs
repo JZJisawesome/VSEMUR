@@ -11,7 +11,7 @@
 
 /* Constants */
 
-//TODO
+pub(super) const MEM_SIZE_WORDS: usize = 1 << 22;//TODO set this to 0xFFFF since everything above this should not be writable
 
 /* Macros */
 
