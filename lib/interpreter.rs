@@ -81,6 +81,19 @@ const MEM_SIZE_WORDS: usize = 1 << 22;//TODO set this to 0xFFFF since everything
 
 /* Types */
 
+pub struct RenderMessage {
+    //TODO struct returned by a channel from the renderer containing the data/methods needed to render a frame or access the already rendered frame depending on how things go
+}
+
+pub struct SoundMessage {
+    //TODO struct returned by a channel from the renderer containing the data/methods indicating how to change the audio being output
+}
+
+pub struct InputMessage {
+    //TODO message type sent from the user to the channel indicating what to change the state of the inputs to
+}
+
+
 ///Return type for several VSEMUR interpreter functions
 pub enum ReturnCode {
     ///The call to [`State::tick()`] was sucessful, no additional action is required.
