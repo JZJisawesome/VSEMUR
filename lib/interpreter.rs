@@ -254,8 +254,10 @@ impl Emulator {
 
         //Constants
         const INSTS_PER_FRAME: usize = 450000;
+        const ENABLE_EFFICIENT_SLEEP: bool = false;
+        const BUSY_WAIT_YIELD: bool = true;
         let frame_period = std::time::Duration::from_nanos(16666667);//1/60th of a second
-        let busy_wait_time_per_frame = std::time::Duration::from_millis(2);//Larger values waste more CPU time, but if this is too small we may feel the effects of the thread's wake up latency
+        let busy_wait_time_per_frame = std::time::Duration::from_micros(500);//Larger values waste more CPU time, but if this is too small we may feel the effects of the thread's wake up latency
         let frame_late = std::time::Duration::from_millis(17);//If the frame takes long than this, we consider it to be late and print a warning message
 
         //The frame loop
@@ -277,12 +279,20 @@ impl Emulator {
             eprint!("frametime: {}ns, ", frame_time.as_nanos());
 
             if frame_time < frame_period {
-                if (frame_period - frame_time) > busy_wait_time_per_frame {
-                    //NOTE: Comment this line out for better frame times, at the cost of worse power consumption
-                    //This is not just due to wake-up latency; having a less-effective CPU cache when we recieve control back slows things down
-                    std::thread::sleep(frame_period - frame_time - busy_wait_time_per_frame);
+                if ENABLE_EFFICIENT_SLEEP {
+                    if (frame_period - frame_time) > busy_wait_time_per_frame {
+                        //This causes worse frame times, not just due to wake-up latency; having a less-effective CPU cache when we recieve control back slows things down
+                        std::thread::sleep(frame_period - frame_time - busy_wait_time_per_frame);
+                    }
                 }
-                while start_of_frame.elapsed() < frame_period {}//Busy wait for the remaining time (deals with the wakeup latency of sleeping; also does not really impact CPU caches)
+
+                if BUSY_WAIT_YIELD {
+                    //Busy wait for the remaining time (deals with the wakeup latency of sleeping; also does not really impact CPU caches); with yield to lessen the impact on CPU usage
+                    while start_of_frame.elapsed() < frame_period { std::thread::yield_now(); }
+                } else {
+                    //Alternative: busy-waiting without yield (best performance and frame pacing, but will mean the emulation thread always pins its core to 100%)
+                    while start_of_frame.elapsed() < frame_period {}
+                }
             } else {
                 //We're either early or we're late!
                 eprintln!("\x1b[31mWarning: emulation thread not fast enough, frame took {}ns\x1b[0m", frame_time.as_nanos());
