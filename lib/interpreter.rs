@@ -72,6 +72,12 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::sync_channel;
 
+
+use crate::logging::log;
+use crate::logging::log_ansi;
+use crate::logging::log_reset_file;
+use crate::logging::log_reset_ticks;
+
 /* Constants */
 
 const MAX_BIOS_SIZE_WORDS: usize = 1 << 22;//FIXME figure out what this actually is
@@ -133,6 +139,11 @@ pub struct Emulator {
 
 impl Emulator {
     pub fn new() -> Emulator {
+        log_reset_file!();
+        log_reset_ticks!();
+
+        log_ansi!(0, "\x1b[1;97m", "Initializing VSEMUR Emulator");
+
         return Emulator {
             state: Some(State::new()),
             emulation_thread_join_handle: None,
@@ -141,20 +152,31 @@ impl Emulator {
     }
 
     pub fn get_render_reciever(self: &mut Self) -> Receiver<RenderMessage> {
+        debug_assert!(!matches!(self.state, None));
         todo!();//Construct the channel here and pass it to the State object through methods we'll have to add
     }
 
     pub fn get_sound_reciever(self: &mut Self) -> Receiver<SoundMessage> {
+        debug_assert!(!matches!(self.state, None));
         todo!();//Construct the channel here and pass it to the State object through methods we'll have to add
     }
 
     pub fn get_input_sender(self: &mut Self) -> Sender<InputMessage> {
+        debug_assert!(!matches!(self.state, None));
         todo!();//Construct the channel here and pass it to the State object through methods we'll have to add
     }
+
+    //TODO functions for loading bios/roms, etc
+    //Be sure to do debug_assert!(!matches!(self.state, None)); at the start of each function
 
     pub fn launch_emulation_thread(self: &mut Self)  {
         debug_assert!(matches!(self.stop_request_sender, None));
         debug_assert!(!matches!(self.state, None));
+
+        log_ansi!(0, "\x1b[1;97m", "Starting emulation thread");
+
+        //Reset log ticks, but don't reset the log file
+        log_reset_ticks!();
 
         //Create the channel for requesting stops later
         let (tx, rx) = sync_channel::<()>(0);
@@ -171,28 +193,41 @@ impl Emulator {
         debug_assert!(!matches!(self.stop_request_sender, None));
         debug_assert!(!matches!(self.emulation_thread_join_handle, None));
 
+        log_ansi!(0, "\x1b[1;97m", "Stopping emulation thread via friendly request");
+
         //Request the thread to stop and get the state back from it; also destroy the stop request channel
         let moved_stop_request_sender = self.stop_request_sender.take().unwrap();
         moved_stop_request_sender.send(());
 
         let old_join_handle = self.emulation_thread_join_handle.take().unwrap();
-        let state_from_thread = old_join_handle.join().unwrap();
+        let state_from_thread = old_join_handle.join().expect("Emulation thread panicked");
 
         drop(moved_stop_request_sender);
 
         //Replace the state in our Emulator struct so we can restart it again later
         self.state.replace(state_from_thread);
+
+        log_ansi!(0, "\x1b[1;97m", "Emulation thread stopped");
     }
 
-    fn emulation_thread(state: State, stop_request_reciever: Receiver<()>) -> State {
+    fn emulation_thread(mut state: State, stop_request_reciever: Receiver<()>) -> State {
+        log_ansi!(0, "\x1b[1;97m", "Emulation thread started");
+
+        state.reset();
+
         while true {
             //Check if we've recieved a request to exit, and if so, break out of the loop
             if matches!(stop_request_reciever.try_recv(), Ok(_)) {
+                log_ansi!(0, "\x1b[1;97m", "Emulation thread stop request recieved");
                 break;
             }
 
-            //TODO
-            todo!();
+            //TODO do all of the channels/etc in here (after doing a state.tick, poll if it has any render or sound data ready)
+            //Also check if we recieved an InputMessage from the user and pass it on if that is the case
+            //This way State does not even have to be thread-aware
+            //TODO increment number of ticks here instead of in State
+            //todo!();
+            log!(0, "TESTING");
         }
 
         return state;//Give the state back when we're finished with it

@@ -18,9 +18,7 @@ use crate::debug_panic;
 
 use crate::logging::log;
 use crate::logging::log_ansi;
-use crate::logging::log_reset_file;
-use crate::logging::log_increment_ticks;
-use crate::logging::log_reset_ticks;
+use crate::logging::log_increment_ticks;//TODO increment ticks in Emulator instead
 
 use std::thread;
 use std::sync::mpsc::Sender;
@@ -62,11 +60,6 @@ impl State {
     ///
     ///You probably want to load a rom and bios after this; see [`State::load_bios_file()`], [`State::load_bios_mem()`], [`State::load_rom_file()`], and [`State::load_rom_mem()`].
     pub fn new() -> State {
-        log_reset_file!();
-        log_reset_ticks!();
-
-        log_ansi!(0, "\x1b[1;97m", "Initializing VSEMUR State");
-
         let new_state = State {
             cpu: CPUState::new(),
             peripherals: Peripherals::new(),
@@ -82,7 +75,6 @@ impl State {
     ///
     ///Returns [`ReturnCode::ResetFail`] if a BIOS or ROM wasn't loaded beforehand; otherwise returns [`ReturnCode::ResetOk`].
     pub fn reset(self: &mut Self) -> ReturnCode {
-        log_reset_ticks!();
         log_ansi!(0, "\x1b[1;97m", "Resetting emulated system");
 
         self.peripherals.reset();//Must come before the CPU so that it can fetch the reset vector, etc
