@@ -21,6 +21,7 @@ mod io;
 mod memory;
 mod render;
 mod sound;
+mod rom_bios;
 
 /* Constants */
 
@@ -54,6 +55,7 @@ pub(super) struct Peripherals {
     sound: sound::SoundState,
     io: io::IOState,
     mem: memory::MemoryState,
+    rom_bios: rom_bios::RomAndBiosState,
 }
 
 /* Associated Functions and Methods */
@@ -70,6 +72,7 @@ impl Peripherals {
             sound: sound::SoundState::new(),
             io: io::IOState::new(),
             mem: memory::MemoryState::new(),
+            rom_bios: rom_bios::RomAndBiosState::new(),
         };
     }
 
@@ -95,20 +98,20 @@ impl Peripherals {
         return false;//TODO
     }
 
-    pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
-        return self.mem.load_bios_file(path);
+    pub fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
+        return self.rom_bios.load_bios_file(path);
     }
 
-    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> ReturnCode {
-        return self.mem.load_bios_mem(bios_mem);
+    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ()> {
+        return self.rom_bios.load_bios_mem(bios_mem);
     }
 
-    pub fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
-        return self.mem.load_rom_file(path);
+    pub fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ()> {
+        return self.rom_bios.load_rom_file(path);
     }
 
-    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> ReturnCode {
-        return self.mem.load_rom_mem(rom_mem);
+    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ()> {
+        return self.rom_bios.load_rom_mem(rom_mem);
     }
 }
 
@@ -119,8 +122,12 @@ impl Memory for Peripherals {
         if (addr >= 0x2800) && (addr <= 0x7FFF) {//TESTING
             log_ansi!(0, "\x1b[31m", "Read from location outside of memory or bios/rom: {:#06X}", addr);
         }
-        //TODO for now we only read from memory
-        return self.mem.read_addr(addr);
+        //TODO proper memory map
+        if addr > 0x7FFF {
+            return self.rom_bios.read_addr(addr);
+        } else {
+            return self.mem.read_addr(addr);
+        }
         /*match addr {
             WORK_RAM_BEGIN_ADDR..=WORK_RAM_END_ADDR => { todo!(); },
             RENDER_BEGIN_ADDR..=RENDER_END_ADDR => { todo!(); },

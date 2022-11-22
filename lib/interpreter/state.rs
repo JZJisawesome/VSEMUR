@@ -128,12 +128,16 @@ impl State {
         return true;//TODO
     }
 
+    pub(super) fn frame_ended(self: &Self) -> bool {
+        return false;//TODO implement
+    }
+
     ///Loads a VSmile BIOS file from disk at the path specified.
     ///
     ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, [`ReturnCode::LoadFailOpen`] if there was a filesystem issue, [`ReturnCode::LoadFailSize`] if the file was an invalid size.
-    pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
+    pub fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
         return self.peripherals.load_bios_file(path);
     }
 
@@ -142,7 +146,7 @@ impl State {
     ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, or [`ReturnCode::LoadFailSize`] if the slice was an invalid size.
-    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> ReturnCode {
+    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ()> {
         return self.peripherals.load_bios_mem(bios_mem);
     }
 
@@ -151,7 +155,7 @@ impl State {
     ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, [`ReturnCode::LoadFailOpen`] if there was a filesystem issue, [`ReturnCode::LoadFailSize`] if the file was an invalid size.
-    pub fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
+    pub fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ()> {
         return self.peripherals.load_rom_file(path);
     }
 
@@ -160,7 +164,7 @@ impl State {
     ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
     ///
     ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, or [`ReturnCode::LoadFailSize`] if the slice was an invalid size.
-    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> ReturnCode {
+    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ()> {
         return self.peripherals.load_rom_mem(rom_mem);
     }
 

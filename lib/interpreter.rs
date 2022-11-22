@@ -116,7 +116,7 @@ pub enum ReturnCode {
     LoadFailSize,
 }
 
-pub enum ErrorCode {
+pub enum LoadErrorCode {
     TODO//TODO
 }
 
@@ -185,28 +185,24 @@ impl Emulator {
         return self.state.as_mut().unwrap().get_input_sender();
     }
 
-    pub fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ErrorCode> {//TODO return sucess codes too, not just ()?
+    pub fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
-        self.state.as_mut().unwrap().load_bios_file(path);
-        return Ok(());//TODO actuall check if it was sucessful
+        return self.state.as_mut().unwrap().load_bios_file(path);
     }
 
-    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ErrorCode> {//TODO return sucess codes too, not just ()?
+    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
-        self.state.as_mut().unwrap().load_bios_mem(bios_mem);
-        return Ok(());//TODO actuall check if it was sucessful
+        return self.state.as_mut().unwrap().load_bios_mem(bios_mem);
     }
 
-    pub fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ErrorCode> {//TODO return sucess codes too, not just ()?
+    pub fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
-        self.state.as_mut().unwrap().load_rom_file(path);
-        return Ok(());//TODO actuall check if it was sucessful
+        return self.state.as_mut().unwrap().load_rom_file(path);
     }
 
-    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ErrorCode> {//TODO return sucess codes too, not just ()?
+    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
-        self.state.as_mut().unwrap().load_rom_mem(rom_mem);
-        return Ok(());//TODO actuall check if it was sucessful
+        return self.state.as_mut().unwrap().load_rom_mem(rom_mem);
     }
 
     pub fn launch_emulation_thread(self: &mut Self) {
@@ -271,7 +267,12 @@ impl Emulator {
                 break;
             }
 
-            for _ in 0..INSTS_PER_FRAME { state.tick(); }//TODO we can't just do this; we need to actually check if the renderer says the frame is finished; otherwise we could have multiple frames per frame (or rather break out early when this occurs (perhaps add a new function to poll for this))
+            for _ in 0..INSTS_PER_FRAME {
+                state.tick();
+                if state.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
+                    break;
+                }
+            }
 
             let frame_time = start_of_frame.elapsed();
 
