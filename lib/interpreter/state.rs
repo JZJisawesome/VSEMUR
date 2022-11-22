@@ -108,6 +108,10 @@ impl State {
         log_increment_ticks!();
         log_ansi!(0, "\x1b[1;97m", "Tick begins");
 
+        //TODO instead of calling this function at 27MHz, run a certain number of cycles per frame (whatever number would run on the hardware at 60Hz) and limit the speed that way
+        //This is what other emulators do, and it a good idea for you to do too
+        //https://stackoverflow.com/questions/112439/cpu-emulation-and-locking-to-a-specific-clock-speed
+
         //Tick sub-states
         self.cpu.tick(&mut self.peripherals);
         self.peripherals.tick();
@@ -124,8 +128,8 @@ impl State {
         Receiver<SoundMessage>,
         Sender<InputMessage>
     ) {
-    //TODO perhaps the channels should be created at init time, rather than here?
-    //TODO you can choose the size of buffer_depth to decide how far ahead you want to allow the rendering to run from your sound/image output
+        //TODO perhaps the channels should be created at init time, rather than here?
+        //TODO you can choose the size of buffer_depth to decide how far ahead you want to allow the rendering to run from your sound/image output
         //TODO return a sync_channel reciever that sends either sound or image update requests/structs
         //The sender will be a member of State and will have a reference passed from it to the Peripherals::tick() function so they can send messages
         //Or should we duplicate the senders and let each peripheral in Peripherals get its own access to the message queue?
@@ -133,6 +137,11 @@ impl State {
 
         //TODO mechanism to stop thread once it starts; perhaps stop() function?
         //We could also keep a join handle as a member of State and provide a join_launched_thread() option once the user has launched threads to respond to messages (then again, then the user will have no way to reset or stop the State from the main thread...)?
+
+
+        //NOTE: We are going to assume we can do a "frame at once" renderer, where we capture all of the renderer's memory and registers and send it as a message that can be rendered by another thread later
+        //We will likely have a RenderMessage member of RenderState that is copied and then sent as a message
+        //https://www.reddit.com/r/EmuDev/comments/b8fj8q/nes_direct_ppu_rendering_question/
         todo!();
     }
 

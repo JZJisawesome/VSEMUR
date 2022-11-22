@@ -91,6 +91,10 @@ impl Peripherals {
         //}
     }
 
+    pub fn frame_ended(self: &mut Self) -> bool {
+        return false;//TODO
+    }
+
     pub fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
         return self.mem.load_bios_file(path);
     }
