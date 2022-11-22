@@ -252,10 +252,16 @@ impl Emulator {
     fn emulation_thread(mut state: State, stop_request_reciever: Receiver<()>) -> State {
         log_ansi!(0, "\x1b[1;97m", "Emulation thread started");
 
+        //Constants
         const INSTS_PER_FRAME: usize = 450000;
         let frame_period = std::time::Duration::from_nanos(16666667);//1/60th of a second
-        let mut last_frame_launch = std::time::Instant::now();
-        loop {//The frame loop
+        let busy_wait_time_per_frame = std::time::Duration::from_millis(2);//Larger values waste more CPU time, but if this is too small we may feel the effects of the thread's wake up latency
+        let frame_late = std::time::Duration::from_millis(17);//If the frame takes long than this, we consider it to be late and print a warning message
+
+        //The frame loop
+        loop {
+            let start_of_frame = std::time::Instant::now();
+
             //Check if we've recieved a request to exit, and if so, break out of the loop
             //Checking this once per frame is less expensive than once per emulated clock cycle
             if matches!(stop_request_reciever.try_recv(), Ok(())) {
@@ -263,23 +269,29 @@ impl Emulator {
                 break;
             }
 
-            let time_since_last_frame_launch = last_frame_launch.elapsed();
+            for _ in 0..INSTS_PER_FRAME { state.tick(); }//TODO we can't just do this; we need to actually check if the renderer says the frame is finished; otherwise we could have multiple frames per frame (or rather break out early when this occurs (perhaps add a new function to poll for this))
 
-            //TODO wait smarter by sleeping until it is time to go again
-            if time_since_last_frame_launch >= frame_period {
-                //Check if the system we're running on is too slow//TODO do this on a seperate thread; just send the frame time (that way we can also display the frametime/average framerate to the user)
-                if time_since_last_frame_launch > std::time::Duration::from_millis(17) {//Acceptable threshold for how late we should be
-                    //Since this is a property of the user's system (it being too outdated to run this), we want this to be displayed in both debug and release builds
-                    eprintln!("\x1b[31mWarning: emulation thread not fast enough, frame took {}ns\x1b[0m", time_since_last_frame_launch.as_nanos());
+            let frame_time = start_of_frame.elapsed();
+
+            //TESTING print the frame time//TODO perhaps save this value somewhere where the user can access it later?
+            eprint!("frametime: {}ns, ", frame_time.as_nanos());
+
+            if frame_time < frame_period {
+                if (frame_period - frame_time) > busy_wait_time_per_frame {
+                    //NOTE: Comment this line out for better frame times, at the cost of worse power consumption
+                    //This is not just due to wake-up latency; having a less-effective CPU cache when we recieve control back slows things down
+                    std::thread::sleep(frame_period - frame_time - busy_wait_time_per_frame);
                 }
-
-                last_frame_launch = std::time::Instant::now();//We now have 16.6 miliseconds to get to the "let time_since_last_frame_launch = ..." line again
-                for _ in 0..INSTS_PER_FRAME { state.tick(); }//TODO we can't just do this; we need to actually check if the renderer says the frame is finished; otherwise we could have multiple frames per frame (or rather break out early when this occurs (perhaps add a new function to poll for this))
-
-
-                //TESTING print the frame time//TODO perhaps save this value somewhere where the user can access it later?
-                //eprintln!("frametime: {}", last_frame_launch.elapsed().as_nanos());
+                while start_of_frame.elapsed() < frame_period {}//Busy wait for the remaining time (deals with the wakeup latency of sleeping; also does not really impact CPU caches)
+            } else {
+                //We're either early or we're late!
+                eprintln!("\x1b[31mWarning: emulation thread not fast enough, frame took {}ns\x1b[0m", frame_time.as_nanos());
             }
+
+            let rate_limited_frame_time = start_of_frame.elapsed();
+
+            //TESTING
+            eprintln!("rate-limited: {}ns, ", rate_limited_frame_time.as_nanos());
         }
 
         return state;//Give the state back when we're finished with it
