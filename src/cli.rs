@@ -58,15 +58,28 @@ fn main() {
 
     //Initialize emulator
     let mut emulator = vsemur::interpreter::Emulator::new();
+    if !matches!(emulator.load_bios_file(&std::env::args().nth(1).unwrap()), Ok(())) {
+        eprintln!("\x1b[31mError: Failed to load bios from disk\x1b[0m\n");
+        return;
+    }
+    if !matches!(emulator.load_rom_file(&std::env::args().nth(2).unwrap()), Ok(())) {
+        eprintln!("\x1b[31mError: Failed to load rom from disk\x1b[0m\n");
+        return;
+    }
+    emulator.reset();//Power-on reset AFTER loading bios and rom
+    //TODO other setup (channels)
 
     //TESTING
+    debug_assert!(!emulator.thread_running());
     eprintln!("started");
     emulator.launch_emulation_thread();
+    debug_assert!(emulator.thread_running());
     eprintln!("waiting");
-    std::thread::sleep(std::time::Duration::from_millis(2000));
+    std::thread::sleep(std::time::Duration::from_millis(20000));
     eprintln!("stopping");
     emulator.stop_emulation_thread();
     eprintln!("stopped");
+    debug_assert!(!emulator.thread_running());
 
     //Initialize state and load bios and rom
     /*let mut state: vsemur::interpreter::State = vsemur::interpreter::State::new();

@@ -116,6 +116,10 @@ pub enum ReturnCode {
     LoadFailSize,
 }
 
+pub enum ErrorCode {
+    TODO//TODO
+}
+
 pub struct RenderMessage {
     //TODO struct returned by a channel from the renderer containing the data/methods needed to render a frame or access the already rendered frame depending on how things go
 }
@@ -151,27 +155,62 @@ impl Emulator {
         };
     }
 
+    pub fn thread_running(self: &Self) -> bool {
+        debug_assert!(matches!(self.state, None) != matches!(self.emulation_thread_join_handle, None));
+        debug_assert!(matches!(self.emulation_thread_join_handle, None) == matches!(self.stop_request_sender, None));
+        return matches!(self.state, None);
+    }
+
+    //TODO add mega setup function that calls load functions and returns the reciever
+
+    //TODO add reset function that works when stopped
+    pub fn reset(self: &mut Self) {//Must be called after loading is complete (does not care if channels are sent yet)
+        debug_assert!(!self.thread_running());
+        self.state.as_mut().unwrap().reset();
+    }
+
+    //TODO these will be valid across launches and stops of the emulation thread, but can be called whenever we're stopped to recreate them if needed
     pub fn get_render_reciever(self: &mut Self) -> Receiver<RenderMessage> {
-        debug_assert!(!matches!(self.state, None));
-        todo!();//Construct the channel here and pass it to the State object through methods we'll have to add
+        debug_assert!(!self.thread_running());
+        return self.state.as_mut().unwrap().get_render_reciever();
     }
 
     pub fn get_sound_reciever(self: &mut Self) -> Receiver<SoundMessage> {
-        debug_assert!(!matches!(self.state, None));
-        todo!();//Construct the channel here and pass it to the State object through methods we'll have to add
+        debug_assert!(!self.thread_running());
+        return self.state.as_mut().unwrap().get_sound_reciever();
     }
 
     pub fn get_input_sender(self: &mut Self) -> Sender<InputMessage> {
-        debug_assert!(!matches!(self.state, None));
-        todo!();//Construct the channel here and pass it to the State object through methods we'll have to add
+        debug_assert!(!self.thread_running());
+        return self.state.as_mut().unwrap().get_input_sender();
     }
 
-    //TODO functions for loading bios/roms, etc
-    //Be sure to do debug_assert!(!matches!(self.state, None)); at the start of each function
+    pub fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ErrorCode> {//TODO return sucess codes too, not just ()?
+        debug_assert!(!self.thread_running());
+        self.state.as_mut().unwrap().load_bios_file(path);
+        return Ok(());//TODO actuall check if it was sucessful
+    }
 
-    pub fn launch_emulation_thread(self: &mut Self)  {
-        debug_assert!(matches!(self.stop_request_sender, None));
-        debug_assert!(!matches!(self.state, None));
+    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ErrorCode> {//TODO return sucess codes too, not just ()?
+        debug_assert!(!self.thread_running());
+        self.state.as_mut().unwrap().load_bios_mem(bios_mem);
+        return Ok(());//TODO actuall check if it was sucessful
+    }
+
+    pub fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ErrorCode> {//TODO return sucess codes too, not just ()?
+        debug_assert!(!self.thread_running());
+        self.state.as_mut().unwrap().load_rom_file(path);
+        return Ok(());//TODO actuall check if it was sucessful
+    }
+
+    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ErrorCode> {//TODO return sucess codes too, not just ()?
+        debug_assert!(!self.thread_running());
+        self.state.as_mut().unwrap().load_rom_mem(rom_mem);
+        return Ok(());//TODO actuall check if it was sucessful
+    }
+
+    pub fn launch_emulation_thread(self: &mut Self) {
+        debug_assert!(!self.thread_running());
 
         log_ansi!(0, "\x1b[1;97m", "Starting emulation thread");
 
@@ -184,14 +223,14 @@ impl Emulator {
 
         //Get the state to give to the thread (the state in our struct becomes None due to take())
         let state_for_thread = self.state.take().unwrap();
+        debug_assert!(state_for_thread.ready());
 
         //Launch the thread
         self.emulation_thread_join_handle.replace(thread::spawn(move || -> State { return Emulator::emulation_thread(state_for_thread, rx); }));
     }
 
     pub fn stop_emulation_thread(self: &mut Self) {
-        debug_assert!(!matches!(self.stop_request_sender, None));
-        debug_assert!(!matches!(self.emulation_thread_join_handle, None));
+        debug_assert!(self.thread_running());
 
         log_ansi!(0, "\x1b[1;97m", "Stopping emulation thread via friendly request");
 
@@ -213,21 +252,34 @@ impl Emulator {
     fn emulation_thread(mut state: State, stop_request_reciever: Receiver<()>) -> State {
         log_ansi!(0, "\x1b[1;97m", "Emulation thread started");
 
-        state.reset();
-
-        while true {
+        const INSTS_PER_FRAME: usize = 450000;
+        let frame_period = std::time::Duration::from_nanos(16666667);//1/60th of a second
+        let mut last_frame_launch = std::time::Instant::now();
+        loop {//The frame loop
             //Check if we've recieved a request to exit, and if so, break out of the loop
-            if matches!(stop_request_reciever.try_recv(), Ok(_)) {
+            //Checking this once per frame is less expensive than once per emulated clock cycle
+            if matches!(stop_request_reciever.try_recv(), Ok(())) {
                 log_ansi!(0, "\x1b[1;97m", "Emulation thread stop request recieved");
                 break;
             }
 
-            //TODO do all of the channels/etc in here (after doing a state.tick, poll if it has any render or sound data ready)
-            //Also check if we recieved an InputMessage from the user and pass it on if that is the case
-            //This way State does not even have to be thread-aware
-            //TODO increment number of ticks here instead of in State
-            //todo!();
-            log!(0, "TESTING");
+            let time_since_last_frame_launch = last_frame_launch.elapsed();
+
+            //TODO wait smarter by sleeping until it is time to go again
+            if time_since_last_frame_launch >= frame_period {
+                //Check if the system we're running on is too slow//TODO do this on a seperate thread; just send the frame time (that way we can also display the frametime/average framerate to the user)
+                if time_since_last_frame_launch > std::time::Duration::from_millis(17) {//Acceptable threshold for how late we should be
+                    //Since this is a property of the user's system (it being too outdated to run this), we want this to be displayed in both debug and release builds
+                    eprintln!("\x1b[31mWarning: emulation thread not fast enough, frame took {}ns\x1b[0m", time_since_last_frame_launch.as_nanos());
+                }
+
+                last_frame_launch = std::time::Instant::now();//We now have 16.6 miliseconds to get to the "let time_since_last_frame_launch = ..." line again
+                for _ in 0..INSTS_PER_FRAME { state.tick(); }//TODO we can't just do this; we need to actually check if the renderer says the frame is finished; otherwise we could have multiple frames per frame (or rather break out early when this occurs (perhaps add a new function to poll for this))
+
+
+                //TESTING print the frame time//TODO perhaps save this value somewhere where the user can access it later?
+                //eprintln!("frametime: {}", last_frame_launch.elapsed().as_nanos());
+            }
         }
 
         return state;//Give the state back when we're finished with it

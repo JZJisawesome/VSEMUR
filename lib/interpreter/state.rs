@@ -112,29 +112,20 @@ impl State {
         return ReturnCode::TickOk;
     }
 
-    //In this mode, the user will get callbacks for ex. sound and graphics and can
-    //call functions to update input
-    //TODO set that all up
-    pub fn launch_emulation_thread(self: &mut Self, buffer_depth: usize) -> (
-        Receiver<RenderMessage>,
-        Receiver<SoundMessage>,
-        Sender<InputMessage>
-    ) {
-        //TODO perhaps the channels should be created at init time, rather than here?
-        //TODO you can choose the size of buffer_depth to decide how far ahead you want to allow the rendering to run from your sound/image output
-        //TODO return a sync_channel reciever that sends either sound or image update requests/structs
-        //The sender will be a member of State and will have a reference passed from it to the Peripherals::tick() function so they can send messages
-        //Or should we duplicate the senders and let each peripheral in Peripherals get its own access to the message queue?
-        //TODO what about input back to the emulated system? Functions to update_input(), or perhaps a second channel going the other way?
+    pub fn get_render_reciever(self: &mut Self) -> Receiver<RenderMessage> {
+        todo!();//Construct the channel here and pass it to the State object through methods we'll have to add
+    }
 
-        //TODO mechanism to stop thread once it starts; perhaps stop() function?
-        //We could also keep a join handle as a member of State and provide a join_launched_thread() option once the user has launched threads to respond to messages (then again, then the user will have no way to reset or stop the State from the main thread...)?
+    pub fn get_sound_reciever(self: &mut Self) -> Receiver<SoundMessage> {
+        todo!();//Construct the channel here and pass it to the State object through methods we'll have to add
+    }
 
+    pub fn get_input_sender(self: &mut Self) -> Sender<InputMessage> {
+        todo!();//Construct the channel here and pass it to the State object through methods we'll have to add
+    }
 
-        //NOTE: We are going to assume we can do a "frame at once" renderer, where we capture all of the renderer's memory and registers and send it as a message that can be rendered by another thread later
-        //We will likely have a RenderMessage member of RenderState that is copied and then sent as a message
-        //https://www.reddit.com/r/EmuDev/comments/b8fj8q/nes_direct_ppu_rendering_question/
-        todo!();
+    pub(super) fn ready(self: &Self) -> bool {
+        return true;//TODO
     }
 
     ///Loads a VSmile BIOS file from disk at the path specified.
@@ -172,6 +163,12 @@ impl State {
     pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> ReturnCode {
         return self.peripherals.load_rom_mem(rom_mem);
     }
+
+    //TODO I feel like these interfaces aren't the best design; we should just pass the channel to State directly
+    //fn get_render_message(self: &mut Self) -> Option<RenderMessage>//TODO if this is not None then we both send the message down the channel in Emulation and wait until the next frame
+    //fn get_sound_message(self: &mut Self) -> Option<SoundMessage>
+    //fn set_input_message(self: &mut Self) -> Option<InputMessage>
+    //TODO perhaps register closures as callbacks, which send a message in Emulation? That dosn't really work either
 
     //TODO functions to read frambuffer so the user can display it as they wish
     //Perhaps provide some sort of thread-safe function so we can render the screen asynchrenously?
