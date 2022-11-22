@@ -1,4 +1,4 @@
-/* memory.rs
+/* memory.rs//TODO get rid of this module
  * By: John Jekel
  *
  * MemoryState and functions for VSmile emulation
@@ -51,7 +51,7 @@ pub(super) struct MemoryState {
 
 impl MemoryState {
     pub(super) fn new() -> MemoryState {
-        log!(1, "Initializing memory");
+        log!(2, "Initializing memory");
         return MemoryState {
             /*
             //FIXME use this instead once it is stable
@@ -109,9 +109,9 @@ impl MemoryState {
             return false;
         }
 
-        log!(1, "Resetting memory");
+        log!(2, "Resetting memory");
 
-        log!(2, "Place loaded bios and rom into the address space");
+        log!(3, "Place loaded bios and rom into the address space");
         //TODO
         //TEMPORARY for now just copy the bios to the memory
         self.mem.clone_from(&self.bios);

@@ -14,6 +14,7 @@ use crate::logging::log_ansi;
 
 use super::common::Memory;
 use super::common::MEM_SIZE_WORDS;
+use crate::interpreter::common::PHYSICAL_MEM_SIZE_WORDS;
 
 use crate::interpreter::ReturnCode;
 
@@ -54,7 +55,8 @@ pub(super) struct Peripherals {
     render: render::RenderState,
     sound: sound::SoundState,
     io: io::IOState,
-    mem: memory::MemoryState,
+    mem: memory::MemoryState,//TODO remove this
+    work_ram: Box<[u16]>,
     rom_bios: rom_bios::RomAndBiosState,
 }
 
@@ -64,14 +66,15 @@ impl Peripherals {
     //TODO it will have a bunch of weak references to memory-mapped structs in State
     //Or perhaps just have a function to "attach memory device" taking a struct implementing the Memory trait
     pub(super) fn new() -> Peripherals {
-        log!(1, "Initializing peripherals");
+        log!(1, "Initializing memory-mapped peripherals");
 
         //TODO implement
         return Peripherals {
             render: render::RenderState::new(),
             sound: sound::SoundState::new(),
             io: io::IOState::new(),
-            mem: memory::MemoryState::new(),
+            mem: memory::MemoryState::new(),//TODO remove this
+            work_ram: vec![0u16; PHYSICAL_MEM_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed//TODO perhaps only allocate the memory necessary?
             rom_bios: rom_bios::RomAndBiosState::new(),
         };
     }
@@ -123,7 +126,9 @@ impl Memory for Peripherals {
             log_ansi!(0, "\x1b[31m", "Read from location outside of memory or bios/rom: {:#06X}", addr);
         }
         //TODO proper memory map
-        if addr > 0x7FFF {
+        if addr < 0x2800 {
+            return self.work_ram[addr as usize];
+        } else if addr > 0x7FFF {
             return self.rom_bios.read_addr(addr);
         } else {
             return self.mem.read_addr(addr);
@@ -149,7 +154,12 @@ impl Memory for Peripherals {
         }
 
         //TODO for now we only write to memory
-        return self.mem.write_addr(data, addr);
+        //TODO proper memory map
+        if addr < 0x2800 {
+            self.work_ram[addr as usize] = data;
+        } else {
+            self.mem.write_addr(data, addr);
+        }
 
         /*match addr {
             WORK_RAM_BEGIN_ADDR..=WORK_RAM_END_ADDR => { todo!(); },

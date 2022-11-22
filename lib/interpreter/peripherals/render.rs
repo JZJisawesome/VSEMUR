@@ -36,7 +36,7 @@ pub(super) struct RenderState {
 
 impl RenderState {
     pub(super) fn new() -> RenderState {
-        log!(1, "Initializing render state");
+        log!(2, "Initializing render state");
 
         //TODO implement
         return RenderState {};
@@ -44,7 +44,7 @@ impl RenderState {
     }
 
     pub(super) fn reset(self: &mut Self) {
-        log!(1, "Resetting render state");
+        log!(2, "Resetting render state");
         //TODO zero out registers in mem
         //unimplemented!();//TODO
     }

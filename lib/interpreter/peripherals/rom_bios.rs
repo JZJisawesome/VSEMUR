@@ -35,30 +35,31 @@ use std::io::Read;
 /* Types */
 
 pub(super) struct RomAndBiosState {
-    bios: Option<Box<[u16]>>,
-    rom: Option<Box<[u16]>>,
+    bios_loaded: bool,
+    rom_loaded: bool,
+    bios: Box<[u16]>,
+    rom: Option<Box<[u16]>>,//Option because we don't require a ROM for things to work, so we can save memory
 }
 
 /* Associated Functions and Methods */
 
 impl RomAndBiosState {
     pub(super) fn new() -> RomAndBiosState {
-        log!(1, "Initializing ROM/BIOS-related state");
+        log!(2, "Initializing ROM/BIOS-related state");
         return RomAndBiosState {
-            bios: None,
+            bios_loaded: false,
+            rom_loaded: false,
+            bios: vec![0u16; MAX_BIOS_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed//TODO perhaps only allocate the memory necessary?
             rom: None,
         };
     }
 
     pub(super) fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
-        //Allocate space for the BIOS if we haven't yet
-        if matches!(self.bios, None) {
-            //TODO avoid vector for speed
-            //TODO avoid zero-initializing for speed
-            //TODO perhaps only allocated the memory necessary?
-            self.bios.replace(vec![0u16; MAX_BIOS_SIZE_WORDS].into_boxed_slice());
+        let result = load_file_u16(path, &mut self.bios);
+        if matches!(result, Ok(())) {
+            self.bios_loaded = true;
         }
-        return load_file_u16(path, self.bios.as_mut().unwrap());
+        return result;
     }
 
     pub(super) fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ()> {
@@ -67,13 +68,18 @@ impl RomAndBiosState {
 
     pub(super) fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ()> {
         //Allocate space for the ROM if we haven't yet
+        //By waiting to do this until now we save memory if the user wants to start the VSmile without a ROM
         if matches!(self.rom, None) {
             //TODO avoid vector for speed
             //TODO avoid zero-initializing for speed
-            //TODO perhaps only allocated the memory necessary?
+            //TODO perhaps only allocate the memory necessary?
             self.rom.replace(vec![0u16; MAX_ROM_SIZE_WORDS].into_boxed_slice());
         }
-        return load_file_u16(path, self.rom.as_mut().unwrap());
+        let result = load_file_u16(path, self.rom.as_mut().unwrap());
+        if matches!(result, Ok(())) {
+            self.rom_loaded = true;
+        }
+        return result;
     }
 
     pub(super) fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ()> {
@@ -81,18 +87,18 @@ impl RomAndBiosState {
     }
 
     pub(super) fn ready(self: &Self) -> bool {
-        return matches!(self.bios, Some(_));
+        return self.bios_loaded;//The ROM does not need to be loaded for us to be ready
     }
 }
 
 impl Memory for RomAndBiosState {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         //TODO do this properly (actually support a rom + bank switching, proper memory regions for bios vs rom)
-        return self.bios.as_ref().unwrap()[addr as usize];
+        return self.bios[addr as usize];
     }
 
     fn write_addr(self: &mut Self, _: u32, _: u16) {
-        debug_panic!();//We should never be writing to the BIOS/ROM
+        debug_panic!();//We should never be writing to the BIOS/ROM//TODO should we be handling this nicer?
     }
 }
 

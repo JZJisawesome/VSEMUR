@@ -129,7 +129,7 @@ pub(super) struct IOState {
 
 impl IOState {
     pub(super) fn new() -> IOState {
-        log!(1, "Initializing I/O state");
+        log!(2, "Initializing I/O state");
 
         //TODO implement
         return IOState {};
@@ -137,13 +137,13 @@ impl IOState {
     }
 
     pub(super) fn reset(self: &mut Self) {
-        log!(1, "Resetting I/O state");
+        log!(2, "Resetting I/O state");
         //TODO zero out registers in mem
         //unimplemented!();//TODO
     }
 
     pub fn tick(self: &mut Self) {
-        log!(1, "I/O: TODO describe what we're doing");
+        log!(2, "I/O: TODO describe what we're doing");
         //unimplemented!();//TODO
         //TESTING
         //log!(1, "Printing render register contents");

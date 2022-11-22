@@ -277,7 +277,7 @@ impl Emulator {
             let frame_time = start_of_frame.elapsed();
 
             //TESTING print the frame time//TODO perhaps save this value somewhere where the user can access it later?
-            //eprint!("frametime: {}ns, ", frame_time.as_nanos());
+            eprint!("frametime: {}ns, ", frame_time.as_nanos());
 
             if frame_time < frame_period {
                 if ENABLE_EFFICIENT_SLEEP {
@@ -302,7 +302,7 @@ impl Emulator {
             let rate_limited_frame_time = start_of_frame.elapsed();
 
             //TESTING
-            //eprintln!("rate-limited: {}ns, ", rate_limited_frame_time.as_nanos());
+            eprintln!("rate-limited: {}ns, ", rate_limited_frame_time.as_nanos());
         }
 
         return state;//Give the state back when we're finished with it
