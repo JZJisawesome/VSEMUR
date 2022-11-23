@@ -121,17 +121,22 @@ impl Peripherals {
 impl Memory for Peripherals {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
+        log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Read from address {:#06X})", addr);
+
+        let data: u16;
 
         if (addr >= 0x2800) && (addr <= 0x7FFF) {//TESTING
-            log_ansi!(0, "\x1b[31m", "Read from location outside of memory or bios/rom: {:#06X}", addr);
+            log_ansi!(2, "\x1b[31m", "Read from location outside of memory or bios/rom: {:#06X}", addr);
         }
+
         //TODO proper memory map
         if addr < 0x2800 {
-            return self.work_ram[addr as usize];
+            log!(2, "Work ram");
+            data = self.work_ram[addr as usize];
         } else if addr > 0x7FFF {
-            return self.rom_bios.read_addr(addr);
+            data = self.rom_bios.read_addr(addr);
         } else {
-            return self.mem.read_addr(addr);
+            data = self.mem.read_addr(addr);
         }
         /*match addr {
             WORK_RAM_BEGIN_ADDR..=WORK_RAM_END_ADDR => { todo!(); },
@@ -144,18 +149,23 @@ impl Memory for Peripherals {
             _ => { return debug_panic!(0); },//Invalid address or access to unallocated address space
         }
         */
+
+        log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Read {:#06X})", data);
+        return data;
     }
 
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
+        log_ansi!(1, "\x1b[35m", "(Peripherals Mem Access: Write {:#06X} to address {:#06X})", data, addr);
 
-                if addr >= 0x2800 {//TESTING
-            log_ansi!(0, "\x1b[31m", "Write to location outside of memory: {:#06X}", addr);
+        if addr >= 0x2800 {//TESTING
+            log_ansi!(2, "\x1b[31m", "Write to location outside of memory: {:#06X}", addr);
         }
 
         //TODO for now we only write to memory
         //TODO proper memory map
         if addr < 0x2800 {
+            log!(2, "Work ram");
             self.work_ram[addr as usize] = data;
         } else {
             self.mem.write_addr(data, addr);
@@ -172,6 +182,7 @@ impl Memory for Peripherals {
             _ => { return debug_panic!(0); },//Invalid address or access to unallocated address space
         }
         */
+        log_ansi!(1, "\x1b[35m", "(Peripherals Mem Access: Write finished)");
     }
 }
 

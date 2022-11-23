@@ -93,6 +93,7 @@ impl RomAndBiosState {
 
 impl Memory for RomAndBiosState {
     fn read_addr(self: &Self, addr: u32) -> u16 {
+        log!(2, "BIOS/ROM Access");
         //TODO do this properly (actually support a rom + bank switching, proper memory regions for bios vs rom)
         return self.bios[addr as usize];
     }
