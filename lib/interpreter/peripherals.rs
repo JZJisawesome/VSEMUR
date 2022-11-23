@@ -83,12 +83,7 @@ impl Peripherals {
     }
 
     pub fn tick(self: &mut Self) {
-        //unimplemented!();//TODO
-        //TESTING
-        //log!(1, "Printing render register contents");
-        //for i in 0x002800..=0x0028FF {
-        //    log!(2, "{:#08X}: {:#06X}", i, mem.read_addr(i));
-        //}
+        //todo!();//TODO
     }
 
     pub fn frame_ended(self: &mut Self) -> bool {

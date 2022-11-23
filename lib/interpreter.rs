@@ -112,7 +112,7 @@ pub struct Emulator {
 
     //TODO other fields
     emulation_thread_join_handle: Option<thread::JoinHandle<(cpu::CPUState, peripherals::Peripherals)>>,
-    stop_request_sender: Option<SyncSender<()>>//NOTE: All other channels are part of State, except for this one which is just used internally to request the thread to stop
+    stop_request_sender: Option<SyncSender<()>>//NOTE: All other channels are part of Peripherals, except for this one which is just used internally to request the thread to stop
 }
 
 /* Associated Functions and Methods */
@@ -164,19 +164,19 @@ impl Emulator {
     //TODO these will be valid across launches and stops of the emulation thread, but can be called whenever we're stopped to recreate them if needed
     pub fn get_render_reciever(self: &mut Self) -> Receiver<RenderMessage> {
         debug_assert!(!self.thread_running());
-        //return self.state.as_mut().unwrap().get_render_reciever();
+        //return self.peripherals.as_mut().unwrap().get_render_reciever();
         todo!();
     }
 
     pub fn get_sound_reciever(self: &mut Self) -> Receiver<SoundMessage> {
         debug_assert!(!self.thread_running());
-        //return self.state.as_mut().unwrap().get_sound_reciever();
+        //return self.peripherals.as_mut().unwrap().get_sound_reciever();
         todo!();
     }
 
     pub fn get_input_sender(self: &mut Self) -> Sender<InputMessage> {
         debug_assert!(!self.thread_running());
-        //return self.state.as_mut().unwrap().get_input_sender();
+        //return self.peripherals.as_mut().unwrap().get_input_sender();
         todo!();
     }
 
@@ -315,9 +315,9 @@ impl Emulator {
 
                 cpu.tick(&mut peripherals);
                 peripherals.tick();
-                /*if state.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
+                if periperhals.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
                     break;
-                }*///TODO
+                }
 
                 log!(0, "Tick ends");
             }
