@@ -135,6 +135,8 @@ impl Memory for Peripherals {
             data = self.work_ram[addr as usize];
         } else if addr > 0x7FFF {
             data = self.rom_bios.read_addr(addr);
+        } else if (addr >= IO_BEGIN_ADDR) && (addr <= IO_END_ADDR) {
+            data = self.io.read_addr(addr);
         } else {
             data = self.mem.read_addr(addr);
         }
@@ -167,6 +169,8 @@ impl Memory for Peripherals {
         if addr < 0x2800 {
             log!(2, "Work ram");
             self.work_ram[addr as usize] = data;
+        } else if (addr >= IO_BEGIN_ADDR) && (addr <= IO_END_ADDR) {
+            self.io.write_addr(addr, data);
         } else {
             self.mem.write_addr(data, addr);
         }
