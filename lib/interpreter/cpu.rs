@@ -16,7 +16,7 @@ mod execute;
 
 use crate::debug_panic;
 use crate::logging::log;
-use super::MEM_SIZE_WORDS;
+use super::common::MEM_SIZE_WORDS;
 use crate::decode;
 
 use super::state::State;

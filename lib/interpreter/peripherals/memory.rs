@@ -13,13 +13,7 @@
 /* Imports */
 
 use crate::logging::log;
-use crate::logging::log_ansi;
-use crate::interpreter::MAX_BIOS_SIZE_WORDS;
-use crate::interpreter::MAX_ROM_SIZE_WORDS;
-use crate::interpreter::MEM_SIZE_WORDS;//TODO set this to 0xFFFF since everything above this should not be writable
-
-use std::fs::File;
-use std::io::Read;
+use crate::interpreter::common::MEM_SIZE_WORDS;//TODO set this to 0xFFFF since everything above this should not be writable
 
 /* Constants */
 
@@ -36,11 +30,6 @@ use std::io::Read;
 /* Types */
 
 pub(super) struct MemoryState {
-    bios_loaded: bool,
-    rom_loaded: bool,
-    mem_loaded: bool,
-    bios: Box<[u16]>,
-    rom: Box<[u16]>,
     mem: Box<[u16]>,
 
     //peripherals_accessed_since_last_tick: bool,//TODO come up with a scheme for dealing with peripheral registers
@@ -58,11 +47,6 @@ impl MemoryState {
             rom: box [0; MAX_ROM_SIZE_WORDS],//TODO avoid zero-initializing for speed
             mem: box [0; MEM_SIZE_WORDS],//TODO avoid zero-initializing for speed
             */
-            bios_loaded: false,
-            rom_loaded: false,
-            mem_loaded: false,
-            bios: vec![0u16; MAX_BIOS_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
-            rom: vec![0u16; MAX_ROM_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
             mem: vec![0u16; MEM_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
         }
     }
@@ -87,7 +71,7 @@ impl MemoryState {
     }
 
     pub(super) fn ready(self: &Self) -> bool {
-        return self.bios_loaded && self.rom_loaded && self.mem_loaded;
+        return true;
     }
 
     //TODO memory access functions (will need to implement the memory map of the processor)

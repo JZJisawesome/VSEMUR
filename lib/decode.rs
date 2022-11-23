@@ -679,6 +679,7 @@ fn dec_reg_from_index(reg_index: u8) -> DecodedRegister {
     }
 }
 
+#[allow(non_snake_case)]
 fn dec_MUL(inst_word: u16) -> DecodedInstruction {
     return MUL {
         s_rs: ((inst_word >> 12) & 0b1) == 0b1,
@@ -688,6 +689,7 @@ fn dec_MUL(inst_word: u16) -> DecodedInstruction {
     };
 }
 
+#[allow(non_snake_case)]
 fn dec_MULS(inst_word: u16) -> DecodedInstruction {
     return MULS {
         s_rs: ((inst_word >> 12) & 0b1) == 0b1,
@@ -698,6 +700,7 @@ fn dec_MULS(inst_word: u16) -> DecodedInstruction {
     };
 }
 
+#[allow(non_snake_case)]
 fn dec_Branch(inst_word: u16) -> DecodedInstruction {
     return Branch {
         op: dec_branch_op(inst_word),
@@ -706,6 +709,7 @@ fn dec_Branch(inst_word: u16) -> DecodedInstruction {
     };
 }
 
+#[allow(non_snake_case)]
 fn dec_Register(inst_word: u16) -> DecodedInstruction {
     return Register {
         op: dec_alu_op(inst_word),

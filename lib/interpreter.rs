@@ -80,9 +80,7 @@ use crate::logging::log_reset_ticks;
 
 /* Constants */
 
-const MAX_BIOS_SIZE_WORDS: usize = 1 << 22;//FIXME figure out what this actually is
-const MAX_ROM_SIZE_WORDS: usize = 1 << 22;//FIXME figure out what this actually is
-const MEM_SIZE_WORDS: usize = 1 << 22;//TODO set this to 0xFFFF since everything above this should not be writable
+//TODO
 
 /* Macros */
 
@@ -261,7 +259,9 @@ impl Emulator {
 
         //Request the thread to stop and get the state back from it; also destroy the stop request channel
         let moved_stop_request_sender = self.stop_request_sender.take().unwrap();
-        moved_stop_request_sender.send(());
+        if matches!(moved_stop_request_sender.send(()), Err(_)) {
+            panic!("Emulation thread dropped reciever (likely due to panic)");
+        }
 
         let old_join_handle = self.emulation_thread_join_handle.take().unwrap();
         let state_from_thread = old_join_handle.join().expect("Emulation thread panicked");
@@ -277,13 +277,12 @@ impl Emulator {
     fn emulation_thread(mut state: state::State, stop_request_reciever: Receiver<()>) -> state::State {
         log_ansi!(0, "\x1b[1;97m", "Emulation thread started");
 
-        //Constants
+        //Constants//TODO move these elsewhere
         const INSTS_PER_FRAME: usize = 450000;
         const ENABLE_EFFICIENT_SLEEP: bool = false;
         const BUSY_WAIT_YIELD: bool = true;
-        let frame_period = std::time::Duration::from_nanos(16666667);//1/60th of a second
-        let busy_wait_time_per_frame = std::time::Duration::from_micros(500);//Larger values waste more CPU time, but if this is too small we may feel the effects of the thread's wake up latency
-        let frame_late = std::time::Duration::from_millis(17);//If the frame takes long than this, we consider it to be late and print a warning message
+        const FRAME_PERIOD: std::time::Duration = std::time::Duration::from_nanos(16666667);//1/60th of a second
+        const BUSY_WAIT_TIME_PER_FRAME: std::time::Duration = std::time::Duration::from_micros(500);//Larger values waste more CPU time, but if this is too small we may feel the effects of the thread's wake up latency
 
         //The frame loop
         loop {
@@ -308,20 +307,20 @@ impl Emulator {
             //TESTING print the frame time//TODO perhaps save this value somewhere where the user can access it later?
             eprint!("frametime: {}ns, ", frame_time.as_nanos());
 
-            if frame_time < frame_period {
+            if frame_time < FRAME_PERIOD {
                 if ENABLE_EFFICIENT_SLEEP {
-                    if (frame_period - frame_time) > busy_wait_time_per_frame {
+                    if (FRAME_PERIOD - frame_time) > BUSY_WAIT_TIME_PER_FRAME {
                         //This causes worse frame times, not just due to wake-up latency; having a less-effective CPU cache when we recieve control back slows things down
-                        std::thread::sleep(frame_period - frame_time - busy_wait_time_per_frame);
+                        std::thread::sleep(FRAME_PERIOD - frame_time - BUSY_WAIT_TIME_PER_FRAME);
                     }
                 }
 
                 if BUSY_WAIT_YIELD {
                     //Busy wait for the remaining time (deals with the wakeup latency of sleeping; also does not really impact CPU caches); with yield to lessen the impact on CPU usage
-                    while start_of_frame.elapsed() < frame_period { std::thread::yield_now(); }
+                    while start_of_frame.elapsed() < FRAME_PERIOD { std::thread::yield_now(); }
                 } else {
                     //Alternative: busy-waiting without yield (best performance and frame pacing, but will mean the emulation thread always pins its core to 100%)
-                    while start_of_frame.elapsed() < frame_period {}
+                    while start_of_frame.elapsed() < FRAME_PERIOD {}
                 }
             } else {
                 //We're either early or we're late!

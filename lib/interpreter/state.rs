@@ -19,7 +19,6 @@ use crate::logging::log;
 use crate::logging::log_ansi;
 use crate::logging::log_increment_ticks;//TODO increment ticks in Emulator instead
 
-use std::thread;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
