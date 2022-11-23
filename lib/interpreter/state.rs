@@ -1,4 +1,4 @@
-/* NAME//TODO
+/* NAME//TODO//TODO get rid of this file(bring CPUState and Peripherals into Emulator directly)
  * By: John Jekel
  *
  * TODO description
@@ -12,12 +12,6 @@ use super::SoundMessage;
 use super::InputMessage;
 use super::cpu::CPUState;
 use super::peripherals::Peripherals;
-
-use crate::debug_panic;
-
-use crate::logging::log;
-use crate::logging::log_ansi;
-use crate::logging::log_increment_ticks;//TODO increment ticks in Emulator instead
 
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
@@ -58,27 +52,21 @@ impl State {
             peripherals: Peripherals::new(),
         };
 
-        log!(0, "Initialization complete");
         return new_state;
     }
 
     pub fn reset(self: &mut Self) {
-        log_ansi!(0, "\x1b[1;97m", "Resetting emulated system");
 
         self.peripherals.reset();//Must come before the CPU so that it can fetch the reset vector, etc
         self.cpu.reset(&mut self.peripherals);
 
-        log!(0, "Reset complete");
+
     }
 
     //Performs one "tick" of the emulated system, equivalent to one clock cycle.
     //This function should be called approximately 27 million times per second (27 MHz) on average.
     //Before this is called, [`State::reset()`] should already have been called at least once.
     pub fn tick(self: &mut Self) {
-        //Increment the number of ticks for debugging
-        log_increment_ticks!();
-        log_ansi!(0, "\x1b[1;97m", "Tick begins");
-
         //TODO instead of calling this function at 27MHz, run a certain number of cycles per frame (whatever number would run on the hardware at 60Hz) and limit the speed that way
         //This is what other emulators do, and it a good idea for you to do too
         //https://stackoverflow.com/questions/112439/cpu-emulation-and-locking-to-a-specific-clock-speed
@@ -86,8 +74,6 @@ impl State {
         //Tick sub-states
         self.cpu.tick(&mut self.peripherals);
         self.peripherals.tick();
-
-        log!(0, "Tick ends");
     }
 
     pub fn get_render_reciever(self: &mut Self) -> Receiver<RenderMessage> {

@@ -54,10 +54,6 @@
 //!}
 //!```
 
-//TODO we don't _need_ to load a rom; we only need the bios, so we should allow for that
-//We also don't need to load the bios; we can also get away with the bios in the rom
-//So really we only need one or the other
-
 /* Imports */
 
 mod state;
@@ -77,6 +73,7 @@ use crate::logging::log;
 use crate::logging::log_ansi;
 use crate::logging::log_reset_file;
 use crate::logging::log_reset_ticks;
+use crate::logging::log_increment_ticks;
 
 /* Constants */
 
@@ -104,6 +101,11 @@ pub struct InputMessage {
     //TODO message type sent from the user to the channel indicating what to change the state of the inputs to
 }
 
+///VSEMUR Interpreter primary emulation struct
+///
+///Holds all information needed to store the state of an emulated VSmile system, in addition to data to manage threading and message-passing
+///
+///Instanciate with [`Emulator::new()`].
 pub struct Emulator {
     state: Option<state::State>,//We own the state until we launch a thread, at which point the thread owns the state; its ownership is then returned to us when we stop it
     //TODO other fields
@@ -113,11 +115,6 @@ pub struct Emulator {
 
 /* Associated Functions and Methods */
 
-///VSEMUR Interpreter primary emulation struct
-///
-///Holds all information needed to store the state of an emulated VSmile system, in addition to data to manage threading and message-passing
-///
-///Instanciate with [`Emulator::new()`].
 impl Emulator {
     ///Instanciates a new [`Emulator`].
     ///
@@ -128,11 +125,14 @@ impl Emulator {
 
         log_ansi!(0, "\x1b[1;97m", "Initializing VSEMUR Emulator");
 
-        return Emulator {
+        let new_emulator = Emulator {
             state: Some(state::State::new()),
             emulation_thread_join_handle: None,
             stop_request_sender: None,
         };
+
+        log!(0, "Initialization complete");
+        return new_emulator;
     }
 
     ///Returns `true` if the emulation thread associated with this [`Emulator`] is currently running, and false otherwise
@@ -151,7 +151,9 @@ impl Emulator {
     ///You likely want to at least have a BIOS loaded before calling this, as it will be accessed by this function to properly initialize things
     pub fn reset(self: &mut Self) {//Must be called after loading is complete (does not care if channels are sent yet)
         debug_assert!(!self.thread_running());
+        log_ansi!(0, "\x1b[1;97m", "Resetting emulated system");
         self.state.as_mut().unwrap().reset();
+        log!(0, "Reset complete");
     }
 
     //TODO these will be valid across launches and stops of the emulation thread, but can be called whenever we're stopped to recreate them if needed
@@ -296,10 +298,15 @@ impl Emulator {
             }
 
             for _ in 0..INSTS_PER_FRAME {
+                log_increment_ticks!();//Increment the number of ticks for debugging
+                log_ansi!(0, "\x1b[1;97m", "Tick begins");
+
                 state.tick();
                 if state.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
                     break;
                 }
+
+                log!(0, "Tick ends");
             }
 
             let frame_time = start_of_frame.elapsed();
