@@ -17,7 +17,6 @@ use super::common::MEM_SIZE_WORDS;
 use crate::interpreter::common::PHYSICAL_MEM_SIZE_WORDS;
 
 mod io;
-mod memory;
 mod render;
 mod sound;
 mod rom_bios;
@@ -53,7 +52,6 @@ pub(super) struct Peripherals {
     render: render::RenderState,
     sound: sound::SoundState,
     io: io::IOState,
-    mem: memory::MemoryState,//TODO remove this
     work_ram: Box<[u16]>,
     rom_bios: rom_bios::RomAndBiosState,
 }
@@ -71,7 +69,6 @@ impl Peripherals {
             render: render::RenderState::new(),
             sound: sound::SoundState::new(),
             io: io::IOState::new(),
-            mem: memory::MemoryState::new(),//TODO remove this
             work_ram: vec![0u16; PHYSICAL_MEM_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed//TODO perhaps only allocate the memory necessary?
             rom_bios: rom_bios::RomAndBiosState::new(),
         };
@@ -80,7 +77,6 @@ impl Peripherals {
     pub(super) fn reset(self: &mut Self) {
         log!(1, "Resetting peripherals");
 
-        self.mem.reset();
         self.render.reset();
         self.sound.reset();
         self.io.reset();
@@ -136,7 +132,7 @@ impl Memory for Peripherals {
         } else if (addr >= IO_BEGIN_ADDR) && (addr <= IO_END_ADDR) {
             data = self.io.read_addr(addr);
         } else {
-            data = self.mem.read_addr(addr);
+            todo!();
         }
         /*match addr {
             WORK_RAM_BEGIN_ADDR..=WORK_RAM_END_ADDR => { todo!(); },
@@ -170,7 +166,7 @@ impl Memory for Peripherals {
         } else if (addr >= IO_BEGIN_ADDR) && (addr <= IO_END_ADDR) {
             self.io.write_addr(addr, data);
         } else {
-            self.mem.write_addr(data, addr);
+            todo!();
         }
 
         /*match addr {
