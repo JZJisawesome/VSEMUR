@@ -14,7 +14,6 @@
 
 use crate::logging::log;
 use crate::logging::log_ansi;
-use crate::interpreter::ReturnCode;
 use crate::interpreter::MAX_BIOS_SIZE_WORDS;
 use crate::interpreter::MAX_ROM_SIZE_WORDS;
 use crate::interpreter::MEM_SIZE_WORDS;//TODO set this to 0xFFFF since everything above this should not be writable
@@ -68,44 +67,8 @@ impl MemoryState {
         }
     }
 
-    pub(super) fn load_bios_file(self: &mut Self, path: &str) -> ReturnCode {
-        let load_result = load_file_u16(path, &mut self.bios, MAX_BIOS_SIZE_WORDS);
-        if matches!(load_result, ReturnCode::LoadOk) {
-            self.bios_loaded = true;
-        }
-        return load_result;
-    }
-
-    pub(super) fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> ReturnCode {
-        if bios_mem.len() > MAX_BIOS_SIZE_WORDS {
-            return ReturnCode::LoadFailSize;
-        }
-        //TODO bios_mem copy into self.bios
-        self.bios_loaded = true;
-        unimplemented!();
-        return ReturnCode::LoadOk;
-    }
-
-    pub(super) fn load_rom_file(self: &mut Self, path: &str) -> ReturnCode {
-        let load_result = load_file_u16(path, &mut self.rom, MAX_ROM_SIZE_WORDS);
-        if matches!(load_result, ReturnCode::LoadOk) {
-            self.rom_loaded = true;
-        }
-        return load_result;
-    }
-
-    pub(super) fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> ReturnCode {
-        if rom_mem.len() > MAX_ROM_SIZE_WORDS {
-            return ReturnCode::LoadFailSize;
-        }
-        //TODO rom_mem copy into self.rom
-        self.rom_loaded = true;
-        unimplemented!();
-        return ReturnCode::LoadOk;
-    }
-
-    pub(super) fn reset(self: &mut Self) -> bool {
-        if !self.bios_loaded || !self.rom_loaded {
+    pub(super) fn reset(self: &mut Self) {
+        /*if !self.bios_loaded || !self.rom_loaded {
             return false;
         }
 
@@ -120,6 +83,7 @@ impl MemoryState {
 
         self.mem_loaded = true;
         return true;
+        */
     }
 
     pub(super) fn ready(self: &Self) -> bool {
@@ -160,38 +124,3 @@ impl MemoryState {
 }
 
 /* Functions */
-
-fn load_file_u16(path: &str, buffer: &mut [u16], buffer_size: usize) -> ReturnCode {
-    //Open the file
-    let file_wrapper = File::open(path);
-    if matches!(file_wrapper, Err(_)) {
-        return ReturnCode::LoadFailOpen;
-    }
-    let mut file = file_wrapper.unwrap();
-
-    //Ensure it is not larger than expected
-    let metadata_wrapper = file.metadata();
-    if matches!(metadata_wrapper, Err(_)) {
-        return ReturnCode::LoadFailOpen;
-    }
-    let metadata = metadata_wrapper.unwrap();
-    if metadata.len() > (buffer_size * 2) as u64 {//Ensure it is not too big of a file
-        return ReturnCode::LoadFailSize;
-    }
-    if (metadata.len() & 0b1) == 0b1 {//Ensure the file is a multiple of 2
-        return ReturnCode::LoadFailSize;
-    }
-
-    log_ansi!(0, "\x1b[36m", "Loading file \"{}\": {} words | {} bytes", path, metadata.len() / 2, metadata.len());
-
-    //Read in its contents into the buffer
-    let mut byte_buffer: Box<[u8]> = vec![0u8; buffer_size * 2].into_boxed_slice();//TODO avoid overhead of zeroing out contents, as well as overhead of needing to copy to buffer instead of reading to it directly
-    let bytes_read = file.read(&mut byte_buffer).unwrap();
-    debug_assert!(bytes_read <= buffer_size * 2);
-
-    //Files are little-endian
-    for i in 0..buffer_size {//FIXME this loop is incredibly slow
-        buffer[i] = ((byte_buffer[(i * 2) + 1] as u16) << 8) | (byte_buffer[i * 2] as u16);
-    }
-    return ReturnCode::LoadOk;
-}

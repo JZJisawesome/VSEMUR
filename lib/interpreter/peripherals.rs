@@ -16,8 +16,6 @@ use super::common::Memory;
 use super::common::MEM_SIZE_WORDS;
 use crate::interpreter::common::PHYSICAL_MEM_SIZE_WORDS;
 
-use crate::interpreter::ReturnCode;
-
 mod io;
 mod memory;
 mod render;
@@ -121,12 +119,12 @@ impl Peripherals {
 impl Memory for Peripherals {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
-        log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Read from address {:#06X})", addr);
+        log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Read from address {:#08X})", addr);
 
         let data: u16;
 
         if (addr >= 0x2800) && (addr <= 0x7FFF) {//TESTING
-            log_ansi!(2, "\x1b[31m", "Read from location outside of memory or bios/rom: {:#06X}", addr);
+            log_ansi!(2, "\x1b[31m", "Read from location outside of memory or bios/rom: {:#08X}", addr);
         }
 
         //TODO proper memory map
@@ -158,10 +156,10 @@ impl Memory for Peripherals {
 
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
-        log_ansi!(1, "\x1b[35m", "(Peripherals Mem Access: Write {:#06X} to address {:#06X})", data, addr);
+        log_ansi!(1, "\x1b[35m", "(Peripherals Mem Access: Write {:#06X} to address {:#08X})", data, addr);
 
         if addr >= 0x2800 {//TESTING
-            log_ansi!(2, "\x1b[31m", "Write to location outside of memory: {:#06X}", addr);
+            log_ansi!(2, "\x1b[31m", "Write to location outside of memory: {:#08X}", addr);
         }
 
         //TODO for now we only write to memory

@@ -13,6 +13,8 @@
 //!
 //!# Example usage
 //!
+//!TODO redo this using Emulator instead
+//!
 //!```no_run
 //!use vsemur::interpreter;
 //!
@@ -63,8 +65,6 @@ mod cpu;
 mod common;
 mod peripherals;
 
-pub use state::State;//TODO make this private once Emulator is implemented
-
 use std::thread;
 use std::sync::mpsc::SyncSender;
 use std::sync::mpsc::Sender;
@@ -94,32 +94,6 @@ const MEM_SIZE_WORDS: usize = 1 << 22;//TODO set this to 0xFFFF since everything
 
 /* Types */
 
-///Return type for several VSEMUR interpreter functions
-pub enum ReturnCode {
-    ///The call to [`State::tick()`] was sucessful, no additional action is required.
-    TickOk,
-    ///The call to [`State::tick()`] failed for some reason.
-    TickFail,
-    ///The call to [`State::tick()`] was sucessful, and additionally a new frame is available to be displayed.
-    TickOkNewFrameAvailable,
-
-    ///The call to [`State::reset()`] was sucessful.
-    ResetOk,
-    ///The call to [`State::reset()`] failed for some reason.
-    ResetFail,
-
-    ///The call to [`State::load_bios_file()`], [`State::load_bios_mem()`], [`State::load_rom_file()`], or [`State::load_rom_mem()`] was sucessful.
-    LoadOk,
-    ///The call to [`State::load_bios_file()`] or [`State::load_rom_file()`] failed due to a filesystem issue.
-    LoadFailOpen,
-    ///The call to [`State::load_bios_file()`], [`State::load_bios_mem()`], [`State::load_rom_file()`], or [`State::load_rom_mem()`] failed due to the source being an invalid size.
-    LoadFailSize,
-}
-
-pub enum LoadErrorCode {
-    TODO//TODO
-}
-
 pub struct RenderMessage {
     //TODO struct returned by a channel from the renderer containing the data/methods needed to render a frame or access the already rendered frame depending on how things go
 }
@@ -133,15 +107,23 @@ pub struct InputMessage {
 }
 
 pub struct Emulator {
-    state: Option<State>,//We own the state until we launch a thread, at which point the thread owns the state; its ownership is then returned to us when we stop it
+    state: Option<state::State>,//We own the state until we launch a thread, at which point the thread owns the state; its ownership is then returned to us when we stop it
     //TODO other fields
-    emulation_thread_join_handle: Option<thread::JoinHandle<State>>,
+    emulation_thread_join_handle: Option<thread::JoinHandle<state::State>>,
     stop_request_sender: Option<SyncSender<()>>//NOTE: All other channels are part of State, except for this one which is just used internally to request the thread to stop
 }
 
 /* Associated Functions and Methods */
 
+///VSEMUR Interpreter primary emulation struct
+///
+///Holds all information needed to store the state of an emulated VSmile system, in addition to data to manage threading and message-passing
+///
+///Instanciate with [`Emulator::new()`].
 impl Emulator {
+    ///Instanciates a new [`Emulator`].
+    ///
+    ///You probably want to load a BIOS/ROM after this; see [`Emulator::load_bios_file()`], [`Emulator::load_bios_mem()`], [`Emulator::load_rom_file()`], and [`Emulator::load_rom_mem()`].
     pub fn new() -> Emulator {
         log_reset_file!();
         log_reset_ticks!();
@@ -149,12 +131,13 @@ impl Emulator {
         log_ansi!(0, "\x1b[1;97m", "Initializing VSEMUR Emulator");
 
         return Emulator {
-            state: Some(State::new()),
+            state: Some(state::State::new()),
             emulation_thread_join_handle: None,
             stop_request_sender: None,
         };
     }
 
+    ///Returns `true` if the emulation thread associated with this [`Emulator`] is currently running, and false otherwise
     pub fn thread_running(self: &Self) -> bool {
         debug_assert!(matches!(self.state, None) != matches!(self.emulation_thread_join_handle, None));
         debug_assert!(matches!(self.emulation_thread_join_handle, None) == matches!(self.stop_request_sender, None));
@@ -163,7 +146,11 @@ impl Emulator {
 
     //TODO add mega setup function that calls load functions and returns the reciever
 
-    //TODO add reset function that works when stopped
+    ///Resets the emulated system (sets registers to default values, sets the CPU's initial PC, and so on).
+    ///
+    ///The emulation thread must not be running when this is called ([`Emulator::thread_running()`] must return false).
+    ///
+    ///You likely want to at least have a BIOS loaded before calling this, as it will be accessed by this function to properly initialize things
     pub fn reset(self: &mut Self) {//Must be called after loading is complete (does not care if channels are sent yet)
         debug_assert!(!self.thread_running());
         self.state.as_mut().unwrap().reset();
@@ -185,26 +172,63 @@ impl Emulator {
         return self.state.as_mut().unwrap().get_input_sender();
     }
 
+    ///Loads a VSmile BIOS file from disk at the path specified.
+    ///
+    ///The emulation thread must not be running when this is called ([`Emulator::thread_running()`] must return false).
+    ///
+    ///After this function is called, [`Emulator::reset()`] must be called before the emulation thread is launched with [`Emulator::launch_emulation_thread()`].
+    ///
+    ///Returns `Result::Ok(())` if the load was sucessful, or otherwise `Result::Err(())` if it was not.
     pub fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
         return self.state.as_mut().unwrap().load_bios_file(path);
     }
 
+    ///Loads a VSmile BIOS from the memory contained within the given slice.
+    ///
+    ///The emulation thread must not be running when this is called ([`Emulator::thread_running()`] must return false).
+    ///
+    ///After this function is called, [`Emulator::reset()`] must be called before the emulation thread is launched with [`Emulator::launch_emulation_thread()`].
+    ///
+    ///Returns `Result::Ok(())` if the load was sucessful, or otherwise `Result::Err(())` if it was not.
     pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
         return self.state.as_mut().unwrap().load_bios_mem(bios_mem);
     }
 
+    ///Loads a VSmile rom file from disk at the path specified.
+    ///
+    ///The emulation thread must not be running when this is called ([`Emulator::thread_running()`] must return false).
+    ///
+    ///After this function is called, [`Emulator::reset()`] must be called before the emulation thread is launched with [`Emulator::launch_emulation_thread()`].
+    ///
+    ///Returns `Result::Ok(())` if the load was sucessful, or otherwise `Result::Err(())` if it was not.
     pub fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
         return self.state.as_mut().unwrap().load_rom_file(path);
     }
 
+    ///Loads a VSmile rom from the memory contained within the given slice.
+    ///
+    ///The emulation thread must not be running when this is called ([`Emulator::thread_running()`] must return false).
+    ///
+    ///After this function is called, [`Emulator::reset()`] must be called before the emulation thread is launched with [`Emulator::launch_emulation_thread()`].
+    ///
+    ///Returns `Result::Ok(())` if the load was sucessful, or otherwise `Result::Err(())` if it was not.
     pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
         return self.state.as_mut().unwrap().load_rom_mem(rom_mem);
     }
 
+    ///Launches a new emulation thread and associates it with this Emulator
+    ///
+    ///Requires that a BIOS (and optionally ROM) has been loaded, that the Emulator has been reset at least once, and that the render and sound recievers,
+    ///as well as the sound sender get functions have been called and are set to be monitored in the user's code (in seperate threads or a single one per
+    ///per the user's preferences and design choice).
+    ///
+    ///IT IS IMPERATIVE THAT THE RENDER AND SOUND RECIEVERS AND INPUT SENDER ASSOCIATED WITH THIS EMULATOR ARE NOT DROPPED WHILE THE THREAD IS RUNNING.
+    ///
+    ///See [`Emulator::stop_emulation_thread()`] for how to stop the running thread.
     pub fn launch_emulation_thread(self: &mut Self) {
         debug_assert!(!self.thread_running());
 
@@ -222,9 +246,14 @@ impl Emulator {
         debug_assert!(state_for_thread.ready());
 
         //Launch the thread
-        self.emulation_thread_join_handle.replace(thread::spawn(move || -> State { return Emulator::emulation_thread(state_for_thread, rx); }));
+        self.emulation_thread_join_handle.replace(thread::spawn(move || -> state::State { return Emulator::emulation_thread(state_for_thread, rx); }));
     }
 
+    ///Stops the currently running thread, blocking until it finishes and exits.
+    ///
+    ///This function should only be called if the emulation thread is actually running ([`Emulator::thread_running()`] must return true).
+    ///
+    ///Depending on the timing of this call, the function may block for an entire frame's worth of time. Keep this in mind.
     pub fn stop_emulation_thread(self: &mut Self) {
         debug_assert!(self.thread_running());
 
@@ -245,7 +274,7 @@ impl Emulator {
         log_ansi!(0, "\x1b[1;97m", "Emulation thread stopped");
     }
 
-    fn emulation_thread(mut state: State, stop_request_reciever: Receiver<()>) -> State {
+    fn emulation_thread(mut state: state::State, stop_request_reciever: Receiver<()>) -> state::State {
         log_ansi!(0, "\x1b[1;97m", "Emulation thread started");
 
         //Constants

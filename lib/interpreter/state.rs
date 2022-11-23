@@ -10,7 +10,6 @@
 use super::RenderMessage;
 use super::SoundMessage;
 use super::InputMessage;
-use super::ReturnCode;
 use super::cpu::CPUState;
 use super::peripherals::Peripherals;
 
@@ -42,11 +41,8 @@ use std::sync::mpsc::channel;
 
 /* Types */
 
-///State for the VSEMUR interpreter
-///
-///Holds all information needed to store the state of an emulated VSmile system.
-///
-///Instanciate with [`State::new()`].
+//State for the VSEMUR interpreter
+//Holds all information needed to store the state of an emulated VSmile system.
 pub struct State {
     cpu: CPUState,
     peripherals: Peripherals,
@@ -56,9 +52,7 @@ pub struct State {
 
 //Public methods
 impl State {
-    ///Instanciates a new [`State`].
-    ///
-    ///You probably want to load a rom and bios after this; see [`State::load_bios_file()`], [`State::load_bios_mem()`], [`State::load_rom_file()`], and [`State::load_rom_mem()`].
+    //Instanciates a new State.
     pub fn new() -> State {
         let new_state = State {
             cpu: CPUState::new(),
@@ -69,33 +63,19 @@ impl State {
         return new_state;
     }
 
-    ///Resets the emulated system.
-    ///
-    ///Requires that a rom and bios have already been loaded beforehand; see [`State::load_bios_file()`], [`State::load_bios_mem()`], [`State::load_rom_file()`], and [`State::load_rom_mem()`].
-    ///
-    ///Returns [`ReturnCode::ResetFail`] if a BIOS or ROM wasn't loaded beforehand; otherwise returns [`ReturnCode::ResetOk`].
-    pub fn reset(self: &mut Self) -> ReturnCode {
+    pub fn reset(self: &mut Self) {
         log_ansi!(0, "\x1b[1;97m", "Resetting emulated system");
 
         self.peripherals.reset();//Must come before the CPU so that it can fetch the reset vector, etc
         self.cpu.reset(&mut self.peripherals);
 
         log!(0, "Reset complete");
-        return ReturnCode::ResetOk;
     }
 
-    /*pub fn cache(self: &mut Self) {
-        self.cpu.cache(&mut self.mem);
-    }*/
-
-    ///Performs one "tick" of the emulated system, equivalent to one clock cycle.
-    ///
-    ///This function should be called approximately 27 million times per second (27 MHz)
-    ///
-    ///Before this is called, [`State::reset()`] should already have been called at least once.
-    ///
-    ///Returns [`ReturnCode::TickFail`] if the proper prerequisites have not been met. Otherwise normally returns [`ReturnCode::TickOk`], unless a new frame is ready to be shown to the user, in which case it returns [`ReturnCode::TickOkNewFrameAvailable`].
-    pub fn tick(self: &mut Self) -> ReturnCode {
+    //Performs one "tick" of the emulated system, equivalent to one clock cycle.
+    //This function should be called approximately 27 million times per second (27 MHz) on average.
+    //Before this is called, [`State::reset()`] should already have been called at least once.
+    pub fn tick(self: &mut Self) {
         //Increment the number of ticks for debugging
         log_increment_ticks!();
         log_ansi!(0, "\x1b[1;97m", "Tick begins");
@@ -109,7 +89,6 @@ impl State {
         self.peripherals.tick();
 
         log!(0, "Tick ends");
-        return ReturnCode::TickOk;
     }
 
     pub fn get_render_reciever(self: &mut Self) -> Receiver<RenderMessage> {
@@ -132,38 +111,18 @@ impl State {
         return false;//TODO implement
     }
 
-    ///Loads a VSmile BIOS file from disk at the path specified.
-    ///
-    ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
-    ///
-    ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, [`ReturnCode::LoadFailOpen`] if there was a filesystem issue, [`ReturnCode::LoadFailSize`] if the file was an invalid size.
     pub fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
         return self.peripherals.load_bios_file(path);
     }
 
-    ///Loads a VSmile BIOS from the memory contained within the given slice.
-    ///
-    ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
-    ///
-    ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, or [`ReturnCode::LoadFailSize`] if the slice was an invalid size.
     pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ()> {
         return self.peripherals.load_bios_mem(bios_mem);
     }
 
-    ///Loads a VSmile rom file from disk at the path specified.
-    ///
-    ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
-    ///
-    ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, [`ReturnCode::LoadFailOpen`] if there was a filesystem issue, [`ReturnCode::LoadFailSize`] if the file was an invalid size.
     pub fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ()> {
         return self.peripherals.load_rom_file(path);
     }
 
-    ///Loads a VSmile rom from the memory contained within the given slice.
-    ///
-    ///After this function is called, [`State::reset()`] must be called before [`State::tick()`] is called again.
-    ///
-    ///Returns [`ReturnCode::LoadOk`] if the load was sucessful, or [`ReturnCode::LoadFailSize`] if the slice was an invalid size.
     pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ()> {
         return self.peripherals.load_rom_mem(rom_mem);
     }
