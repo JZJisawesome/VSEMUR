@@ -19,7 +19,6 @@ use crate::logging::log;
 use super::common::MEM_SIZE_WORDS;
 use crate::decode;
 
-use super::state::State;
 use super::common::Memory;
 
 /* Constants */
