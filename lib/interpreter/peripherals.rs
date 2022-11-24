@@ -9,6 +9,8 @@
 
 /* Imports */
 
+use crate::debug_panic;
+
 use crate::logging::log;
 use crate::logging::log_ansi;
 
@@ -27,40 +29,18 @@ mod rom_bios;
 
 /* Constants */
 
-//All inclusive
-const WORK_RAM_BEGIN_ADDR: u32 = 0x000000;
-const WORK_RAM_END_ADDR: u32 = 0x0027FF;
-const RENDER_BEGIN_ADDR: u32 = 0x002800;
-const RENDER_END_ADDR: u32 = 0x002FFF;
-const SOUND_BEGIN_ADDR: u32 = 0x003000;
-const SOUND_END_ADDR: u32 = 0x0037FF;
-const IO_BEGIN_ADDR: u32 = 0x003D00;
-const IO_END_ADDR: u32 = 0x003DFF;
-const DMA_BEGIN_ADDR: u32 = 0x003E00;
-const DMA_END_ADDR: u32 = 0x003E03;
-const BIOS_BEGIN_ADDR: u32 = 0x004000;
-const BIOS_END_ADDR: u32 = 0x0FFFFF;
-const ROM_BEGIN_ADDR: u32 = 0x100000;
-const ROM_END_ADDR: u32 = 0x3FFFFF;
+//TODO
 
 /* Macros */
 
-//This needs to be a macro so we can use it for both reads and writes without worrying about mutability
-/*macro_rules! get_peripheral_by_address {
-    ($self:expr, $addr:expr, $function) => {{
-        match $addr {
-            WORK_RAM_BEGIN_ADDR..=WORK_RAM_END_ADDR => { todo!() },
-            RENDER_BEGIN_ADDR..=RENDER_END_ADDR => { todo!() },
-            SOUND_BEGIN_ADDR..=SOUND_END_ADDR => { todo!() },
-            IO_BEGIN_ADDR..=IO_END_ADDR => { $self.io },
-            DMA_BEGIN_ADDR..=DMA_END_ADDR => { todo!() },
-            BIOS_BEGIN_ADDR..=BIOS_END_ADDR => { $self.rom_bios },
-            ROM_BEGIN_ADDR..=ROM_END_ADDR => { $self.rom_bios },
-            _ => { panic!(); },
-        }
-    }}
-}*/
-//TODO macros to return valid addresses instead?
+//Matching address patterns for various peripherals
+macro_rules! WORK_RAM_ADDR { () => {0x000000..=0x0027FF} }
+macro_rules! RENDER_ADDR { () => {0x002800..=0x002FFF} }
+macro_rules! SOUND_ADDR { () => {0x003000..=0x0037FF} }
+macro_rules! IO_ADDR { () => {0x003D00..=0x003DFF} }
+macro_rules! DMA_ADDR { () => {0x003E00..=0x003E03} }
+macro_rules! BIOS_ADDR { () => {0x004000..=0x0FFFFF} }
+macro_rules! CARTRIDGE_ADDR { () => {0x100000..=0x3FFFFF} }
 
 /* Static Variables */
 
@@ -146,35 +126,16 @@ impl Memory for Peripherals {
 
         let data: u16;
 
-        if (addr >= 0x2800) && (addr <= 0x7FFF) {//TESTING
-            log_ansi!(2, "\x1b[31m", "Read from location outside of memory or bios/rom: {:#08X}", addr);
-        }
-
-        //data = get_peripheral_by_address!(self, addr).read_addr(addr);
-
-        //TODO proper memory map
-        if addr < 0x2800 {
-            log!(2, "Work ram");
-            data = self.work_ram[addr as usize];
-        } else if addr > 0x7FFF {
-            data = self.rom_bios.read_addr(addr);
-        } else if (addr >= IO_BEGIN_ADDR) && (addr <= IO_END_ADDR) {
-            data = self.io.read_addr(addr);
-        } else {
-            todo!();
-        }
-
-        /*match addr {
-            WORK_RAM_BEGIN_ADDR..=WORK_RAM_END_ADDR => { todo!(); },
-            RENDER_BEGIN_ADDR..=RENDER_END_ADDR => { todo!(); },
-            SOUND_BEGIN_ADDR..=SOUND_END_ADDR => { todo!(); },
-            IO_BEGIN_ADDR..=IO_END_ADDR => { todo!(); },
-            DMA_BEGIN_ADDR..=DMA_END_ADDR => { todo!(); },
-            BIOS_BEGIN_ADDR..=BIOS_END_ADDR => { todo!(); },
-            ROM_BEGIN_ADDR..=ROM_END_ADDR => { todo!(); },
+        match addr {
+            WORK_RAM_ADDR!() => { data = self.work_ram[addr as usize]; },
+            RENDER_ADDR!() => { todo!(); },
+            SOUND_ADDR!() => { todo!(); },
+            IO_ADDR!() => { data = self.io.read_addr(addr); },
+            DMA_ADDR!() => { todo!(); },
+            BIOS_ADDR!() => { data = self.rom_bios.read_addr(addr); },
+            CARTRIDGE_ADDR!() => { data = self.rom_bios.read_addr(addr); },
             _ => { return debug_panic!(0); },//Invalid address or access to unallocated address space
         }
-        */
 
         log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Read {:#06X})", data);
         return data;
@@ -184,32 +145,17 @@ impl Memory for Peripherals {
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
         log_ansi!(1, "\x1b[35m", "(Peripherals Mem Access: Write {:#06X} to address {:#08X})", data, addr);
 
-        if addr >= 0x2800 {//TESTING
-            log_ansi!(2, "\x1b[31m", "Write to location outside of memory: {:#08X}", addr);
+        match addr {
+            WORK_RAM_ADDR!() => { self.work_ram[addr as usize] = data; },
+            RENDER_ADDR!() => { todo!(); },
+            SOUND_ADDR!() => { todo!(); },
+            IO_ADDR!() => { self.io.write_addr(addr, data); },
+            DMA_ADDR!() => { todo!(); },
+            BIOS_ADDR!() => { todo!(); },
+            CARTRIDGE_ADDR!() => { todo!(); },
+            _ => { debug_panic!(); },//Invalid address or access to unallocated address space
         }
 
-        //TODO for now we only write to memory
-        //TODO proper memory map
-        if addr < 0x2800 {
-            log!(2, "Work ram");
-            self.work_ram[addr as usize] = data;
-        } else if (addr >= IO_BEGIN_ADDR) && (addr <= IO_END_ADDR) {
-            self.io.write_addr(addr, data);
-        } else {
-            todo!();
-        }
-
-        /*match addr {
-            WORK_RAM_BEGIN_ADDR..=WORK_RAM_END_ADDR => { todo!(); },
-            RENDER_BEGIN_ADDR..=RENDER_END_ADDR => { todo!(); },
-            SOUND_BEGIN_ADDR..=SOUND_END_ADDR => { todo!(); },
-            IO_BEGIN_ADDR..=IO_END_ADDR => { todo!(); },
-            DMA_BEGIN_ADDR..=DMA_END_ADDR => { todo!(); },
-            BIOS_BEGIN_ADDR..=BIOS_END_ADDR => { todo!(); },
-            ROM_BEGIN_ADDR..=ROM_END_ADDR => { todo!(); },
-            _ => { return debug_panic!(0); },//Invalid address or access to unallocated address space
-        }
-        */
         log_ansi!(1, "\x1b[35m", "(Peripherals Mem Access: Write finished)");
     }
 }
