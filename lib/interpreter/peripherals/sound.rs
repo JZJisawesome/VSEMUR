@@ -9,6 +9,8 @@
 
 use crate::logging::log;
 
+use crate::interpreter::common::Memory;
+
 /* Constants */
 
 //TODO
@@ -45,6 +47,19 @@ impl SoundState {
 
     pub fn tick(self: &mut Self) {
         //unimplemented!();//TODO
+    }
+}
+
+impl Memory for SoundState {
+    fn read_addr(self: &Self, addr: u32) -> u16 {
+        log!(2, "Sound Access");
+        //todo!();
+        return 0;//TODO implement sound
+    }
+
+    fn write_addr(self: &mut Self, addr: u32, data: u16) {
+        log!(2, "Sound Access");
+        //todo!();//TODO implement sound
     }
 }
 

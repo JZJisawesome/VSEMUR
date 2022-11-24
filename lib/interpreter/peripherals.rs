@@ -161,7 +161,7 @@ impl Memory for Peripherals {
         match addr {
             WORK_RAM_ADDR!() => { data = self.work_ram[addr as usize]; },
             RENDER_ADDR!() => { todo!(); },
-            SOUND_ADDR!() => { todo!(); },
+            SOUND_ADDR!() => { data = self.sound.read_addr(addr); },
             IO_NO_EXTMEM_REG_ADDR!() => { data = self.io.read_addr(addr); },
             DMA_ADDR!() => { todo!(); },
             BIOS_ADDR!() => { data = self.bios.read_addr(addr); },
@@ -180,7 +180,7 @@ impl Memory for Peripherals {
         match addr {
             WORK_RAM_ADDR!() => { self.work_ram[addr as usize] = data; },
             RENDER_ADDR!() => { todo!(); },
-            SOUND_ADDR!() => { todo!(); },
+            SOUND_ADDR!() => { self.sound.write_addr(addr, data); },
             IO_NO_EXTMEM_REG_ADDR!() => { self.io.write_addr(addr, data); },
             DMA_ADDR!() => { todo!(); },
             BIOS_ADDR!() => { self.bios.write_addr(addr, data); },

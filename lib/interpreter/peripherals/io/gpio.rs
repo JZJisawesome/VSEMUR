@@ -65,11 +65,15 @@ impl GPIO {
 
 impl Memory for GPIO {
     fn read_addr(self: &Self, addr: u32) -> u16 {
-        todo!();
+        return self.registers[(addr - BASE_ADDR) as usize];
+        //TODO log the register we accessed
+        //todo!();//TODO can we actually get away without implementing GPIO?
     }
 
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
-        todo!();
+        self.registers[(addr - BASE_ADDR) as usize] = data;
+        //TODO log the register we accessed
+        //todo!();//TODO can we actually get away without implementing GPIO?
     }
 }
 
