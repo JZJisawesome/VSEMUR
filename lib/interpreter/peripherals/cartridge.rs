@@ -13,7 +13,8 @@ use crate::logging::log;
 
 use crate::interpreter::common::MAX_ROM_SIZE_WORDS;
 use crate::interpreter::common::InstructionMemory;
-use crate::interpreter::common::Memory;
+use crate::interpreter::common::ReadableMemory;
+use crate::interpreter::common::WritableMemory;
 use crate::interpreter::common::load_file_u16;
 
 /* Constants */
@@ -82,7 +83,7 @@ impl InstructionMemory for Cartridge {
     }
 }
 
-impl Memory for Cartridge {
+impl ReadableMemory for Cartridge {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         //TODO do this properly (actually support a rom + bank switching, proper memory regions for bios vs rom)
         if addr == 0x003D23 {
@@ -92,7 +93,9 @@ impl Memory for Cartridge {
             todo!();//Different message in brackets based on whether this is the ROM or the NVRAM
         }
     }
+}
 
+impl WritableMemory for Cartridge {
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
         //TODO what about NVRAM?
         debug_assert!(addr == 0x003D23);//The only write we should be recieving is to REG_EXT_MEMORY_CTRL

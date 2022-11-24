@@ -26,20 +26,18 @@ pub(super) const PHYSICAL_MEM_SIZE_WORDS: usize = 1024 * 10;//10 kilowords of me
 
 /* Types */
 
-pub(super) trait Memory {
-    fn read_addr(self: &Self, addr: u32) -> u16;
-    fn write_addr(self: &mut Self, addr: u32, data: u16);
+pub(super) trait CPU {
+    fn reg_sp(self: &mut Self) -> &mut u16;
+    fn reg_r(self: &mut Self) -> &mut [u16;4];
+    fn reg_bp(self: &mut Self) -> &mut u16;
+    fn reg_sr(self: &mut Self) -> &mut u16;
+    fn reg_pc(self: &mut Self) -> &mut u16;
+    fn reg_fr(self: &mut Self) -> &mut u16;
 
-    fn read_page_addr(self: &Self, page: u8, addr: u16) -> u16 {
-        return self.read_addr(((page as u32) << 16) | (addr as u32));
-    }
-
-    fn write_page_addr(self: &mut Self, page: u8, addr: u16, data: u16) {
-        self.write_addr(((page as u32) << 16) | (addr as u32), data);
-    }
+    fn soft_interrupt_request(self: &mut Self);//To support the BREAK instruction
 }
 
-pub(super) trait InstructionMemory: Memory {
+pub(super) trait InstructionMemory: ReadableMemory {
     fn should_invalidate_icache(self: &Self) -> bool;//Useful for caching interpretation
 
     fn fetch_addr(self: &Self, addr: u32) -> u16 {
@@ -48,6 +46,22 @@ pub(super) trait InstructionMemory: Memory {
 
     fn fetch_page_addr(self: &Self, page: u8, addr: u16) -> u16 {
         return self.fetch_addr(((page as u32) << 16) | (addr as u32));
+    }
+}
+
+pub(super) trait ReadableMemory {
+    fn read_addr(self: &Self, addr: u32) -> u16;
+
+    fn read_page_addr(self: &Self, page: u8, addr: u16) -> u16 {
+        return self.read_addr(((page as u32) << 16) | (addr as u32));
+    }
+}
+
+pub(super) trait WritableMemory {
+    fn write_addr(self: &mut Self, addr: u32, data: u16);
+
+    fn write_page_addr(self: &mut Self, page: u8, addr: u16, data: u16) {
+        self.write_addr(((page as u32) << 16) | (addr as u32), data);
     }
 }
 

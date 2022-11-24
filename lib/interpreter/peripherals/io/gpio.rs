@@ -11,7 +11,8 @@ use crate::debug_panic;
 
 use crate::logging::log;
 
-use crate::interpreter::common::Memory;
+use crate::interpreter::common::ReadableMemory;
+use crate::interpreter::common::WritableMemory;
 
 /* Constants */
 
@@ -63,13 +64,15 @@ impl GPIO {
     }
 }
 
-impl Memory for GPIO {
+impl ReadableMemory for GPIO {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         return self.registers[(addr - BASE_ADDR) as usize];
         //TODO log the register we accessed
         //todo!();//TODO can we actually get away without implementing GPIO?
     }
+}
 
+impl WritableMemory for GPIO {
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
         self.registers[(addr - BASE_ADDR) as usize] = data;
         //TODO log the register we accessed

@@ -15,7 +15,8 @@ use crate::logging::log;
 use crate::logging::log_ansi;
 
 use crate::interpreter::common::InstructionMemory;
-use crate::interpreter::common::Memory;
+use crate::interpreter::common::ReadableMemory;
+use crate::interpreter::common::WritableMemory;
 use super::common::MEM_SIZE_WORDS;
 use crate::interpreter::common::PHYSICAL_MEM_SIZE_WORDS;
 
@@ -151,7 +152,7 @@ impl InstructionMemory for Peripherals {
     }
 }
 
-impl Memory for Peripherals {
+impl ReadableMemory for Peripherals {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Read from address {:#08X})", addr);
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
@@ -172,7 +173,9 @@ impl Memory for Peripherals {
         log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Read {:#06X})", data);
         return data;
     }
+}
 
+impl WritableMemory for Peripherals {
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
         log_ansi!(1, "\x1b[35m", "(Peripherals Mem Access: Write {:#06X} to address {:#08X})", data, addr);
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
@@ -183,7 +186,6 @@ impl Memory for Peripherals {
             SOUND_ADDR!() => { self.sound.write_addr(addr, data); },
             IO_NO_EXTMEM_REG_ADDR!() => { self.io.write_addr(addr, data); },
             DMA_ADDR!() => { todo!(); },
-            BIOS_ADDR!() => { self.bios.write_addr(addr, data); },
             CARTRIDGE_ADDR!() | EXTMEM_REG_ADDR!() => { self.cartridge.write_addr(addr, data); },
             _ => { debug_panic!(); },//Invalid address or access to unallocated address space
         }

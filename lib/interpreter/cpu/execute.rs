@@ -22,7 +22,8 @@ use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
-use crate::interpreter::common::Memory;
+use crate::interpreter::common::ReadableMemory;
+use crate::interpreter::common::WritableMemory;
 use super::CPUState;
 use crate::decode::*;//TODO only import what is needed from here
 use crate::decode::DecodedInstruction::*;
@@ -50,7 +51,7 @@ use crate::decode::DecodedInstruction::*;
 
 /* Functions */
 
-pub(super) fn execute(cpu: &mut CPUState, mem: &mut impl Memory, inst: &DecodedInstruction) {
+pub(super) fn execute(cpu: &mut CPUState, mem: &mut (impl ReadableMemory + WritableMemory), inst: &DecodedInstruction) {
     log!(1, "CPU: Execute instruction");
 
     perform_instruction(cpu, mem, inst);
@@ -58,7 +59,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut impl Memory, inst: &DecodedI
     increment_pc(cpu, inst);
 }
 
-fn perform_instruction(cpu: &mut CPUState, mem: &mut impl Memory, inst: &DecodedInstruction) {
+fn perform_instruction(cpu: &mut CPUState, mem: &mut (impl ReadableMemory + WritableMemory), inst: &DecodedInstruction) {
     log!(2, "Perform instruction operations");
     match inst {
         Base_plus_Disp6{..} | IMM6{..} | DS_Indirect{..} | IMM16{..} | Direct16{..} | Direct6{..} | Register{..} => {//TODO potentiallly move sixteen_bits_Shift elsewhere (shift16.rs)

@@ -13,7 +13,7 @@ use crate::logging::log;
 
 use crate::interpreter::common::MAX_BIOS_SIZE_WORDS;
 use crate::interpreter::common::InstructionMemory;
-use crate::interpreter::common::Memory;
+use crate::interpreter::common::ReadableMemory;
 use crate::interpreter::common::load_file_u16;
 
 /* Constants */
@@ -65,17 +65,12 @@ impl InstructionMemory for Bios {
     }
 }
 
-impl Memory for Bios {
+impl ReadableMemory for Bios {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         log!(2, "BIOS Access");
         debug_assert!(self.bios_loaded);
         //TODO error checking addr
         return self.bios[addr as usize];
-    }
-
-    fn write_addr(self: &mut Self, addr: u32, data: u16) {
-        log!(2, "BIOS Access");
-        debug_panic!();
     }
 }
 

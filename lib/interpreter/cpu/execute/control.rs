@@ -16,7 +16,8 @@ use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
-use crate::interpreter::common::Memory;
+use crate::interpreter::common::ReadableMemory;
+use crate::interpreter::common::WritableMemory;
 use super::CPUState;
 use crate::decode::*;//TODO only import what is needed from here
 
@@ -42,7 +43,7 @@ use crate::decode::*;//TODO only import what is needed from here
 
 /* Functions */
 
-pub(super) fn execute(cpu: &mut CPUState, mem: &mut impl Memory, inst: &DecodedInstruction) {
+pub(super) fn execute(cpu: &mut CPUState, mem: &mut (impl ReadableMemory + WritableMemory), inst: &DecodedInstruction) {
     use DecodedInstruction::*;
     match inst {
         CALL{a22} => {

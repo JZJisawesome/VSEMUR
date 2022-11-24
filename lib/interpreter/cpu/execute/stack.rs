@@ -16,7 +16,8 @@ use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
-use crate::interpreter::common::Memory;
+use crate::interpreter::common::ReadableMemory;
+use crate::interpreter::common::WritableMemory;
 use super::CPUState;
 use crate::decode::*;//TODO only import what is needed from here
 use crate::decode::DecodedStackOp::*;
@@ -43,7 +44,7 @@ use crate::decode::DecodedStackOp::*;
 
 /* Functions */
 
-pub(super) fn execute(cpu: &mut CPUState, mem: &mut impl Memory, op: DecodedStackOp, rd_index: u8, size: u8, rs: DecodedRegister) {
+pub(super) fn execute(cpu: &mut CPUState, mem: &mut (impl ReadableMemory + WritableMemory), op: DecodedStackOp, rd_index: u8, size: u8, rs: DecodedRegister) {
     //The ISA docs are really confusing about how to properly interpret the rd/rh and size fields, and the direction to access the registers in
     //Looking at MAME clears things up. PUSH pushes from rd_index + 1 - size to rd_index (both inclusive) downwards
     //POP pops from rd_index + 1 to rd_index + size (both inclusive) upwards

@@ -20,7 +20,8 @@ use super::common::MEM_SIZE_WORDS;
 use crate::decode;
 
 use super::common::InstructionMemory;
-use super::common::Memory;
+use super::common::ReadableMemory;
+use super::common::WritableMemory;
 
 /* Constants */
 
@@ -76,7 +77,7 @@ impl CPUState {
         };
     }
 
-    pub(super) fn reset(self: &mut Self, mem: &impl Memory) {
+    pub(super) fn reset(self: &mut Self, mem: &impl ReadableMemory) {
         log!(1, "Resetting CPU");
 
         log!(2, "Initialize FR to 0bx_0_0_0_0_0000_0_0_0_1000");
@@ -159,7 +160,7 @@ impl CPUState {
     }
     */
 
-    pub(super) fn tick(self: &mut Self, mem: &mut impl InstructionMemory) -> u8 {
+    pub(super) fn tick(self: &mut Self, mem: &mut (impl InstructionMemory + WritableMemory)) -> u8 {
         //TODO take advantange of the InstructionMemory's should_invalidate_icache function
 
         //Fetch instruction from memory

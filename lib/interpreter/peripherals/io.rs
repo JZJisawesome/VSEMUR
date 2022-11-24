@@ -20,7 +20,8 @@ use crate::debug_panic;
 
 use crate::logging::log;
 
-use crate::interpreter::common::Memory;
+use crate::interpreter::common::ReadableMemory;
+use crate::interpreter::common::WritableMemory;
 
 /* Constants */
 
@@ -189,7 +190,7 @@ impl IOState {
     }
 }
 
-impl Memory for IOState {
+impl ReadableMemory for IOState {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         log!(2, "I/O Access");
         log_io_addr!(3, addr);
@@ -202,7 +203,9 @@ impl Memory for IOState {
             _ => { return debug_panic!(0); },//Invalid address or access to unallocated address space
         }
     }
+}
 
+impl WritableMemory for IOState {
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
         log!(2, "I/O Access");
         log_io_addr!(3, addr);

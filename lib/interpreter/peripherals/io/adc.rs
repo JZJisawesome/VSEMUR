@@ -11,7 +11,8 @@ use crate::debug_panic;
 
 use crate::logging::log;
 
-use crate::interpreter::common::Memory;
+use crate::interpreter::common::ReadableMemory;
+use crate::interpreter::common::WritableMemory;
 
 /* Constants */
 
@@ -56,7 +57,7 @@ impl ADC {
     }
 }
 
-impl Memory for ADC {
+impl ReadableMemory for ADC {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         match addr - BASE_ADDR {
             offset::REG_ADC_CTRL => { log!(4, "REG_ADC_CTRL"); return self.adc_ctrl; }//TODO can we actually get away without implementing the ADC?
@@ -65,7 +66,9 @@ impl Memory for ADC {
             _ => { return debug_panic!(0); },//Invalid address or access to unallocated address space
         }
     }
+}
 
+impl WritableMemory for ADC {
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
         match addr - BASE_ADDR {
             offset::REG_ADC_CTRL => { log!(4, "REG_ADC_CTRL"); self.adc_ctrl = data; }//TODO can we actually get away without implementing the ADC?
