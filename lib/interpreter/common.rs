@@ -26,6 +26,20 @@ pub(super) const PHYSICAL_MEM_SIZE_WORDS: usize = 1024 * 10;//10 kilowords of me
 
 /* Types */
 
+pub(super) enum Interrupt {
+    Break,
+    FIQ,
+    Reset,
+    IRQ0,
+    IRQ1,
+    IRQ2,
+    IRQ3,
+    IRQ4,
+    IRQ5,
+    IRQ6,
+    IRQ7
+}
+
 pub(super) trait CPU {
     fn reg_sp(self: &mut Self) -> &mut u16;
     fn reg_r(self: &mut Self) -> &mut [u16;4];
@@ -34,7 +48,22 @@ pub(super) trait CPU {
     fn reg_pc(self: &mut Self) -> &mut u16;
     fn reg_fr(self: &mut Self) -> &mut u16;
 
+    //TODO we need to also acknowledge we finished an interrupt too
     fn soft_interrupt_request(self: &mut Self);//To support the BREAK instruction
+
+    //TODO add helper functions in cpu.rs to this trait as defaults
+}
+
+pub(super) trait Tickable {
+    fn tick(self: &mut Self) -> bool;//Returns true if an interrupt is requested
+}
+
+pub(super) trait InterruptReadable {//Used by handle_interrupts
+    fn get_interrupt(self: &mut Self) -> Option<Interrupt>;
+}
+
+pub(super) trait InterruptClearable {//Used by execute_inst to acknowledge when we've finished with an interrupt
+    fn clear_current_interrupt(self: &mut Self);
 }
 
 pub(super) trait InstructionMemory: ReadableMemory {

@@ -423,6 +423,11 @@ impl CPUState {
     fn set_cycle_count(self: &mut Self, value: u8) {
         self.cycle_count = value;
     }
+
+    //TESTING
+    fn reg_sp(self: &mut Self) -> &mut u16 {
+        return &mut self.sp;
+    }
 }
 
 /* Functions */
