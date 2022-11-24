@@ -37,10 +37,12 @@ mod rom_bios;
 macro_rules! WORK_RAM_ADDR { () => {0x000000..=0x0027FF} }
 macro_rules! RENDER_ADDR { () => {0x002800..=0x002FFF} }
 macro_rules! SOUND_ADDR { () => {0x003000..=0x0037FF} }
-macro_rules! IO_ADDR { () => {0x003D00..=0x003DFF} }
+//macro_rules! IO_ADDR { () => {0x003D00..=0x3DFF} }
+macro_rules! IO_ADDR { () => {0x003D00..=0x003D22 | 0x003D24..=0x3DFF} }
 macro_rules! DMA_ADDR { () => {0x003E00..=0x003E03} }
 macro_rules! BIOS_ADDR { () => {0x004000..=0x0FFFFF} }
-macro_rules! CARTRIDGE_ADDR { () => {0x100000..=0x3FFFFF} }
+//macro_rules! CARTRIDGE_ADDR { () => {0x100000..=0x3FFFFF} }
+macro_rules! CARTRIDGE_ADDR { () => {0x100000..=0x3FFFFF | 0x003D23} }
 
 /* Static Variables */
 
@@ -152,7 +154,7 @@ impl Memory for Peripherals {
             IO_ADDR!() => { self.io.write_addr(addr, data); },
             DMA_ADDR!() => { todo!(); },
             BIOS_ADDR!() => { todo!(); },
-            CARTRIDGE_ADDR!() => { todo!(); },
+            CARTRIDGE_ADDR!() => { self.rom_bios.write_addr(addr, data); },
             _ => { debug_panic!(); },//Invalid address or access to unallocated address space
         }
 

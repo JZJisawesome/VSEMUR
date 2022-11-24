@@ -39,6 +39,7 @@ pub(super) struct RomAndBiosState {
     rom_loaded: bool,
     bios: Box<[u16]>,
     rom: Option<Box<[u16]>>,//Option because we don't require a ROM for things to work, so we can save memory
+    reg_ext_memory_ctrl: u16,
 }
 
 /* Associated Functions and Methods */
@@ -51,10 +52,11 @@ impl RomAndBiosState {
             rom_loaded: false,
             bios: vec![0u16; MAX_BIOS_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed//TODO perhaps only allocate the memory necessary?
             rom: None,
+            reg_ext_memory_ctrl: 0x0028,
         };
     }
 
-    //TODO reset function to save chip-select values, etc
+    //TODO reset function to set reg_ext_memory_ctrl to 0x0028 chip-select values, etc
 
     pub(super) fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
         let result = load_file_u16(path, &mut self.bios);//TODO we only really need to load the part of the file from 0x004000 to 0x0FFFFF
@@ -95,13 +97,21 @@ impl RomAndBiosState {
 
 impl Memory for RomAndBiosState {
     fn read_addr(self: &Self, addr: u32) -> u16 {
-        log!(2, "BIOS/ROM Access");
         //TODO do this properly (actually support a rom + bank switching, proper memory regions for bios vs rom)
-        return self.bios[addr as usize];
+        if addr == 0x003D23 {
+            log!(2, "BIOS/ROM Access (REG_EXT_MEMORY_CTRL)");
+            return self.reg_ext_memory_ctrl;
+        } else {
+            log!(2, "BIOS/ROM Access");
+            return self.bios[addr as usize];
+        }
     }
 
-    fn write_addr(self: &mut Self, _: u32, _: u16) {
-        debug_panic!();//We should never be writing to the BIOS/ROM//TODO should we be handling this nicer?
+    fn write_addr(self: &mut Self, addr: u32, data: u16) {
+        //TODO what about NVRAM?
+        debug_assert!(addr == 0x003D23);//The only write we should be recieving is to REG_EXT_MEMORY_CTRL
+        log!(2, "BIOS/ROM Access (REG_EXT_MEMORY_CTRL)");
+        self.reg_ext_memory_ctrl = data;
     }
 }
 

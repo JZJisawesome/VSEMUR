@@ -56,7 +56,7 @@ mod offset {
     pub(super) const REG_SYSTEM_CTRL: u32 = 0x0020;
     pub(super) const REG_INT_CTRL: u32 = 0x0021;
     pub(super) const REG_INT_CLEAR: u32 = 0x0022;
-    pub(super) const REG_EXT_MEMORY_CTRL: u32 = 0x0023;//TODO this address should be handled in rom_bios.rs instead; or perhaps make rom_bios a submodule of io?
+    pub(super) const REG_EXT_MEMORY_CTRL: u32 = 0x0023;//NOTE: This isn't handled in IO, but rather in the logic for the cartridge
     pub(super) const REG_WATCHDOG_CLEAR: u32 = 0x0024;
     pub(super) const REG_ADC_CTRL: u32 = 0x0025;
     pub(super) const REG_ADC_PAD: u32 = 0x0026;
@@ -142,7 +142,7 @@ impl IOState {
     pub(super) fn reset(self: &mut Self) {
         log!(2, "Resetting I/O state");
         //TODO reset self.registers to the proper initial states
-        self.registers[offset::REG_EXT_MEMORY_CTRL as usize] = 0x0028;
+        //self.registers[offset::REG_EXT_MEMORY_CTRL as usize] = 0x0028;//NOTE: This isn't handled in IO, but rather in the logic for the cartridge
         //unimplemented!();//TODO
     }
 
@@ -161,7 +161,7 @@ impl Memory for IOState {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         log!(2, "I/O Access");
         match addr - BASE_ADDR {
-            offset::REG_EXT_MEMORY_CTRL => { log!(3, "REG_EXT_MEMORY_CTRL read"); return self.registers[offset::REG_EXT_MEMORY_CTRL as usize]; },
+            //offset::REG_EXT_MEMORY_CTRL => { log!(3, "REG_EXT_MEMORY_CTRL read"); return self.registers[offset::REG_EXT_MEMORY_CTRL as usize]; },//NOTE: This isn't handled in IO, but rather in the logic for the cartridge
             _ => { todo!(); }//TODO implement
         }
     }
