@@ -54,8 +54,10 @@ impl RomAndBiosState {
         };
     }
 
+    //TODO reset function to save chip-select values, etc
+
     pub(super) fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
-        let result = load_file_u16(path, &mut self.bios);
+        let result = load_file_u16(path, &mut self.bios);//TODO we only really need to load the part of the file from 0x004000 to 0x0FFFFF
         if matches!(result, Ok(())) {
             self.bios_loaded = true;
         }

@@ -54,17 +54,24 @@
 //!}
 //!```
 
+//TODO caching interpreter in CPU that is aware of bank switching
+
 /* Imports */
 
 mod cpu;
 mod common;
 mod peripherals;
+mod render_reciever;
+mod sound_reciever;
+mod input_sender;
+
+pub use render_reciever::RenderReciever;
+pub use sound_reciever::SoundReciever;
+pub use input_sender::InputSender;
 
 use std::thread;
 use std::sync::mpsc::SyncSender;
-use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
-use std::sync::mpsc::channel;
 use std::sync::mpsc::sync_channel;
 
 
@@ -87,18 +94,6 @@ use crate::logging::log_increment_ticks;
 //TODO
 
 /* Types */
-
-pub struct RenderMessage {
-    //TODO struct returned by a channel from the renderer containing the data/methods needed to render a frame or access the already rendered frame depending on how things go
-}
-
-pub struct SoundMessage {
-    //TODO struct returned by a channel from the renderer containing the data/methods indicating how to change the audio being output
-}
-
-pub struct InputMessage {
-    //TODO message type sent from the user to the channel indicating what to change the state of the inputs to
-}
 
 ///VSEMUR Interpreter primary emulation struct
 ///
@@ -162,21 +157,21 @@ impl Emulator {
     }
 
     //TODO these will be valid across launches and stops of the emulation thread, but can be called whenever we're stopped to recreate them if needed
-    pub fn get_render_reciever(self: &mut Self) -> Receiver<RenderMessage> {
+    pub fn get_render_reciever(self: &mut Self) -> RenderReciever {
         debug_assert!(!self.thread_running());
-        //return self.peripherals.as_mut().unwrap().get_render_reciever();
+        return self.peripherals.as_mut().unwrap().get_render_reciever();
         todo!();
     }
 
-    pub fn get_sound_reciever(self: &mut Self) -> Receiver<SoundMessage> {
+    pub fn get_sound_reciever(self: &mut Self) -> SoundReciever {
         debug_assert!(!self.thread_running());
-        //return self.peripherals.as_mut().unwrap().get_sound_reciever();
+        return self.peripherals.as_mut().unwrap().get_sound_reciever();
         todo!();
     }
 
-    pub fn get_input_sender(self: &mut Self) -> Sender<InputMessage> {
+    pub fn get_input_sender(self: &mut Self) -> InputSender {
         debug_assert!(!self.thread_running());
-        //return self.peripherals.as_mut().unwrap().get_input_sender();
+        return self.peripherals.as_mut().unwrap().get_input_sender();
         todo!();
     }
 
@@ -254,11 +249,16 @@ impl Emulator {
         //debug_assert!(state_for_thread.ready());//TODO
 
         //Launch the thread
-        self.emulation_thread_join_handle.replace(thread::spawn(
-            move || -> (cpu::CPUState, peripherals::Peripherals) {
-                return Emulator::emulation_thread(cpu_for_thread, peripherals_for_thread, rx);
-            }
-        ));
+        self.emulation_thread_join_handle.replace(
+            thread::Builder::new()
+                .name("VSEMUR emulation thread".to_string())
+                .spawn(
+                    move || -> (cpu::CPUState, peripherals::Peripherals) {
+                        return Emulator::emulation_thread(cpu_for_thread, peripherals_for_thread, rx);
+                    }
+                )
+                .expect("Failed to launch VSEMUR emulation thread")
+        );
     }
 
     ///Stops the currently running thread, blocking until it finishes and exits.
@@ -273,11 +273,11 @@ impl Emulator {
         //Request the thread to stop and get the state back from it; also destroy the stop request channel
         let moved_stop_request_sender = self.stop_request_sender.take().unwrap();
         if matches!(moved_stop_request_sender.send(()), Err(_)) {
-            panic!("Emulation thread dropped reciever (likely due to panic)");
+            panic!("VSEMUR emulation thread dropped reciever (likely due to panic)");
         }
 
         let old_join_handle = self.emulation_thread_join_handle.take().unwrap();
-        let (cpu_from_thread, peripherals_from_thread) = old_join_handle.join().expect("Emulation thread panicked");
+        let (cpu_from_thread, peripherals_from_thread) = old_join_handle.join().expect("VSEMUR emulation thread panicked");
 
         drop(moved_stop_request_sender);
 
@@ -315,7 +315,7 @@ impl Emulator {
 
                 cpu.tick(&mut peripherals);
                 peripherals.tick();
-                if periperhals.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
+                if peripherals.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
                     break;
                 }
 

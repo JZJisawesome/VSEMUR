@@ -16,6 +16,10 @@ use super::common::Memory;
 use super::common::MEM_SIZE_WORDS;
 use crate::interpreter::common::PHYSICAL_MEM_SIZE_WORDS;
 
+use super::render_reciever::RenderReciever;
+use super::sound_reciever::SoundReciever;
+use super::input_sender::InputSender;
+
 mod io;
 mod render;
 mod sound;
@@ -23,6 +27,7 @@ mod rom_bios;
 
 /* Constants */
 
+//All inclusive
 const WORK_RAM_BEGIN_ADDR: u32 = 0x000000;
 const WORK_RAM_END_ADDR: u32 = 0x0027FF;
 const RENDER_BEGIN_ADDR: u32 = 0x002800;
@@ -33,10 +38,10 @@ const IO_BEGIN_ADDR: u32 = 0x003D00;
 const IO_END_ADDR: u32 = 0x003DFF;
 const DMA_BEGIN_ADDR: u32 = 0x003E00;
 const DMA_END_ADDR: u32 = 0x003E03;
-const BIOS_BEGIN_ADDR: u32 = 0x003E04;//TODO figure out what this is
-const BIOS_END_ADDR: u32 = 0x0FFFFF;//TODO figure out what this is
-const ROM_BEGIN_ADDR: u32 = 0x100000;//TODO figure out what this is
-const ROM_END_ADDR: u32 = 0x3FFFFF;//TODO figure out what this is
+const BIOS_BEGIN_ADDR: u32 = 0x004000;
+const BIOS_END_ADDR: u32 = 0x0FFFFF;
+const ROM_BEGIN_ADDR: u32 = 0x100000;
+const ROM_END_ADDR: u32 = 0x3FFFFF;
 
 /* Macros */
 
@@ -53,7 +58,7 @@ pub(super) struct Peripherals {
     sound: sound::SoundState,
     io: io::IOState,
     work_ram: Box<[u16]>,
-    rom_bios: rom_bios::RomAndBiosState,
+    rom_bios: rom_bios::RomAndBiosState,//TODO split this into two seperate parts
 }
 
 /* Associated Functions and Methods */
@@ -88,6 +93,18 @@ impl Peripherals {
 
     pub fn frame_ended(self: &mut Self) -> bool {
         return false;//TODO
+    }
+
+    pub fn get_render_reciever(self: &mut Self) -> RenderReciever {
+        todo!();
+    }
+
+    pub fn get_sound_reciever(self: &mut Self) -> SoundReciever {
+        todo!();
+    }
+
+    pub fn get_input_sender(self: &mut Self) -> InputSender {
+        todo!();
     }
 
     pub fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {

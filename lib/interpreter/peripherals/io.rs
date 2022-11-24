@@ -56,7 +56,7 @@ mod offset {
     pub(super) const REG_SYSTEM_CTRL: u32 = 0x0020;
     pub(super) const REG_INT_CTRL: u32 = 0x0021;
     pub(super) const REG_INT_CLEAR: u32 = 0x0022;
-    pub(super) const REG_EXT_MEMORY_CTRL: u32 = 0x0023;
+    pub(super) const REG_EXT_MEMORY_CTRL: u32 = 0x0023;//TODO this address should be handled in rom_bios.rs instead; or perhaps make rom_bios a submodule of io?
     pub(super) const REG_WATCHDOG_CLEAR: u32 = 0x0024;
     pub(super) const REG_ADC_CTRL: u32 = 0x0025;
     pub(super) const REG_ADC_PAD: u32 = 0x0026;

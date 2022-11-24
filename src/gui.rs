@@ -10,7 +10,8 @@
 /* Imports */
 
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Button, Text};
+use gtk::{Application, ApplicationWindow, Button};
+//use gtk::Text
 
 /* Constants */
 
