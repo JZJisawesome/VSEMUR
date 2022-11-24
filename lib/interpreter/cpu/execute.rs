@@ -39,7 +39,10 @@ use crate::decode::DecodedInstruction::*;
 
 /* Types */
 
-//TODO
+/*struct CombinedStateReference<'a> {
+    cpu: &'a CPUState,
+    mem: &'a dyn Memory,
+}*/
 
 /* Associated Functions and Methods */
 

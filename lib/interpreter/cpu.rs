@@ -55,10 +55,6 @@ pub(super) struct CPUState {
     //decoded_instruction_cache: Box<[decode::DecodedInstruction]>,
 }
 
-struct Inst {
-    wg: [u16; 2],
-}
-
 /* Associated Functions and Methods */
 
 impl CPUState {

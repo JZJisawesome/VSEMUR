@@ -54,7 +54,7 @@ impl Memory for SoundState {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         log!(2, "Sound Access");
         //todo!();
-        return 0;//TODO implement sound
+        return 0;//TODO implement sound (at least the registers so that the CPU gets the values it expects)
     }
 
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
