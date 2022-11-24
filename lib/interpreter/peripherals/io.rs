@@ -1,6 +1,7 @@
-/* NAME//TODO
+/* io.rs
  * By: John Jekel
  *
+ * Handles I/O registers and emulates the peripherals they're attached to
  * NOTE: Since unlike unSP there is limited documentation avaliable for SPG240 peripherals, I may be leaning slighly more on MAME's code for this.
  *
 */
@@ -12,17 +13,18 @@
 
 /* Imports */
 
+mod gpio;
+mod adc;
+
+use crate::debug_panic;
+
 use crate::logging::log;
 
 use crate::interpreter::common::Memory;
 
 /* Constants */
 
-const NUM_REGS: usize = 0x100;
-
-const BASE_ADDR: u32 = 0x3D00;
-
-mod offset {
+/*mod offset {
     pub(super) const REG_IO_MODE: u32 = 0x0000;
     pub(super) const REG_IOA_DATA: u32 = 0x0001;
     pub(super) const REG_IOA_BUFFER: u32 = 0x0002;
@@ -110,10 +112,40 @@ mod offset {
     pub(super) const REG_CLOCK_CTRL: u32 = 0x0061;
     pub(super) const REG_IO_DRIVE_CTRL: u32 = 0x0062;
 }
+*/
+
+const NUM_REGS: usize = 0x100;
+
+const BASE_ADDR: u32 = 0x3D00;
+
+mod addr {
+    macro_rules! GPIO { () => {0x3D00..=0x3D0F} }
+    macro_rules! ADC { () => {0x3D25..=0x3D27} }
+    macro_rules! SYSTEM_CTRL { () => {0x3D20} }
+    macro_rules! WATCHDOG_CLEAR { () => {0x3D24} }
+
+    pub(super) use GPIO;
+    pub(super) use ADC;
+    pub(super) use SYSTEM_CTRL;
+    pub(super) use WATCHDOG_CLEAR;
+}
 
 /* Macros */
 
-//TODO (also pub(crate) use the_macro statements here too)
+macro_rules! log_io_addr {
+    ($indent: expr, $addr: expr) => {
+        if cfg!(debug_assertions) {
+            use addr::*;
+            match $addr {
+                GPIO!() => { log!($indent, "GPIO Register"); },
+                ADC!() => { log!($indent, "ADC Register"); },
+                SYSTEM_CTRL!() => { log!($indent, "SYSTEM_CTRL Register")},
+                WATCHDOG_CLEAR!() => { log!($indent, "WATCHDOG_CLEAR Register"); },
+                _ => { debug_panic!(); },//Invalid address or unallocated address space
+            }
+        }
+    }
+}
 
 /* Static Variables */
 
@@ -122,7 +154,10 @@ mod offset {
 /* Types */
 
 pub(super) struct IOState {
-    registers: [u16; NUM_REGS],
+    //registers: [u16; NUM_REGS],
+    system_ctrl: u16,
+    adc: adc::ADC,
+    gpio: gpio::GPIO,
 }
 
 /* Associated Functions and Methods */
@@ -133,8 +168,10 @@ impl IOState {
 
         //TODO implement
         return IOState {
-            registers: [0; NUM_REGS],//TODO avoid zero-init
-
+            //registers: [0; NUM_REGS],//TODO avoid zero-init
+            system_ctrl: 0,//TODO what should this default to?
+            adc: adc::ADC::new(),
+            gpio: gpio::GPIO::new(),
         };
         //unimplemented!();
     }
@@ -149,28 +186,34 @@ impl IOState {
     pub fn tick(self: &mut Self) {
         log!(2, "I/O: TODO describe what we're doing");
         //unimplemented!();//TODO
-        //TESTING
-        //log!(1, "Printing render register contents");
-        //for i in 0x002800..=0x0028FF {
-        //    log!(2, "{:#08X}: {:#06X}", i, mem.read_addr(i));
-        //}
     }
 }
 
 impl Memory for IOState {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         log!(2, "I/O Access");
-        match addr - BASE_ADDR {
-            //offset::REG_EXT_MEMORY_CTRL => { log!(3, "REG_EXT_MEMORY_CTRL read"); return self.registers[offset::REG_EXT_MEMORY_CTRL as usize]; },//NOTE: This isn't handled in IO, but rather in the logic for the cartridge
-            _ => { todo!(); }//TODO implement
+        log_io_addr!(3, addr);
+
+        use addr::*;
+        match addr {
+            GPIO!() => { return self.gpio.read_addr(addr); },
+            SYSTEM_CTRL!() => { return self.system_ctrl; },
+            ADC!() => { return self.adc.read_addr(addr); },
+            _ => { return debug_panic!(0); },//Invalid address or access to unallocated address space
         }
     }
 
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
         log!(2, "I/O Access");
-        match addr - BASE_ADDR {
-            offset::REG_WATCHDOG_CLEAR => { log!(3, "REG_WATCHDOG_CLEAR written with {}correct value", if data == 0x55AA { "" } else { "in" }); },//We don't actually implement the WDT
-            _ => { todo!(); }//TODO implement
+        log_io_addr!(3, addr);
+
+        use addr::*;
+        match addr {
+            GPIO!() => { self.gpio.write_addr(addr, data); },
+            SYSTEM_CTRL!() => { self.system_ctrl = data; },
+            WATCHDOG_CLEAR!() => { log!(4, "{}orrect value written", if data == 0x55AA { "C" } else { "Inc" }); },//We don't actually implement the WDT
+            ADC!() => { self.adc.write_addr(addr, data); },
+            _ => { debug_panic!(); },//Invalid address or access to unallocated address space
         }
     }
 }

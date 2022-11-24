@@ -135,7 +135,7 @@ impl InstructionMemory for Peripherals {
     }
 
     fn fetch_addr(self: &Self, addr: u32) -> u16 {//For instruction fetching only (faster)
-        log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Fetch from address {:#08X})", addr);
+        log_ansi!(1, "\x1b[33m", "(Peripherals Mem Access: Fetch from address {:#08X})", addr);
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
 
         let data: u16;
@@ -146,7 +146,7 @@ impl InstructionMemory for Peripherals {
             _ => { return debug_panic!(0); },//Invalid address, access to unallocated address space, or to non-instruction memory
         }
 
-        log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Fetch {:#06X})", data);
+        log_ansi!(1, "\x1b[33m", "(Peripherals Mem Access: Fetch {:#06X})", data);
         return data;
     }
 }

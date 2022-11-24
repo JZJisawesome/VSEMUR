@@ -75,6 +75,11 @@ impl InstructionMemory for Cartridge {
     fn should_invalidate_icache(self: &Self) -> bool {
         return false;//TODO unless we switch banks!
     }
+
+    fn fetch_addr(self: &Self, addr: u32) -> u16 {
+        //TODO do this properly (actually support a rom + bank switching, proper memory regions for bios vs rom)
+        todo!();//Different message based on whether this is the ROM or the NVRAM
+    }
 }
 
 impl Memory for Cartridge {
