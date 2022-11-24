@@ -26,7 +26,7 @@ use crate::logging::log_increment_ticks;
 
 /* Constants */
 
-const INSTS_PER_FRAME: usize = 450000;
+const CYCLES_PER_FRAME: usize = 450000;
 const ENABLE_EFFICIENT_SLEEP: bool = false;
 const BUSY_WAIT_YIELD: bool = true;
 const FRAME_PERIOD: std::time::Duration = std::time::Duration::from_nanos(16666667);//1/60th of a second
@@ -252,17 +252,26 @@ fn emulation_thread(mut cpu: CPUState, mut peripherals: Peripherals, stop_reques
             break;
         }
 
-        for _ in 0..INSTS_PER_FRAME {
+        let mut i: usize = 0;
+        while i < CYCLES_PER_FRAME {
             log_increment_ticks!();//Increment the number of ticks for debugging
             log_ansi!(0, "\x1b[1;97m", "Tick begins");
 
-            cpu.tick(&mut peripherals);
-            peripherals.tick();
+            //TODO redefine what a "tick" is since it is no longer a clock cycle (perhaps switch to instruction count instead)
+
+            //Try to keep the CPU and peripherals in sync as much as possible
+            let cpu_cycles_executed = cpu.tick(&mut peripherals);
+            for _ in 0..cpu_cycles_executed {
+                peripherals.tick();
+            }
+
             if peripherals.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
                 break;
             }
 
             log!(0, "Tick ends");
+
+            i += cpu_cycles_executed as usize;
         }
 
         let frame_time = start_of_frame.elapsed();

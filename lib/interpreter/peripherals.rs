@@ -85,7 +85,9 @@ impl Peripherals {
     }
 
     pub fn tick(self: &mut Self) {
+        log!(1, "Peripherals: Tick begins");
         //todo!();//TODO
+        log!(1, "Peripherals: Tick ends");
     }
 
     pub fn frame_ended(self: &mut Self) -> bool {

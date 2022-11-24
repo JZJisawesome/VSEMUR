@@ -162,15 +162,7 @@ impl CPUState {
     }
     */
 
-    pub(super) fn tick(self: &mut Self, mem: &mut impl Memory) {
-        //Wait for the proper number of cycles depending on the last instruction executed
-        if self.cycle_count != 0 {
-            log!(1, "CPU: Waiting {} more cycle(s) for the instruction to finish", self.cycle_count);
-            log!(1, "CPU: CS page, PC is still {:#04X}_{:04X} | SP is still {:#04X}", self.get_cs(), self.pc, self.sp);
-            self.cycle_count -= 1;
-            return;
-        }
-
+    pub(super) fn tick(self: &mut Self, mem: &mut impl Memory) -> u8 {
         //Fetch instruction from memory
         debug_assert!(self.get_cs() < 0b111111);
         log!(1, "CPU: Fetch started from CS page, PC address: {:#04X}_{:04X}", self.get_cs(), self.pc);
@@ -193,6 +185,8 @@ impl CPUState {
         //TODO handle interrupts, etc
 
         log!(1, "CPU: CS page, PC is now {:#04X}_{:04X} | SP is now {:#04X}", self.get_cs(), self.pc, self.sp);
+        log!(1, "CPU: Emulated {} clock cycles in one tick", self.cycle_count);
+        return self.cycle_count;//Return how many CPU cycles we executed
     }
 
     /*
@@ -427,8 +421,7 @@ impl CPUState {
 
     //Misc
     fn set_cycle_count(self: &mut Self, value: u8) {
-        debug_assert!(value >= 1);
-        self.cycle_count = value - 1;//Since the current cycle counts as the first one we must wait
+        self.cycle_count = value;
     }
 }
 
