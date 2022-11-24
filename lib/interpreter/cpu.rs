@@ -19,6 +19,7 @@ use crate::logging::log;
 use super::common::MEM_SIZE_WORDS;
 use crate::decode;
 
+use super::common::InstructionMemory;
 use super::common::Memory;
 
 /* Constants */
@@ -162,11 +163,13 @@ impl CPUState {
     }
     */
 
-    pub(super) fn tick(self: &mut Self, mem: &mut impl Memory) -> u8 {
+    pub(super) fn tick(self: &mut Self, mem: &mut impl InstructionMemory) -> u8 {
+        //TODO take advantange of the InstructionMemory's should_invalidate_icache function
+
         //Fetch instruction from memory
         debug_assert!(self.get_cs() < 0b111111);
         log!(1, "CPU: Fetch started from CS page, PC address: {:#04X}_{:04X}", self.get_cs(), self.pc);
-        let inst_word: u16 = mem.read_page_addr(self.get_cs(), self.pc);
+        let inst_word: u16 = mem.fetch_page_addr(self.get_cs(), self.pc);
         log!(2, "Instruction word group 1: {:#06X} | {:#018b}", inst_word, inst_word);
 
         //Decode it
@@ -442,7 +445,7 @@ fn dec_page_addr_by(page: u8, addr: u16, decrement_amount: u32) -> (u8, u16) {
 }
 
 
-fn get_wg2(cpu: &CPUState, mem: &impl Memory) -> u16 {
+fn get_wg2(cpu: &CPUState, mem: &impl InstructionMemory) -> u16 {
     let address_after_pc_tuple = inc_page_addr_by(cpu.get_cs(), cpu.pc, 1);
-    return mem.read_page_addr(address_after_pc_tuple.0, address_after_pc_tuple.1);
+    return mem.fetch_page_addr(address_after_pc_tuple.0, address_after_pc_tuple.1);
 }

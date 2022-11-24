@@ -75,7 +75,7 @@ fn main() {
     emulator.launch_emulation_thread();
     debug_assert!(emulator.thread_running());
     eprintln!("waiting");
-    std::thread::sleep(std::time::Duration::from_millis(20000));
+    std::thread::sleep(std::time::Duration::from_millis(5000));
     eprintln!("stopping");
     emulator.stop_emulation_thread();
     eprintln!("stopped");

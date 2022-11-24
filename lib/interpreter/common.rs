@@ -39,10 +39,59 @@ pub(super) trait Memory {
     }
 }
 
+pub(super) trait InstructionMemory: Memory {
+    fn should_invalidate_icache(self: &Self) -> bool;//Useful for caching interpretation
+
+    fn fetch_addr(self: &Self, addr: u32) -> u16 {
+        return self.read_addr(addr);
+    }
+
+    fn fetch_page_addr(self: &Self, page: u8, addr: u16) -> u16 {
+        return self.fetch_addr(((page as u32) << 16) | (addr as u32));
+    }
+}
+
 /* Associated Functions and Methods */
 
 //TODO
 
 /* Functions */
 
-//TODO
+pub(super) fn load_file_u16(path: &str, buffer: &mut [u16]) -> Result<(), ()> {
+    use crate::logging::log_ansi;
+    use std::fs::File;
+    use std::io::Read;
+
+    //Open the file
+    let file_wrapper = File::open(path);
+    if matches!(file_wrapper, Err(_)) {
+        return Err(());
+    }
+    let mut file = file_wrapper.unwrap();
+
+    //Ensure it is not larger than expected
+    let metadata_wrapper = file.metadata();
+    if matches!(metadata_wrapper, Err(_)) {
+        return Err(());
+    }
+    let metadata = metadata_wrapper.unwrap();
+    if metadata.len() > (buffer.len() * 2) as u64 {//Ensure it is not too big of a file
+        return Err(());
+    }
+    if (metadata.len() & 0b1) == 0b1 {//Ensure the file is a multiple of 2
+        return Err(());
+    }
+
+    log_ansi!(0, "\x1b[36m", "Loading file \"{}\": {} words | {} bytes", path, metadata.len() / 2, metadata.len());
+
+    //Read in its contents into the buffer
+    let mut byte_buffer: Box<[u8]> = vec![0u8; buffer.len() * 2].into_boxed_slice();//TODO avoid overhead of zeroing out contents, as well as overhead of needing to copy to buffer instead of reading to it directly
+    let bytes_read = file.read(&mut byte_buffer).unwrap();
+    debug_assert!(bytes_read <= buffer.len() * 2);
+
+    //Files are little-endian
+    for i in 0..buffer.len() {//FIXME this loop is incredibly slow
+        buffer[i] = ((byte_buffer[(i * 2) + 1] as u16) << 8) | (byte_buffer[i * 2] as u16);
+    }
+    return Ok(());
+}

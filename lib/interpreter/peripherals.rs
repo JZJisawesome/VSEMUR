@@ -14,7 +14,8 @@ use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_ansi;
 
-use super::common::Memory;
+use crate::interpreter::common::InstructionMemory;
+use crate::interpreter::common::Memory;
 use super::common::MEM_SIZE_WORDS;
 use crate::interpreter::common::PHYSICAL_MEM_SIZE_WORDS;
 
@@ -25,7 +26,8 @@ use super::input_sender::InputSender;
 mod io;
 mod render;
 mod sound;
-mod rom_bios;
+mod bios;
+mod cartridge;
 
 /* Constants */
 
@@ -38,11 +40,11 @@ macro_rules! WORK_RAM_ADDR { () => {0x000000..=0x0027FF} }
 macro_rules! RENDER_ADDR { () => {0x002800..=0x002FFF} }
 macro_rules! SOUND_ADDR { () => {0x003000..=0x0037FF} }
 //macro_rules! IO_ADDR { () => {0x003D00..=0x3DFF} }
-macro_rules! IO_ADDR { () => {0x003D00..=0x003D22 | 0x003D24..=0x3DFF} }
+macro_rules! IO_NO_EXTMEM_REG_ADDR { () => {0x003D00..=0x003D22 | 0x003D24..=0x3DFF} }
 macro_rules! DMA_ADDR { () => {0x003E00..=0x003E03} }
 macro_rules! BIOS_ADDR { () => {0x004000..=0x0FFFFF} }
-//macro_rules! CARTRIDGE_ADDR { () => {0x100000..=0x3FFFFF} }
-macro_rules! CARTRIDGE_ADDR { () => {0x100000..=0x3FFFFF | 0x003D23} }
+macro_rules! CARTRIDGE_ADDR { () => {0x100000..=0x3FFFFF} }
+macro_rules! EXTMEM_REG_ADDR { () => {0x003D23} }
 
 /* Static Variables */
 
@@ -55,7 +57,8 @@ pub(super) struct Peripherals {
     sound: sound::SoundState,
     io: io::IOState,
     work_ram: Box<[u16]>,
-    rom_bios: rom_bios::RomAndBiosState,//TODO split this into two seperate parts
+    bios: bios::Bios,
+    cartridge: cartridge::Cartridge,//TODO split this into two seperate parts
 }
 
 /* Associated Functions and Methods */
@@ -71,8 +74,9 @@ impl Peripherals {
             render: render::RenderState::new(),
             sound: sound::SoundState::new(),
             io: io::IOState::new(),
-            work_ram: vec![0u16; PHYSICAL_MEM_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed//TODO perhaps only allocate the memory necessary?
-            rom_bios: rom_bios::RomAndBiosState::new(),
+            work_ram: vec![0u16; PHYSICAL_MEM_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
+            bios: bios::Bios::new(),
+            cartridge: cartridge::Cartridge::new(),
         };
     }
 
@@ -84,49 +88,73 @@ impl Peripherals {
         self.io.reset();
     }
 
-    pub fn tick(self: &mut Self) {
+    pub(super) fn tick(self: &mut Self) {
         log!(1, "Peripherals: Tick begins");
         //todo!();//TODO
         log!(1, "Peripherals: Tick ends");
     }
 
-    pub fn frame_ended(self: &mut Self) -> bool {
+    pub(super) fn frame_ended(self: &mut Self) -> bool {
         return false;//TODO
     }
 
-    pub fn get_render_reciever(self: &mut Self) -> RenderReciever {
+    pub(super) fn get_render_reciever(self: &mut Self) -> RenderReciever {
         todo!();
     }
 
-    pub fn get_sound_reciever(self: &mut Self) -> SoundReciever {
+    pub(super) fn get_sound_reciever(self: &mut Self) -> SoundReciever {
         todo!();
     }
 
-    pub fn get_input_sender(self: &mut Self) -> InputSender {
+    pub(super) fn get_input_sender(self: &mut Self) -> InputSender {
         todo!();
     }
 
-    pub fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
-        return self.rom_bios.load_bios_file(path);
+    pub(super) fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
+        return self.bios.load_file(path);
     }
 
-    pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ()> {
-        return self.rom_bios.load_bios_mem(bios_mem);
+    pub(super) fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ()> {
+        return self.bios.load_mem(bios_mem);
     }
 
-    pub fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ()> {
-        return self.rom_bios.load_rom_file(path);
+    pub(super) fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ()> {
+        return self.cartridge.load_file(path);
     }
 
-    pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ()> {
-        return self.rom_bios.load_rom_mem(rom_mem);
+    pub(super) fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ()> {
+        return self.cartridge.load_mem(rom_mem);
+    }
+
+    //TODO functions to save the Cartridge's NVRAM to disk
+}
+
+impl InstructionMemory for Peripherals {
+    fn should_invalidate_icache(self: &Self) -> bool {
+        return self.bios.should_invalidate_icache() || self.cartridge.should_invalidate_icache();
+    }
+
+    fn fetch_addr(self: &Self, addr: u32) -> u16 {//For instruction fetching only (faster)
+        log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Fetch from address {:#08X})", addr);
+        debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
+
+        let data: u16;
+
+        match addr {
+            BIOS_ADDR!() => { data = self.bios.fetch_addr(addr); },
+            CARTRIDGE_ADDR!() => { data = self.cartridge.fetch_addr(addr); },
+            _ => { return debug_panic!(0); },//Invalid address, access to unallocated address space, or to non-instruction memory
+        }
+
+        log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Fetch {:#06X})", data);
+        return data;
     }
 }
 
 impl Memory for Peripherals {
     fn read_addr(self: &Self, addr: u32) -> u16 {
-        debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
         log_ansi!(1, "\x1b[32m", "(Peripherals Mem Access: Read from address {:#08X})", addr);
+        debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
 
         let data: u16;
 
@@ -134,10 +162,10 @@ impl Memory for Peripherals {
             WORK_RAM_ADDR!() => { data = self.work_ram[addr as usize]; },
             RENDER_ADDR!() => { todo!(); },
             SOUND_ADDR!() => { todo!(); },
-            IO_ADDR!() => { data = self.io.read_addr(addr); },
+            IO_NO_EXTMEM_REG_ADDR!() => { data = self.io.read_addr(addr); },
             DMA_ADDR!() => { todo!(); },
-            BIOS_ADDR!() => { data = self.rom_bios.read_addr(addr); },
-            CARTRIDGE_ADDR!() => { data = self.rom_bios.read_addr(addr); },
+            BIOS_ADDR!() => { data = self.bios.read_addr(addr); },
+            CARTRIDGE_ADDR!() | EXTMEM_REG_ADDR!() => { data = self.cartridge.read_addr(addr); },
             _ => { return debug_panic!(0); },//Invalid address or access to unallocated address space
         }
 
@@ -146,17 +174,17 @@ impl Memory for Peripherals {
     }
 
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
-        debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
         log_ansi!(1, "\x1b[35m", "(Peripherals Mem Access: Write {:#06X} to address {:#08X})", data, addr);
+        debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
 
         match addr {
             WORK_RAM_ADDR!() => { self.work_ram[addr as usize] = data; },
             RENDER_ADDR!() => { todo!(); },
             SOUND_ADDR!() => { todo!(); },
-            IO_ADDR!() => { self.io.write_addr(addr, data); },
+            IO_NO_EXTMEM_REG_ADDR!() => { self.io.write_addr(addr, data); },
             DMA_ADDR!() => { todo!(); },
-            BIOS_ADDR!() => { todo!(); },
-            CARTRIDGE_ADDR!() => { self.rom_bios.write_addr(addr, data); },
+            BIOS_ADDR!() => { self.bios.write_addr(addr, data); },
+            CARTRIDGE_ADDR!() | EXTMEM_REG_ADDR!() => { self.cartridge.write_addr(addr, data); },
             _ => { debug_panic!(); },//Invalid address or access to unallocated address space
         }
 
