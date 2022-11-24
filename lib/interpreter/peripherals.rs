@@ -45,7 +45,22 @@ const ROM_END_ADDR: u32 = 0x3FFFFF;
 
 /* Macros */
 
-//TODO (also pub(crate) use the_macro statements here too)
+//This needs to be a macro so we can use it for both reads and writes without worrying about mutability
+/*macro_rules! get_peripheral_by_address {
+    ($self:expr, $addr:expr, $function) => {{
+        match $addr {
+            WORK_RAM_BEGIN_ADDR..=WORK_RAM_END_ADDR => { todo!() },
+            RENDER_BEGIN_ADDR..=RENDER_END_ADDR => { todo!() },
+            SOUND_BEGIN_ADDR..=SOUND_END_ADDR => { todo!() },
+            IO_BEGIN_ADDR..=IO_END_ADDR => { $self.io },
+            DMA_BEGIN_ADDR..=DMA_END_ADDR => { todo!() },
+            BIOS_BEGIN_ADDR..=BIOS_END_ADDR => { $self.rom_bios },
+            ROM_BEGIN_ADDR..=ROM_END_ADDR => { $self.rom_bios },
+            _ => { panic!(); },
+        }
+    }}
+}*/
+//TODO macros to return valid addresses instead?
 
 /* Static Variables */
 
@@ -135,6 +150,8 @@ impl Memory for Peripherals {
             log_ansi!(2, "\x1b[31m", "Read from location outside of memory or bios/rom: {:#08X}", addr);
         }
 
+        //data = get_peripheral_by_address!(self, addr).read_addr(addr);
+
         //TODO proper memory map
         if addr < 0x2800 {
             log!(2, "Work ram");
@@ -146,6 +163,7 @@ impl Memory for Peripherals {
         } else {
             todo!();
         }
+
         /*match addr {
             WORK_RAM_BEGIN_ADDR..=WORK_RAM_END_ADDR => { todo!(); },
             RENDER_BEGIN_ADDR..=RENDER_END_ADDR => { todo!(); },
