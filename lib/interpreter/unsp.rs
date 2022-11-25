@@ -1,7 +1,7 @@
 /* unsp.rs
  * By: John Jekel
  *
- * Module for fetching, decoding, and executing unSP instructions and performing other operations
+ * Module for fetching, decoding, and executing unSP instructions, as well as handling interrupts
  *
 */
 
@@ -14,9 +14,9 @@
 mod alu;
 //mod bitop;
 mod control;
-/*mod muldiv;
+//mod muldiv;
 mod stack;
-mod shift16;*/
+//mod shift16;
 
 use crate::debug_panic;
 
@@ -114,19 +114,19 @@ fn execute_inst(state: &mut (impl CPU + ReadableMemory + WritableMemory + Interr
             return alu::execute(state, inst);
         },
         Register_BITOP_Rs{..} | Register_BITOP_offset{..} | Memory_BITOP_offset{..} | Memory_BITOP_Rs{..} => {
-            todo!();//bitop::execute(state, mem, inst);
+            todo!();//bitop::execute(state, inst);
         },
         CALL{..} | JMPF{..} | JMPR{..} | BREAK{..} | CALLR{..} | RETI{..} | RETF{..} | Branch{..} => {
             return control::execute(state, inst);
         },
         DIVS{..} | DIVQ{..} | EXP{..} | MUL{..} | MULS{..} => {
-            todo!();//muldiv::execute(state, mem, inst);
+            todo!();//muldiv::execute(state, inst);
         },
         sixteen_bits_Shift{rd, op, rs} => {
-            todo!();//shift16::execute(state, mem, *rd, *op, *rs);
+            todo!();//shift16::execute(state, *rd, *op, *rs);
         },
         Stack_Operation{op, rd_index, size, rs} => {
-            todo!();//stack::execute(state, mem, *op, *rd_index, *size, *rs);
+            return stack::execute(state, *op, *rd_index, *size, *rs);
         },
         DSI6{imm6} => {
             state.set_ds(*imm6);

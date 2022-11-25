@@ -1,7 +1,9 @@
 /* state.rs
  * By: John Jekel
  *
- * TODO description
+ * Wrapper struct for memories, MMIO peripherals, interrupt sources, and CPU registers
+ *
+ * Implements many traits so that users of the struct can have restricted access to only the parts they need
  *
 */
 

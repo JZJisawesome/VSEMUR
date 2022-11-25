@@ -50,7 +50,7 @@ impl InstructionMemory for State {
     }
 
     fn fetch_addr(self: &Self, addr: u32) -> u16 {//For instruction fetching only (faster)
-        log_ansi!(1, "\x1b[33m", "(State Mem Access: Fetch from address {:#08X})", addr);
+        log_ansi!(1, "\x1b[33m", "(Mem Access: Fetch from address {:#08X})", addr);
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
 
         let data: u16;
@@ -61,14 +61,14 @@ impl InstructionMemory for State {
             _ => { return debug_panic!(0); },//Invalid address, access to unallocated address space, or to non-instruction memory
         }
 
-        log_ansi!(1, "\x1b[33m", "(State Mem Access: Fetch {:#06X})", data);
+        log_ansi!(1, "\x1b[33m", "(Mem Access: Fetch {:#06X})", data);
         return data;
     }
 }
 
 impl ReadableMemory for State {
     fn read_addr(self: &Self, addr: u32) -> u16 {
-        log_ansi!(1, "\x1b[32m", "(State Mem Access: Read from address {:#08X})", addr);
+        log_ansi!(1, "\x1b[32m", "(Mem Access: Read from address {:#08X})", addr);
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
 
         let data: u16;
@@ -91,7 +91,7 @@ impl ReadableMemory for State {
 
 impl WritableMemory for State {
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
-        log_ansi!(1, "\x1b[35m", "(State Mem Access: Write {:#06X} to address {:#08X})", data, addr);
+        log_ansi!(1, "\x1b[35m", "(Mem Access: Write {:#06X} to address {:#08X})", data, addr);
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
 
         match addr {
@@ -104,7 +104,7 @@ impl WritableMemory for State {
             _ => { debug_panic!(); },//Invalid address or access to unallocated address space
         }
 
-        log_ansi!(1, "\x1b[35m", "(State Mem Access: Write finished)");
+        log_ansi!(1, "\x1b[35m", "(Mem Access: Write finished)");
     }
 }
 
