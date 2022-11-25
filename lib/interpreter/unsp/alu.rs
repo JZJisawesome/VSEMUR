@@ -71,12 +71,13 @@ pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), 
         update_flags = debug_panic!(false);
     }
 
-    //Perform instruction type-specific setup, including determining operand1 and operand2
+    //Perform instruction type-specific setup, including determining operand1 and operand2 and incrementing the PC
     match inst {
         IMM16{rd, rs, imm16, ..} => {
             operand1 = state.get_reg(*rs);
             operand2 = *imm16;
             log!(3, "Operand 1 is Rs, and operand 2 is IMM16");
+            state.inc_pc_by(2);
         },
         Direct16{rd, w, rs, a16, ..} => {
             if *w {
@@ -88,14 +89,17 @@ pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), 
                 operand2 = state.read_page_addr(state.get_ds(), *a16);
                 log!(3, "Operand 1 is Rs, and operand 2 is [A16]");
             }
+            state.inc_pc_by(2);
         },
         Direct6{..} => {
             todo!();
+            state.inc_pc();
         },
         IMM6{rd, imm6, ..} => {
             operand1 = state.get_reg(*rd);
             operand2 = *imm6 as u16;
             log!(3, "Operand 1 is Rd, and operand 2 is IMM6");
+            state.inc_pc();
         },
         Base_plus_Disp6{rd, imm6, ..} => {
             log!(3, "Operand 1 is Rd");
@@ -108,6 +112,7 @@ pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), 
             let final_page_addr_tuple = inc_page_addr_by(page, bp, *imm6 as u32);
 
             operand2 = state.read_page_addr(final_page_addr_tuple.0, final_page_addr_tuple.1);
+            state.inc_pc();
         },
         DS_Indirect{rd, d, at, rs, ..} => {
             //Increment Rd if that is the @ operation we must perform
@@ -137,6 +142,7 @@ pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), 
             let addr: u16 = state.get_reg(*rs);
             log!(3, "Rs is {0:#06X}, so operand 2 is [{1:#04X}_{0:04X}]", addr, page);
             operand2 = state.read_page_addr(page, addr);
+            state.inc_pc();
         },
         Register{rd, sft, sfc, rs, ..} => {
             log!(3, "Operand 1 is Rd");
@@ -146,6 +152,7 @@ pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), 
             log!(3, "Rs is originally {0:#06X} | {0:#018b} | unsigned {0}", original_rs);
             log!(3, "Perform Register-type shift operations if applicable and use the result as operand 2");
             operand2 = sft_operation(*sft, *sfc, original_rs);
+            state.inc_pc();
         }
         _ => {unimplemented!();},//TODO others
     }
@@ -153,11 +160,13 @@ pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), 
     //Perform the operation
     let result: u16 = alu_operation(state, operation, operand1, operand2, update_flags);
 
-    //Write to the appropriate (if any) destination
+    //Write to the appropriate (if any) destination,
+    let write_to_pc: bool;
     match (operation, inst) {//TODO logging
-        (CMP, _) | (TEST, _) => {},//CMP and TEST write to flags like other instructions, but the result is not stored
+        (CMP, _) | (TEST, _) => { write_to_pc = false; },//CMP and TEST write to flags like other instructions, but the result is not stored
         (STORE, Direct6{..}) => {
             todo!();//Store to [A6]
+            write_to_pc = false;
         },
         (STORE, Base_plus_Disp6{imm6, ..}) => {
             //TODO logging
@@ -168,6 +177,7 @@ pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), 
             let final_page_addr_tuple = inc_page_addr_by(page, bp, *imm6 as u32);
 
             state.write_page_addr(final_page_addr_tuple.0, final_page_addr_tuple.1, result);
+            write_to_pc = false;
         },
         (STORE, DS_Indirect{d, rs, ..}) => {
             log!(3, "Writing result to {{D:}}[Rs@]");
@@ -183,18 +193,21 @@ pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), 
             let addr: u16 = state.get_reg(*rs);
             log!(3, "Rs is {0:#06X}, so store to [{1:#04X}_{0:04X}]", addr, page);
             state.write_page_addr(page, addr, result);
+            write_to_pc = false;
         },
-        (LOAD, Direct16{w: true, a16, ..}) | (STORE, Direct16{w: false, a16, ..}) => { debug_panic!(); }//Not a valid instruction/op combination
+        (LOAD, Direct16{w: true, a16, ..}) | (STORE, Direct16{w: false, a16, ..}) => { write_to_pc = debug_panic!(false); }//Not a valid instruction/op combination
         (_, Direct16{w: true, a16, ..}) => {//When the Direct16 w flag is set, we are writing to memory
             //TODO logging
             state.write_page_addr(state.get_ds(), *a16, result);
+            write_to_pc = false;
         },
         (_, IMM16{rd, ..}) | (_, Direct16{w: false, rd, ..}) | (_, Direct6{rd, ..}) | (_, IMM6{rd, ..}) | (_, Base_plus_Disp6{rd, ..}) | (_, DS_Indirect{rd, ..}) | (_, Register{rd, ..}) => {
             //Other cases are much simpler; we just write to Rd
             log!(3, "Writing result to Rd");
             state.set_reg(*rd, result);
+            write_to_pc = matches!(*rd, DecodedRegister::PC);
         },
-        (_, _) => { debug_panic!(); }//Not a valid instruction/op combination
+        (_, _) => { write_to_pc = debug_panic!(false); }//Not a valid instruction/op combination
     }
 
     //Potentially increment/decrement Rs if this is DS_Indirect
@@ -217,6 +230,8 @@ pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), 
             state.set_reg(*rs, new_ds_rs_tuple.1);
         }
     }
+
+    return get_cycle_count(inst, write_to_pc);
 }
 
 fn alu_operation(state: &mut impl CPU, alu_op: DecodedALUOp, operand1: u16, operand2: u16, update_flags: bool) -> u16 {//Needs mutable reference to CPUState to sets flags properly
@@ -289,5 +304,25 @@ fn sft_operation(sft: DecodedSFTOp, sfc: u8, rs: u16) -> u16 {
         ROR => { return rs.rotate_right(shift_amount as u32); },
 
         Invalid => { return debug_panic!(0); },
+    }
+}
+
+fn get_cycle_count(inst: &DecodedInstruction, write_to_pc: bool) -> u8 {
+    match (inst, write_to_pc) {
+        (IMM16{..}, false) => { return 4; },
+        (Direct16{..}, false) => { return 7; },
+        (Direct6{..}, false) => { return 5; },
+        (DS_Indirect{..}, false) => { return 6; },
+        (Register{..}, false) => { return 3; },
+        (IMM16{..}, true) => { return 5; },
+        (Direct16{..}, true) => { return 8; },
+        (Direct6{..}, true) => { return 6; },
+        (DS_Indirect{..}, true) => { return 7; },
+        (Register{..}, true) => { return 5; },
+
+        (IMM6{..}, _) => { return 2; },
+        (Base_plus_Disp6{..}, _) => { return 6; },
+
+        _ => { return debug_panic!(0); },
     }
 }

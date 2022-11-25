@@ -7,7 +7,8 @@
 
 /* Imports */
 
-//TODO (include "use" and "mod" here)
+use crate::debug_panic;
+use crate::decode;
 
 /* Constants */
 
@@ -241,45 +242,44 @@ pub(super) trait CPU {
         *self.reg_fr_mut() = (*self.reg_fr_mut() & 0b1111111111110000) | (value as u16);
     }
 
-    /*//TODO
     //MR getter and setter
     fn get_mr(self: &Self) -> u32 {
-        return ((self.get_reg(decode::DecodedRegister::R4_SR4) as u32) << 16) | (self.get_reg(decode::DecodedRegister::R3_SR3) as u32);
+        return ((self.reg_r()[3] as u32) << 16) | (self.reg_r()[3] as u32);
     }
 
     fn set_mr(self: &mut Self, value: u32) {
-        self.set_reg(decode::DecodedRegister::R4_SR4, ((value >> 16) & 0xFFFF) as u16);
-        self.set_reg(decode::DecodedRegister::R3_SR3, (value & 0xFFFF) as u16);
+        self.reg_r_mut()[3] = ((value >> 16) & 0xFFFF) as u16;
+        self.reg_r_mut()[2] = (value & 0xFFFF) as u16;
     }
 
     //Regular registers
     fn get_reg(self: &Self, reg: decode::DecodedRegister) -> u16 {
-        use decode::DecodedRegister::*;
+        use crate::decode::DecodedRegister::*;
         match reg {
-            SP => { return self.sp; },
-            R1_SR1 => { return if self.get_bnk() { self.sec_r[0] } else {self.r[0]}; },
-            R2_SR2 => { return if self.get_bnk() { self.sec_r[1] } else {self.r[1]}; },
-            R3_SR3 => { return if self.get_bnk() { self.sec_r[2] } else {self.r[2]}; },
-            R4_SR4 => { return if self.get_bnk() { self.sec_r[3] } else {self.r[3]}; },
-            BP => { return self.bp; },
-            SR => { return self.sr; },
-            PC => { return self.pc; },
+            SP => { return *self.reg_sp(); },
+            R1_SR1 => { return self.reg_r()[0]; },
+            R2_SR2 => { return self.reg_r()[1]; },
+            R3_SR3 => { return self.reg_r()[2]; },
+            R4_SR4 => { return self.reg_r()[3]; },
+            BP => { return *self.reg_bp(); },
+            SR => { return *self.reg_sr(); },
+            PC => { return *self.reg_pc(); },
 
             Invalid => { return debug_panic!(0); }//We shouldn't be passed this
         }
     }
 
     fn set_reg(self: &mut Self, reg: decode::DecodedRegister, value: u16) {
-        use decode::DecodedRegister::*;
+        use crate::decode::DecodedRegister::*;
         match reg {
-            SP => { self.sp = value; },
-            R1_SR1 => { if self.get_bnk() { self.sec_r[0] = value; } else { self.r[0] = value; } },
-            R2_SR2 => { if self.get_bnk() { self.sec_r[1] = value; } else { self.r[1] = value; } },
-            R3_SR3 => { if self.get_bnk() { self.sec_r[2] = value; } else { self.r[2] = value; } },
-            R4_SR4 => { if self.get_bnk() { self.sec_r[3] = value; } else { self.r[3] = value; } },
-            BP => { self.bp = value; },
-            SR => { self.sr = value; },
-            PC => { self.pc = value; },
+            SP => { *self.reg_sp_mut() = value; },
+            R1_SR1 => { self.reg_r_mut()[0] = value; },
+            R2_SR2 => { self.reg_r_mut()[1] = value; },
+            R3_SR3 => { self.reg_r_mut()[2] = value; },
+            R4_SR4 => { self.reg_r_mut()[3] = value; },
+            BP => { *self.reg_bp_mut() = value; },
+            SR => { *self.reg_sr_mut() = value; },
+            PC => { *self.reg_pc_mut() = value; },
 
             Invalid => { debug_panic!(); }//We shouldn't be passed this
         }
@@ -288,33 +288,33 @@ pub(super) trait CPU {
     fn get_reg_by_index(self: &Self, reg: u8) -> u16 {
         debug_assert!(reg < 8);
         match reg {
-            0b000 => { return self.sp; },
-            0b001 => { return if self.get_bnk() { self.sec_r[0] } else { self.r[0] }; },
-            0b010 => { return if self.get_bnk() { self.sec_r[1] } else { self.r[1] }; },
-            0b011 => { return if self.get_bnk() { self.sec_r[2] } else { self.r[2] }; },
-            0b100 => { return if self.get_bnk() { self.sec_r[3] } else { self.r[3] }; },
-            0b101 => { return self.bp; },
-            0b110 => { return self.sr; },
-            0b111 => { return self.pc; },
+            0b000 => { return *self.reg_sp(); },
+            0b001 => { return self.reg_r()[0]; },
+            0b010 => { return self.reg_r()[1]; },
+            0b011 => { return self.reg_r()[2]; },
+            0b100 => { return self.reg_r()[3]; },
+            0b101 => { return *self.reg_bp(); },
+            0b110 => { return *self.reg_sr(); },
+            0b111 => { return *self.reg_pc(); },
             _ => { return debug_panic!(0); },//This should never occur
         }
     }
 
     fn set_reg_by_index(self: &mut Self, reg: u8, value: u16) {
+        debug_assert!(reg < 8);
         match reg {
-            0b000 => { self.sp = value; },
-            0b001 => { if self.get_bnk() { self.sec_r[0] = value; } else { self.r[0] = value; } },
-            0b010 => { if self.get_bnk() { self.sec_r[1] = value; } else { self.r[1] = value; } },
-            0b011 => { if self.get_bnk() { self.sec_r[2] = value; } else { self.r[2] = value; } },
-            0b100 => { if self.get_bnk() { self.sec_r[3] = value; } else { self.r[3] = value; } },
-            0b101 => { self.bp = value; },
-            0b110 => { self.sr = value; },
-            0b111 => { self.pc = value; },
+            0b000 => { *self.reg_sp_mut() = value; },
+            0b001 => { self.reg_r_mut()[0] = value; },
+            0b010 => { self.reg_r_mut()[1] = value; },
+            0b011 => { self.reg_r_mut()[2] = value; },
+            0b100 => { self.reg_r_mut()[3] = value; },
+            0b101 => { *self.reg_bp_mut() = value; },
+            0b110 => { *self.reg_sr_mut() = value; },
+            0b111 => { *self.reg_pc_mut() = value; },
 
             _ => { debug_panic!(); }//We shouldn't be passed this
         }
     }
-    */
 }
 
 //TODO perhaps unique traits for each peripheral, and then State is just a dumb struct?

@@ -11,8 +11,8 @@
 
 /* Imports */
 
-/*mod alu;
-mod bitop;
+mod alu;
+/*mod bitop;
 mod control;
 mod muldiv;
 mod stack;
@@ -107,7 +107,7 @@ fn execute_inst(state: &mut (impl CPU + ReadableMemory + WritableMemory + Interr
     use DecodedInstruction::*;
     match inst {
         Base_plus_Disp6{..} | IMM6{..} | DS_Indirect{..} | IMM16{..} | Direct16{..} | Direct6{..} | Register{..} => {
-            todo!();//return alu::execute(state, inst);
+            return alu::execute(state, inst);
         },
         Register_BITOP_Rs{..} | Register_BITOP_offset{..} | Memory_BITOP_offset{..} | Memory_BITOP_Rs{..} => {
             todo!();//bitop::execute(state, mem, inst);
