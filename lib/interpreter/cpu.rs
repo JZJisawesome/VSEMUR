@@ -15,6 +15,7 @@
 mod execute;
 
 use crate::debug_panic;
+
 use crate::logging::log;
 use super::common::MEM_SIZE_WORDS;
 use crate::decode;
@@ -432,20 +433,8 @@ impl CPUState {
 
 /* Functions */
 
-fn inc_page_addr_by(page: u8, addr: u16, increment_amount: u32) -> (u8, u16) {
-    //TODO we should just use Wrapping types here
-    let mut combined_addr: u64 = ((page as u64) << 16) | (addr as u64);//64 bit so we don't need to worry about overflow if increment_amount is large
-    combined_addr += increment_amount as u64;
-    return (((combined_addr >> 16) & 0b111111) as u8, (combined_addr & 0xFFFF) as u16);
-}
-
-fn dec_page_addr_by(page: u8, addr: u16, decrement_amount: u32) -> (u8, u16) {
-    //TODO we should just use Wrapping types here
-    let mut combined_addr: u64 = ((page as u64) << 16) | (addr as u64);//64 bit so we don't need to worry about overflow if increment_amount is large
-    combined_addr -= decrement_amount as u64;//FIXME what about underflow?
-    return (((combined_addr >> 16) & 0b111111) as u8, (combined_addr & 0xFFFF) as u16);
-}
-
+use super::common::inc_page_addr_by;
+use super::common::dec_page_addr_by;
 
 fn get_wg2(cpu: &CPUState, mem: &impl InstructionMemory) -> u16 {
     let address_after_pc_tuple = inc_page_addr_by(cpu.get_cs(), cpu.pc, 1);

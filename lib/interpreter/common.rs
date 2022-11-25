@@ -271,12 +271,14 @@ pub(super) trait CPU {
     */
 }
 
+//TODO perhaps unique traits for each peripheral, and then State is just a dumb struct?
+
 pub(super) trait Tickable {
     fn tick(self: &mut Self) -> bool;//Returns true if an interrupt is requested
 }
 
 pub(super) trait InterruptReadable {//Used by handle_interrupts
-    fn get_interrupt(self: &mut Self) -> Option<Interrupt>;
+    fn get_interrupt(self: &Self) -> Option<Interrupt>;
 }
 
 pub(super) trait InterruptClearable {//Used by execute_inst to acknowledge when we've finished with an interrupt
@@ -354,4 +356,18 @@ pub(super) fn load_file_u16(path: &str, buffer: &mut [u16]) -> Result<(), ()> {
         buffer[i] = ((byte_buffer[(i * 2) + 1] as u16) << 8) | (byte_buffer[i * 2] as u16);
     }
     return Ok(());
+}
+
+pub(super) fn inc_page_addr_by(page: u8, addr: u16, increment_amount: u32) -> (u8, u16) {
+    //TODO we should just use Wrapping types here
+    let mut combined_addr: u64 = ((page as u64) << 16) | (addr as u64);//64 bit so we don't need to worry about overflow if increment_amount is large
+    combined_addr += increment_amount as u64;
+    return (((combined_addr >> 16) & 0b111111) as u8, (combined_addr & 0xFFFF) as u16);
+}
+
+pub(super) fn dec_page_addr_by(page: u8, addr: u16, decrement_amount: u32) -> (u8, u16) {
+    //TODO we should just use Wrapping types here
+    let mut combined_addr: u64 = ((page as u64) << 16) | (addr as u64);//64 bit so we don't need to worry about overflow if increment_amount is large
+    combined_addr -= decrement_amount as u64;//FIXME what about underflow?
+    return (((combined_addr >> 16) & 0b111111) as u8, (combined_addr & 0xFFFF) as u16);
 }

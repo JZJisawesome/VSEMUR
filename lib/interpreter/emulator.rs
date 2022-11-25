@@ -269,6 +269,17 @@ fn emulation_thread(mut cpu: CPUState, mut peripherals: Peripherals, stop_reques
                 break;
             }
 
+            //TODO switch to this
+            /*
+            let cycles_executed_by_instruction_emulation = unsp::emulate_inst(state);
+            for _ in 0..executed_by_instruction_emulation {
+                state.tick();
+            }
+            if state.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
+                break;
+            }
+            */
+
             log!(0, "Tick ends");
 
             i += cpu_cycles_executed as usize;
