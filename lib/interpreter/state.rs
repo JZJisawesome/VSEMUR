@@ -79,9 +79,9 @@ impl State {
     }
 
     pub(super) fn tick(self: &mut Self) {
-        //log!(1, "Peripherals: Tick begins");
+        log!(2, "Peripherals: Tick begins");
         //todo!();//TODO
-        //log!(1, "Peripherals: Tick ends");
+        log!(2, "Peripherals: Tick ends");
     }
 
     pub(super) fn frame_ended(self: &mut Self) -> bool {

@@ -20,15 +20,15 @@ pub(crate) const LOG_FILE_PATH: &str = "/tmp/vsemur-log.txt";
 //Is this thread safe? No.
 //Is this a variable accessible to the whole crate? Yes.
 //Is this unsafe rust? Yes.
-//But it is only used in debug builds, and saves us having to pass a tick variable to each function that needs to log something
+//But it is only used in debug builds, and saves us having to pass a cycle block variable to each function that needs to log something
 //thus improving the performance of release builds
-pub(crate) static mut TICK_NUM: u128 = 0;
+pub(crate) static mut CYCLE_BLOCK_NUM: u128 = 0;
 
 /* Macros */
 
 macro_rules! internal_log_prompt {//Helper macro
     ($indent:expr) => {
-        eprint!("\x1b[32m@t=\x1b[95m{:>10}\x1b[1;34m>\x1b[0m ", crate::logging::internal_log_ticks!());
+        eprint!("\x1b[32m@cb=\x1b[95m{:>9}\x1b[1;34m>\x1b[0m ", crate::logging::internal_log_ticks!());
         for _ in 0..$indent {
             eprint!("  ");
         }
@@ -51,7 +51,7 @@ macro_rules! internal_log_buffer_create_and_prompt {//Helper macro
     ($log_file:expr, $indent:expr) => {{
         let mut log_buffer = crate::logging::internal_log_buffer_create!($log_file);
         use std::io::Write;
-        write!(&mut log_buffer, "@t={:>10}> ", crate::logging::internal_log_ticks!()).unwrap();
+        write!(&mut log_buffer, "@cb={:>9}> ", crate::logging::internal_log_ticks!()).unwrap();
         for _ in 0..$indent {
             write!(&mut log_buffer, "  ").unwrap();
         }
@@ -61,7 +61,7 @@ macro_rules! internal_log_buffer_create_and_prompt {//Helper macro
 pub(crate) use internal_log_buffer_create_and_prompt;
 macro_rules! internal_log_ticks {//Helper macro
     () => {
-        unsafe { crate::logging::TICK_NUM }
+        unsafe { crate::logging::CYCLE_BLOCK_NUM }
     };
 }
 pub(crate) use internal_log_ticks;
@@ -69,7 +69,7 @@ pub(crate) use internal_log_ticks;
 macro_rules! log_reset_ticks {
     () => {
         if cfg!(debug_assertions) {
-            unsafe { crate::logging::TICK_NUM = 0; }
+            unsafe { crate::logging::CYCLE_BLOCK_NUM = 0; }
         }
     };
 }
@@ -77,7 +77,7 @@ pub(crate) use log_reset_ticks;
 macro_rules! log_increment_ticks {
     () => {
         if cfg!(debug_assertions) {
-            unsafe { crate::logging::TICK_NUM += 1; }
+            unsafe { crate::logging::CYCLE_BLOCK_NUM += 1; }
         }
     };
 }

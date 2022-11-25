@@ -236,7 +236,9 @@ fn emulation_thread(mut state: State, stop_request_reciever: Receiver<()>) -> St
     log_ansi!(0, "\x1b[1;97m", "Emulation thread started");
 
     //The frame loop
+    let mut frame_counter: u128 = 0;//Only used in debug build logs
     loop {
+        log_ansi!(0, "\x1b[1;94m", "Start of frame {}", frame_counter);
         let start_of_frame = std::time::Instant::now();
 
         //Check if we've recieved a request to exit, and if so, break out of the loop
@@ -249,19 +251,21 @@ fn emulation_thread(mut state: State, stop_request_reciever: Receiver<()>) -> St
         let mut i: usize = 0;
         while i < CYCLES_PER_FRAME {
             log_increment_ticks!();//Increment the number of ticks for debugging
-            log_ansi!(0, "\x1b[1;97m", "Tick begins");
+            log_ansi!(0, "\x1b[1;97m", "Cycle block begins");
 
             //TODO redefine what a "tick" is since it is no longer a clock cycle (perhaps switch to instruction count instead)
             let cycles_executed = unsp::emulate_inst(&mut state);
+            log!(1, "Ticking VSmile internal and external peripherals {} time(s) to match", cycles_executed);
             for _ in 0..cycles_executed {
                 state.tick();
             }
             //unsp::handle_interrupts(&mut state);//TODO enable this once both this function and the interrupt functionality in State are implemented
+
+            log!(0, "Cycle block ends");
+
             if state.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
                 break;
             }
-
-            log!(0, "Tick ends");
 
             i += cycles_executed as usize;
         }
@@ -295,6 +299,9 @@ fn emulation_thread(mut state: State, stop_request_reciever: Receiver<()>) -> St
 
         //TESTING
         eprintln!("rate-limited: {}ns, ", rate_limited_frame_time.as_nanos());
+
+        log_ansi!(0, "\x1b[94m", "End of frame {}", frame_counter);
+        frame_counter += 1;
     }
 
     return state;//Give the state back when we're finished with it

@@ -74,7 +74,7 @@ impl ReadableMemory for State {
         let data: u16;
 
         match addr {
-            WORK_RAM_ADDR!() => { data = self.work_ram[addr as usize]; },
+            WORK_RAM_ADDR!() => { log!(2, "Work Ram"); data = self.work_ram[addr as usize]; },
             RENDER_ADDR!() => { todo!(); },
             SOUND_ADDR!() => { data = self.sound.read_addr(addr); },
             IO_NO_EXTMEM_REG_ADDR!() => { data = self.io.read_addr(addr); },
@@ -95,7 +95,7 @@ impl WritableMemory for State {
         debug_assert!((addr as usize) <= MEM_SIZE_WORDS);
 
         match addr {
-            WORK_RAM_ADDR!() => { self.work_ram[addr as usize] = data; },
+            WORK_RAM_ADDR!() => { log!(2, "Work Ram"); self.work_ram[addr as usize] = data; },
             RENDER_ADDR!() => { todo!(); },
             SOUND_ADDR!() => { self.sound.write_addr(addr, data); },
             IO_NO_EXTMEM_REG_ADDR!() => { self.io.write_addr(addr, data); },

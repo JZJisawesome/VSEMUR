@@ -12,9 +12,9 @@
 /* Imports */
 
 mod alu;
-/*mod bitop;
+//mod bitop;
 mod control;
-mod muldiv;
+/*mod muldiv;
 mod stack;
 mod shift16;*/
 
@@ -76,12 +76,16 @@ pub(super) fn emulate_inst(state: &mut (impl CPU + InstructionMemory + ReadableM
         decode_wg2(&mut decoded_inst, wg2);
     }
 
-    return execute_inst(state, &decoded_inst);
+    let cycles_executed = execute_inst(state, &decoded_inst);
+    log!(1, "unSP: CS page, PC is now {:#04X}_{:04X} | SP is now {:#04X}", state.get_cs(), state.get_pc(), state.get_sp());
+    log!(1, "unSP: Emulated one instruction in {} clock cycles", cycles_executed);
+    return cycles_executed;
 }
 
 pub(super) fn handle_interrupts(state: &mut (impl CPU + ReadableMemory + InterruptReadable)) {
     //Check the state for new interrupts (using InterruptReadable), and if there is, push the current PC/SR/etc to the stack, read from the interrupt vector, and switch the PC to that location
-    //TODO logging
+    //TODO we need to not handle interrupts if we're currently in an interrupt handler
+    log!(1, "unSP: Check for and handle interrupts");
     let interrupt_vector_addr: u16;
     use Interrupt::*;
     match state.get_interrupt() {
@@ -95,7 +99,7 @@ pub(super) fn handle_interrupts(state: &mut (impl CPU + ReadableMemory + Interru
         Some(IRQ5) => { todo!(); },
         Some(IRQ6) => { todo!(); },
         Some(IRQ7) => { todo!(); },
-        None => { return; },//No interrupt to handle
+        None => { log!(2, "No new interrupts to deal with"); return; },//No interrupt to handle
     }
 
     todo!();
@@ -113,7 +117,7 @@ fn execute_inst(state: &mut (impl CPU + ReadableMemory + WritableMemory + Interr
             todo!();//bitop::execute(state, mem, inst);
         },
         CALL{..} | JMPF{..} | JMPR{..} | BREAK{..} | CALLR{..} | RETI{..} | RETF{..} | Branch{..} => {
-            todo!();//control::execute(state, mem, inst);
+            return control::execute(state, inst);
         },
         DIVS{..} | DIVQ{..} | EXP{..} | MUL{..} | MULS{..} => {
             todo!();//muldiv::execute(state, mem, inst);
