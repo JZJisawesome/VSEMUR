@@ -1,4 +1,4 @@
-/* NAME//TODO
+/* sound.rs
  * By: John Jekel
  *
  * TODO description
@@ -11,6 +11,8 @@ use crate::logging::log;
 
 use crate::interpreter::common::ReadableMemory;
 use crate::interpreter::common::WritableMemory;
+
+use crate::interpreter::sound_reciever::SoundReciever;
 
 /* Constants */
 
@@ -48,6 +50,10 @@ impl SoundState {
 
     pub fn tick(self: &mut Self) {
         //unimplemented!();//TODO
+    }
+
+    pub(super) fn get_sound_reciever(self: &mut Self) -> SoundReciever {
+        todo!();
     }
 }
 

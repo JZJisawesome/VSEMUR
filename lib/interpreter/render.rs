@@ -1,4 +1,4 @@
-/* NAME//TODO
+/* render.rs
  * By: John Jekel
  *
  * TODO description
@@ -13,6 +13,8 @@
 /* Imports */
 
 use crate::logging::log;
+
+use crate::interpreter::render_reciever::RenderReciever;
 
 /* Constants */
 
@@ -56,6 +58,10 @@ impl RenderState {
         //for i in 0x002800..=0x0028FF {
         //    log!(2, "{:#08X}: {:#06X}", i, mem.read_addr(i));
         //}
+    }
+
+    pub(super) fn get_render_reciever(self: &mut Self) -> RenderReciever {
+        todo!();
     }
 }
 

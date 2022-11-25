@@ -91,11 +91,11 @@ impl State {
     }
 
     pub(super) fn get_render_reciever(self: &mut Self) -> RenderReciever {
-        todo!();
+        return self.render.get_render_reciever();
     }
 
     pub(super) fn get_sound_reciever(self: &mut Self) -> SoundReciever {
-        todo!();
+        return self.sound.get_sound_reciever();
     }
 
     pub(super) fn get_input_sender(self: &mut Self) -> InputSender {
