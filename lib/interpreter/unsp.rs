@@ -12,11 +12,11 @@
 /* Imports */
 
 mod alu;
-//mod bitop;
+mod bitop;
 mod control;
-//mod muldiv;
+mod muldiv;
 mod stack;
-//mod shift16;
+mod shift16;
 
 use crate::debug_panic;
 
@@ -114,16 +114,16 @@ fn execute_inst(state: &mut (impl CPU + ReadableMemory + WritableMemory + Interr
             return alu::execute(state, inst);
         },
         Register_BITOP_Rs{..} | Register_BITOP_offset{..} | Memory_BITOP_offset{..} | Memory_BITOP_Rs{..} => {
-            todo!();//bitop::execute(state, inst);
+            return bitop::execute(state, inst);
         },
         CALL{..} | JMPF{..} | JMPR{..} | BREAK{..} | CALLR{..} | RETI{..} | RETF{..} | Branch{..} => {
             return control::execute(state, inst);
         },
         DIVS{..} | DIVQ{..} | EXP{..} | MUL{..} | MULS{..} => {
-            todo!();//muldiv::execute(state, inst);
+            return muldiv::execute(state, inst);
         },
         sixteen_bits_Shift{rd, op, rs} => {
-            todo!();//shift16::execute(state, *rd, *op, *rs);
+            return shift16::execute(state, *rd, *op, *rs);
         },
         Stack_Operation{op, rd_index, size, rs} => {
             return stack::execute(state, *op, *rd_index, *size, *rs);

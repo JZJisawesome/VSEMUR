@@ -16,9 +16,7 @@ use crate::debug_panic;
 use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_finln;
-use crate::interpreter::common::ReadableMemory;
-use crate::interpreter::common::WritableMemory;
-use super::CPUState;
+use crate::interpreter::common::CPU;
 use crate::decode::*;//TODO only import what is needed from here
 
 /* Imports */
@@ -47,6 +45,6 @@ use crate::decode::*;//TODO only import what is needed from here
 
 /* Functions */
 
-pub(super) fn execute(cpu: &mut CPUState, mem: &mut (impl ReadableMemory + WritableMemory), rd: DecodedRegister, op: DecodedLSFTOp, rs: DecodedRegister) {
+pub(super) fn execute(state: &mut impl CPU, rd: DecodedRegister, op: DecodedLSFTOp, rs: DecodedRegister) -> u8  {
     todo!();//TODO
 }
