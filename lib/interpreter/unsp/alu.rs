@@ -18,9 +18,11 @@ use crate::logging::log;
 use crate::logging::log_noln;
 use crate::logging::log_midln;
 use crate::logging::log_finln;
+use crate::interpreter::common::CPU;
 use crate::interpreter::common::ReadableMemory;
 use crate::interpreter::common::WritableMemory;
-use super::CPUState;
+use crate::interpreter::common::inc_page_addr_by;
+use crate::interpreter::common::dec_page_addr_by;
 use crate::decode::*;//TODO only import what is needed from here
 use crate::decode::DecodedInstruction::*;
 use DecodedALUOp::*;
@@ -47,7 +49,7 @@ use DecodedALUOp::*;
 
 /* Functions */
 
-pub(super) fn execute(cpu: &mut CPUState, mem: &mut (impl ReadableMemory + WritableMemory), inst: &DecodedInstruction) {
+pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), inst: &DecodedInstruction) -> u8 {
     //Operation and operands
     let operation: DecodedALUOp;
     let operand1: u16;
@@ -72,18 +74,18 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut (impl ReadableMemory + Writa
     //Perform instruction type-specific setup, including determining operand1 and operand2
     match inst {
         IMM16{rd, rs, imm16, ..} => {
-            operand1 = cpu.get_reg(*rs);
+            operand1 = state.get_reg(*rs);
             operand2 = *imm16;
             log!(3, "Operand 1 is Rs, and operand 2 is IMM16");
         },
         Direct16{rd, w, rs, a16, ..} => {
             if *w {
-                operand1 = cpu.get_reg(*rd);
-                operand2 = cpu.get_reg(*rs);
+                operand1 = state.get_reg(*rd);
+                operand2 = state.get_reg(*rs);
                 log!(3, "Operand 1 is Rd, and operand 2 is Rs");
             } else {
-                operand1 = cpu.get_reg(*rs);
-                operand2 = mem.read_page_addr(cpu.get_ds(), *a16);
+                operand1 = state.get_reg(*rs);
+                operand2 = state.read_page_addr(state.get_ds(), *a16);
                 log!(3, "Operand 1 is Rs, and operand 2 is [A16]");
             }
         },
@@ -91,56 +93,56 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut (impl ReadableMemory + Writa
             todo!();
         },
         IMM6{rd, imm6, ..} => {
-            operand1 = cpu.get_reg(*rd);
+            operand1 = state.get_reg(*rd);
             operand2 = *imm6 as u16;
             log!(3, "Operand 1 is Rd, and operand 2 is IMM6");
         },
         Base_plus_Disp6{rd, imm6, ..} => {
             log!(3, "Operand 1 is Rd");
-            operand1 = cpu.get_reg(*rd);
+            operand1 = state.get_reg(*rd);
 
             //TODO this is not needed if this is STORE (perhaps be more efficient in this case?; could also be more efficient in other cases)
             //TODO logging
-            let page = cpu.get_ds();
-            let bp = cpu.bp;
-            let final_page_addr_tuple = super::super::inc_page_addr_by(page, bp, *imm6 as u32);
+            let page = state.get_ds();
+            let bp = state.get_bp();
+            let final_page_addr_tuple = inc_page_addr_by(page, bp, *imm6 as u32);
 
-            operand2 = mem.read_page_addr(final_page_addr_tuple.0, final_page_addr_tuple.1);
+            operand2 = state.read_page_addr(final_page_addr_tuple.0, final_page_addr_tuple.1);
         },
         DS_Indirect{rd, d, at, rs, ..} => {
             //Increment Rd if that is the @ operation we must perform
             if matches!(at, DecodedAtOp::PreIncrement) {
-                let original_ds = cpu.get_ds();
-                let original_rs = cpu.get_reg(*rs);
+                let original_ds = state.get_ds();
+                let original_rs = state.get_reg(*rs);
                 log!(3, "@ operation says to pre-increment DS:Rs (originally {:#04X}_{:04X})", original_ds, original_rs);
 
-                let new_ds_rs_tuple = super::super::inc_page_addr_by(original_ds, original_rs, 1);
-                cpu.set_ds(new_ds_rs_tuple.0);
-                cpu.set_reg(*rs, new_ds_rs_tuple.1);
+                let new_ds_rs_tuple = inc_page_addr_by(original_ds, original_rs, 1);
+                state.set_ds(new_ds_rs_tuple.0);
+                state.set_reg(*rs, new_ds_rs_tuple.1);
             }
 
             log!(3, "Operand 1 is Rd");
-            operand1 = cpu.get_reg(*rd);
+            operand1 = state.get_reg(*rd);
 
             //Get operand2//TODO this is not needed if this is STORE (perhaps be more efficient in this case?; could also be more efficient in other cases)
             let page: u8;
             log_noln!(3, "The D flag is ");
             if *d {
-                page = cpu.get_ds();
+                page = state.get_ds();
             } else {
                 page = 0x00;
                 log_midln!("not ");
             }
             log_finln!("set, so the page is {:#04X}", page);
-            let addr: u16 = cpu.get_reg(*rs);
+            let addr: u16 = state.get_reg(*rs);
             log!(3, "Rs is {0:#06X}, so operand 2 is [{1:#04X}_{0:04X}]", addr, page);
-            operand2 = mem.read_page_addr(page, addr);
+            operand2 = state.read_page_addr(page, addr);
         },
         Register{rd, sft, sfc, rs, ..} => {
             log!(3, "Operand 1 is Rd");
-            operand1 = cpu.get_reg(*rd);
+            operand1 = state.get_reg(*rd);
 
-            let original_rs = cpu.get_reg(*rs);
+            let original_rs = state.get_reg(*rs);
             log!(3, "Rs is originally {0:#06X} | {0:#018b} | unsigned {0}", original_rs);
             log!(3, "Perform Register-type shift operations if applicable and use the result as operand 2");
             operand2 = sft_operation(*sft, *sfc, original_rs);
@@ -149,7 +151,7 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut (impl ReadableMemory + Writa
     }
 
     //Perform the operation
-    let result: u16 = alu_operation(cpu, operation, operand1, operand2, update_flags);
+    let result: u16 = alu_operation(state, operation, operand1, operand2, update_flags);
 
     //Write to the appropriate (if any) destination
     match (operation, inst) {//TODO logging
@@ -161,36 +163,36 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut (impl ReadableMemory + Writa
             //TODO logging
             log!(3, "Writing result to [BP+IMM6]");
             //TODO log more info
-            let page = cpu.get_ds();
-            let bp = cpu.bp;
-            let final_page_addr_tuple = super::super::inc_page_addr_by(page, bp, *imm6 as u32);
+            let page = state.get_ds();
+            let bp = state.get_bp();
+            let final_page_addr_tuple = inc_page_addr_by(page, bp, *imm6 as u32);
 
-            mem.write_page_addr(final_page_addr_tuple.0, final_page_addr_tuple.1, result);
+            state.write_page_addr(final_page_addr_tuple.0, final_page_addr_tuple.1, result);
         },
         (STORE, DS_Indirect{d, rs, ..}) => {
             log!(3, "Writing result to {{D:}}[Rs@]");
             let page: u8;
             log_noln!(4, "The D flag is ");
             if *d {
-                page = cpu.get_ds();
+                page = state.get_ds();
             } else {
                 page = 0x00;
                 log_midln!("not ");
             }
             log_finln!("set, so the page is {:#04X}", page);
-            let addr: u16 = cpu.get_reg(*rs);
+            let addr: u16 = state.get_reg(*rs);
             log!(3, "Rs is {0:#06X}, so store to [{1:#04X}_{0:04X}]", addr, page);
-            mem.write_page_addr(page, addr, result);
+            state.write_page_addr(page, addr, result);
         },
         (LOAD, Direct16{w: true, a16, ..}) | (STORE, Direct16{w: false, a16, ..}) => { debug_panic!(); }//Not a valid instruction/op combination
         (_, Direct16{w: true, a16, ..}) => {//When the Direct16 w flag is set, we are writing to memory
             //TODO logging
-            mem.write_page_addr(cpu.get_ds(), *a16, result);
+            state.write_page_addr(state.get_ds(), *a16, result);
         },
         (_, IMM16{rd, ..}) | (_, Direct16{w: false, rd, ..}) | (_, Direct6{rd, ..}) | (_, IMM6{rd, ..}) | (_, Base_plus_Disp6{rd, ..}) | (_, DS_Indirect{rd, ..}) | (_, Register{rd, ..}) => {
             //Other cases are much simpler; we just write to Rd
             log!(3, "Writing result to Rd");
-            cpu.set_reg(*rd, result);
+            state.set_reg(*rd, result);
         },
         (_, _) => { debug_panic!(); }//Not a valid instruction/op combination
     }
@@ -198,26 +200,26 @@ pub(super) fn execute(cpu: &mut CPUState, mem: &mut (impl ReadableMemory + Writa
     //Potentially increment/decrement Rs if this is DS_Indirect
     if let DS_Indirect{at, rs, ..} = inst {
         if matches!(at, DecodedAtOp::PostDecrement) {
-            let original_ds = cpu.get_ds();
-            let original_rs = cpu.get_reg(*rs);
+            let original_ds = state.get_ds();
+            let original_rs = state.get_reg(*rs);
             log!(3, "@ operation says to post-decrement DS:Rs (originally {:#04X}_{:04X})", original_ds, original_rs);
 
-            let new_ds_rs_tuple = super::super::dec_page_addr_by(original_ds, original_rs, 1);
-            cpu.set_ds(new_ds_rs_tuple.0);
-            cpu.set_reg(*rs, new_ds_rs_tuple.1);
+            let new_ds_rs_tuple = dec_page_addr_by(original_ds, original_rs, 1);
+            state.set_ds(new_ds_rs_tuple.0);
+            state.set_reg(*rs, new_ds_rs_tuple.1);
         } else if matches!(at, DecodedAtOp::PostIncrement) {
-            let original_ds = cpu.get_ds();
-            let original_rs = cpu.get_reg(*rs);
+            let original_ds = state.get_ds();
+            let original_rs = state.get_reg(*rs);
             log!(3, "@ operation says to post-increment DS:Rs (originally {:#04X}_{:04X})", original_ds, original_rs);
 
-            let new_ds_rs_tuple = super::super::inc_page_addr_by(original_ds, original_rs, 1);
-            cpu.set_ds(new_ds_rs_tuple.0);
-            cpu.set_reg(*rs, new_ds_rs_tuple.1);
+            let new_ds_rs_tuple = inc_page_addr_by(original_ds, original_rs, 1);
+            state.set_ds(new_ds_rs_tuple.0);
+            state.set_reg(*rs, new_ds_rs_tuple.1);
         }
     }
 }
 
-fn alu_operation(cpu: &mut CPUState, alu_op: DecodedALUOp, operand1: u16, operand2: u16, update_flags: bool) -> u16 {//Needs mutable reference to CPUState to sets flags properly
+fn alu_operation(state: &mut impl CPU, alu_op: DecodedALUOp, operand1: u16, operand2: u16, update_flags: bool) -> u16 {//Needs mutable reference to CPUState to sets flags properly
     log!(3, "Operand 1: {0:#06X} | {0:#018b} | unsigned {0}", operand1);
     log!(3, "Operand 2: {0:#06X} | {0:#018b} | unsigned {0}", operand2);
 
@@ -231,9 +233,9 @@ fn alu_operation(cpu: &mut CPUState, alu_op: DecodedALUOp, operand1: u16, operan
     let result_w: Wrap<u32>;
     match alu_op {
         ADD => { result_w = operand1_w + operand2_w; },
-        ADC => { result_w = operand1_w + operand2_w + if cpu.get_c() { Wrap(1) } else { Wrap(0) }; },
+        ADC => { result_w = operand1_w + operand2_w + if state.get_c() { Wrap(1) } else { Wrap(0) }; },
         SUB => { result_w = operand1_w - operand2_w; },
-        SBC => { result_w = operand1_w + !operand2_w + if cpu.get_c() { Wrap(1) } else { Wrap(0) }; },
+        SBC => { result_w = operand1_w + !operand2_w + if state.get_c() { Wrap(1) } else { Wrap(0) }; },
         CMP => { result_w = operand1_w - operand2_w; },
         NEG => { result_w = Wrap((-(operand2 as i32)) as u32); },//Intentionally not using operand2_w so that we can cast to a signed integer and back//TODO ensure this is valid, else do ~operand2 + 1
         XOR => { result_w = operand1_w ^ operand2_w; },
@@ -257,14 +259,14 @@ fn alu_operation(cpu: &mut CPUState, alu_op: DecodedALUOp, operand1: u16, operan
         log!(3, "Updating flags...");
         match alu_op {
             ADD | ADC | SUB | SBC | CMP => {//ADD, ADC, SUB, SBC, CMP update all flags
-                cpu.set_n(((result >> 15) & 0b1) == 0b1);
-                cpu.set_z(result == 0);
-                cpu.set_s((result as i32) < 0);//TODO ensure this is correct; mame does this differently
-                cpu.set_c(((result >> 16) & 0b1) == 0b1);
+                state.set_n(((result >> 15) & 0b1) == 0b1);
+                state.set_z(result == 0);
+                state.set_s((result as i32) < 0);//TODO ensure this is correct; mame does this differently
+                state.set_c(((result >> 16) & 0b1) == 0b1);
             },
             NEG | XOR | LOAD | OR | AND | TEST => {//NEG, XOR, LOAD, OR, AND, TEST update only N, Z flags
-                cpu.set_n(((result >> 15) & 0b1) == 0b1);
-                cpu.set_z(result == 0);
+                state.set_n(((result >> 15) & 0b1) == 0b1);
+                state.set_z(result == 0);
             },
             STORE => {},//STORE dosn't update flags
             _ => { return debug_panic!(0); },//TODO should we do some sort of error handling for this, or do we need to jump somewhere if this occurs?

@@ -57,17 +57,15 @@ pub(super) trait CPU {
 
     fn soft_interrupt_request(self: &mut Self);//To support the BREAK instruction
 
-    //TODO
-    /*fn inc_pc_by(self: &mut Self, increment_amount: u32) {
-        let result: (u8, u16) = inc_page_addr_by(self.get_cs(), self.pc, increment_amount);
+    fn inc_pc_by(self: &mut Self, increment_amount: u32) {
+        let result: (u8, u16) = inc_page_addr_by(self.get_cs(), *self.reg_pc_mut(), increment_amount);
         self.set_cs(result.0);
-        self.pc = result.1;
-    }*/
+        *self.reg_pc_mut() = result.1;
+    }
 
-    //TODO
-    /*fn inc_pc(self: &mut Self) {
+    fn inc_pc(self: &mut Self) {
         self.inc_pc_by(1);
-    }*/
+    }
 
     //Getters and setters using reference functions provided above
     fn get_sp(self: &Self) -> u16 {
@@ -94,7 +92,29 @@ pub(super) trait CPU {
         return *self.reg_fr();
     }
 
-    //TODO setters
+    fn set_sp(self: &mut Self, data: u16) {
+        *self.reg_sp_mut() = data;
+    }
+
+    fn set_r(self: &mut Self, index: u8, data: u16) {
+        self.reg_r_mut()[(index - 1) as usize] = data;
+    }
+
+    fn set_bp(self: &mut Self, data: u16) {
+        *self.reg_bp_mut() = data;
+    }
+
+    fn set_sr(self: &mut Self, data: u16) {
+        *self.reg_sr_mut() = data;
+    }
+
+    fn set_pc(self: &mut Self, data: u16) {
+        *self.reg_pc_mut() = data;
+    }
+
+    fn set_fr(self: &mut Self, data: u16) {
+        *self.reg_fr_mut() = data;
+    }
 
     //SR getters and setters for sub-fields
     fn get_ds(self: &Self) -> u8 {

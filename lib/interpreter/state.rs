@@ -21,13 +21,6 @@ use crate::debug_panic;
 
 use crate::logging::log;
 
-use super::common::CPU;
-use crate::interpreter::common::InstructionMemory;
-use crate::interpreter::common::ReadableMemory;
-use crate::interpreter::common::WritableMemory;
-use super::common::InterruptReadable;
-use super::common::InterruptClearable;
-
 use crate::interpreter::common::PHYSICAL_MEM_SIZE_WORDS;
 
 use super::render_reciever::RenderReciever;

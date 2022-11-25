@@ -11,8 +11,8 @@
 
 /* Imports */
 
-/*mod alu;
-mod bitop;
+mod alu;
+/*mod bitop;
 mod control;
 mod muldiv;
 mod stack;
@@ -76,10 +76,93 @@ pub(super) fn emulate_inst(state: &mut (impl CPU + InstructionMemory + ReadableM
         decode_wg2(&mut decoded_inst, wg2);
     }
 
-    todo!();
+    return execute_inst(state, &decoded_inst);
 }
 
 pub(super) fn handle_interrupts(state: &mut (impl CPU + ReadableMemory + InterruptReadable)) {
     //Check the state for new interrupts (using InterruptReadable), and if there is, push the current PC/SR/etc to the stack, read from the interrupt vector, and switch the PC to that location
     todo!();
+}
+
+fn execute_inst(state: &mut (impl CPU + ReadableMemory + WritableMemory + InterruptClearable), inst: &DecodedInstruction) -> u8 {
+    log!(1, "unSP: Execute instruction");
+
+    match inst {
+        Base_plus_Disp6{..} | IMM6{..} | DS_Indirect{..} | IMM16{..} | Direct16{..} | Direct6{..} | Register{..} => {
+            return alu::execute(state, inst);
+        },
+        Register_BITOP_Rs{..} | Register_BITOP_offset{..} | Memory_BITOP_offset{..} | Memory_BITOP_Rs{..} => {
+            todo!();//bitop::execute(state, mem, inst);
+        },
+        CALL{..} | JMPF{..} | JMPR{..} | BREAK{..} | CALLR{..} | RETI{..} | RETF{..} | Branch{..} => {
+            todo!();//control::execute(state, mem, inst);
+        },
+        DIVS{..} | DIVQ{..} | EXP{..} | MUL{..} | MULS{..} => {
+            todo!();//muldiv::execute(state, mem, inst);
+        },
+        sixteen_bits_Shift{rd, op, rs} => {
+            todo!();//shift16::execute(state, mem, *rd, *op, *rs);
+        },
+        Stack_Operation{op, rd_index, size, rs} => {
+            todo!();//stack::execute(state, mem, *op, *rd_index, *size, *rs);
+        },
+        DSI6{imm6} => {
+            state.set_ds(*imm6);
+            state.inc_pc();
+            return 2;
+        },
+        FIR_MOV{fir}=> {
+            state.set_fir(*fir);
+            state.inc_pc();
+            return 2;
+        },
+        Fraction{fra} => {
+            state.set_fra(*fra);
+            state.inc_pc();
+            return 2;
+        },
+        INT_SET{f, i} => {
+            state.set_fiq(*f);
+            state.set_irq(*i);
+            state.inc_pc();
+            return 2;
+        },
+        IRQ{i} => {
+            state.set_irq(*i);
+            state.inc_pc();
+            return 2;
+        },
+        SECBANK{s} => {
+            state.set_bnk(*s);
+            state.inc_pc();
+            return 2;
+        },
+        FIQ{f} => {
+            state.set_fiq(*f);
+            state.inc_pc();
+            return 2;
+        },
+        IRQ_Nest_Mode{n} => {
+            state.set_ine(*n);
+            state.inc_pc();
+            return 2;
+        },
+        NOP => {
+            //We don't need to do anything! :)
+            state.inc_pc();
+            return 2;
+        },
+        DS_Access{w, rs} => {
+            unimplemented!();//TODO do here
+            state.inc_pc();
+            return 2;
+        },
+        FR_Access{w, rs} => {
+            unimplemented!();//TODO do here
+            state.inc_pc();
+            return 2;
+        },
+
+        Invalid => { return debug_panic!(0); }//TODO proper error handling?
+    }
 }
