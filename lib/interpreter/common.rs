@@ -29,7 +29,6 @@ pub(super) const PHYSICAL_MEM_SIZE_WORDS: usize = 1024 * 10;//10 kilowords of me
 pub(super) enum Interrupt {
     Break,
     FIQ,
-    Reset,
     IRQ0,
     IRQ1,
     IRQ2,

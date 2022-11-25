@@ -11,8 +11,8 @@
 
 /* Imports */
 
-mod alu;
-/*mod bitop;
+/*mod alu;
+mod bitop;
 mod control;
 mod muldiv;
 mod stack;
@@ -30,9 +30,9 @@ use crate::interpreter::common::ReadableMemory;
 use crate::interpreter::common::WritableMemory;
 use crate::interpreter::common::InterruptClearable;
 use crate::interpreter::common::InterruptReadable;
+use crate::interpreter::common::Interrupt;
 
 use crate::decode::*;//TODO only import what is needed from here
-use crate::decode::DecodedInstruction::*;
 
 use super::common::inc_page_addr_by;
 
@@ -81,15 +81,33 @@ pub(super) fn emulate_inst(state: &mut (impl CPU + InstructionMemory + ReadableM
 
 pub(super) fn handle_interrupts(state: &mut (impl CPU + ReadableMemory + InterruptReadable)) {
     //Check the state for new interrupts (using InterruptReadable), and if there is, push the current PC/SR/etc to the stack, read from the interrupt vector, and switch the PC to that location
+    //TODO logging
+    let interrupt_vector_addr: u16;
+    use Interrupt::*;
+    match state.get_interrupt() {
+        Some(Break) => { todo!(); },
+        Some(FIQ) => { todo!(); },
+        Some(IRQ0) => { todo!(); },
+        Some(IRQ1) => { todo!(); },
+        Some(IRQ2) => { todo!(); },
+        Some(IRQ3) => { todo!(); },
+        Some(IRQ4) => { todo!(); },
+        Some(IRQ5) => { todo!(); },
+        Some(IRQ6) => { todo!(); },
+        Some(IRQ7) => { todo!(); },
+        None => { return; },//No interrupt to handle
+    }
+
     todo!();
 }
 
 fn execute_inst(state: &mut (impl CPU + ReadableMemory + WritableMemory + InterruptClearable), inst: &DecodedInstruction) -> u8 {
     log!(1, "unSP: Execute instruction");
 
+    use DecodedInstruction::*;
     match inst {
         Base_plus_Disp6{..} | IMM6{..} | DS_Indirect{..} | IMM16{..} | Direct16{..} | Direct6{..} | Register{..} => {
-            return alu::execute(state, inst);
+            todo!();//return alu::execute(state, inst);
         },
         Register_BITOP_Rs{..} | Register_BITOP_offset{..} | Memory_BITOP_offset{..} | Memory_BITOP_Rs{..} => {
             todo!();//bitop::execute(state, mem, inst);

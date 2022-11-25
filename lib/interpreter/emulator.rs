@@ -256,6 +256,7 @@ fn emulation_thread(mut state: State, stop_request_reciever: Receiver<()>) -> St
             for _ in 0..cycles_executed {
                 state.tick();
             }
+            //unsp::handle_interrupts(&mut state);//TODO enable this once both this function and the interrupt functionality in State are implemented
             if state.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
                 break;
             }
