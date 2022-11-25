@@ -69,6 +69,33 @@ pub(super) trait CPU {
         self.inc_pc_by(1);
     }*/
 
+    //Getters and setters using reference functions provided above
+    fn get_sp(self: &Self) -> u16 {
+        return *self.reg_sp();
+    }
+
+    fn get_r(self: &Self, index: u8) -> u16 {
+        return self.reg_r()[(index - 1) as usize];
+    }
+
+    fn get_bp(self: &Self) -> u16 {
+        return *self.reg_bp();
+    }
+
+    fn get_sr(self: &Self) -> u16 {
+        return *self.reg_sr();
+    }
+
+    fn get_pc(self: &Self) -> u16 {
+        return *self.reg_pc();
+    }
+
+    fn get_fr(self: &Self) -> u16 {
+        return *self.reg_fr();
+    }
+
+    //TODO setters
+
     //SR getters and setters for sub-fields
     fn get_ds(self: &Self) -> u8 {
         return ((*self.reg_sr() >> 10) & 0b111111) as u8;

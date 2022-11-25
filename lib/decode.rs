@@ -249,7 +249,7 @@ pub enum DecodedRegister {
 /* Functions */
 
 pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
-    log!(1, "CPU: Decode instruction word group 1");
+    log!(1, "unSP: Decode instruction word group 1");
 
     log_noln!(2, "First check if the instruction is obviously bad: ");
     if (inst_word == 0xFFFF) || (inst_word == 0x0000) {//All zero or all one instructions are not valid
@@ -540,7 +540,7 @@ pub fn decode_wg1(inst_word: u16, decoded_inst: &mut DecodedInstruction) {
 }
 
 pub fn decode_wg2(decoded_inst: &mut DecodedInstruction, wg2: u16) {
-    log!(1, "CPU: Decode instruction word group 2:");
+    log!(1, "unSP: Decode instruction word group 2:");
     match decoded_inst {
         CALL{ref mut a22} => {
             log!(2, "Fill in the lower 16 bits of A22 for CALL");

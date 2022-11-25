@@ -9,11 +9,21 @@
 
 use super::State;
 
+use crate::logging::log;
+
 use crate::interpreter::common::CPU;
+
+use crate::interpreter::common::MEM_SIZE_WORDS;
+
+use crate::interpreter::common::ReadableMemory;
 
 /* Constants */
 
-//TODO
+//Page 47 is useful :)
+const BREAK_INT_VECTOR_ADDR: usize = 0xFFF5;
+const FIQ_INT_VECTOR_ADDR: usize = 0xFFF6;
+const RESET_INT_VECTOR_ADDR: usize = 0xFFF7;
+const IRQ_INT_VECTOR_ADDR: [usize;8] = [0xFFF8, 0xFFF9, 0xFFFA, 0xFFFB, 0xFFFC, 0xFFFD, 0xFFFE, 0xFFFF];//0 thru 7
 
 /* Macros */
 
@@ -34,6 +44,24 @@ pub(super) struct CPURegs {
     pub(super) sr: u16,
     pub(super) pc: u16,
     pub(super) fr: u16,
+}
+
+/* Associated Functions and Methods */
+
+impl State {
+    pub(super) fn reset_cpu(self: &mut Self) {
+        log!(2, "Resetting CPU");
+
+        log!(3, "Initialize FR to 0bx_0_0_0_0_0000_0_0_0_1000");
+        self.cpu_regs.fr = 0b0_0_0_0_0_0000_0_0_0_1000;
+
+        log!(3, "Set initial CS page and PC");
+        debug_assert!(RESET_INT_VECTOR_ADDR < MEM_SIZE_WORDS);
+        log!(4, "Read reset vector at address {:#04X}_{:04X}", RESET_INT_VECTOR_ADDR >> 16, RESET_INT_VECTOR_ADDR & 0xFFFF);
+        self.set_cs(0x00);
+        self.cpu_regs.pc = self.read_addr(RESET_INT_VECTOR_ADDR as u32);
+        log!(3, "Initial CS page, PC is {:#04X}_{:04X}", self.get_cs(), self.cpu_regs.pc);
+    }
 }
 
 impl CPU for State {
@@ -78,10 +106,6 @@ impl CPU for State {
         todo!();
     }
 }
-
-/* Associated Functions and Methods */
-
-//TODO
 
 /* Functions */
 
