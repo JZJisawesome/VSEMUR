@@ -7,11 +7,11 @@
 
 /* Imports */
 
+use super::unsp;
 use super::render_reciever::RenderReciever;
 use super::sound_reciever::SoundReciever;
 use super::input_sender::InputSender;
-use super::cpu::CPUState;
-use super::peripherals::Peripherals;
+use super::state::State;
 
 use std::thread;
 use std::sync::mpsc::SyncSender;
@@ -48,12 +48,11 @@ const BUSY_WAIT_TIME_PER_FRAME: std::time::Duration = std::time::Duration::from_
 ///
 ///Instanciate with [`Emulator::new()`].
 pub struct Emulator {
-    //We own the CPUState and Peripherals until we launch a thread, at which point the thread owns them; its ownership is then returned to us when we stop it
-    cpu: Option<CPUState>,
-    peripherals: Option<Peripherals>,
+    //We own the state until we launch a thread, at which point the thread owns it; its ownership is then returned to us when we stop it
+    state: Option<State>,
 
     //TODO other fields
-    emulation_thread_join_handle: Option<thread::JoinHandle<(CPUState, Peripherals)>>,
+    emulation_thread_join_handle: Option<thread::JoinHandle<(State)>>,
     stop_request_sender: Option<SyncSender<()>>//NOTE: All other channels are part of Peripherals, except for this one which is just used internally to request the thread to stop
 }
 
@@ -70,8 +69,7 @@ impl Emulator {
         log_ansi!(0, "\x1b[1;97m", "Initializing VSEMUR Emulator");
 
         let new_emulator = Emulator {
-            cpu: Some(CPUState::new()),
-            peripherals: Some(Peripherals::new()),
+            state: Some(State::new()),
             emulation_thread_join_handle: None,
             stop_request_sender: None,
         };
@@ -82,10 +80,9 @@ impl Emulator {
 
     ///Returns `true` if the emulation thread associated with this [`Emulator`] is currently running, and false otherwise
     pub fn thread_running(self: &Self) -> bool {
-        debug_assert!(matches!(self.cpu, None) == matches!(self.peripherals, None));
-        debug_assert!(matches!(self.cpu, None) != matches!(self.emulation_thread_join_handle, None));
+        debug_assert!(matches!(self.state, None) != matches!(self.emulation_thread_join_handle, None));
         debug_assert!(matches!(self.emulation_thread_join_handle, None) == matches!(self.stop_request_sender, None));
-        return matches!(self.cpu, None);
+        return matches!(self.state, None);
     }
 
     //TODO add mega setup function that calls load functions and returns the reciever
@@ -98,27 +95,26 @@ impl Emulator {
     pub fn reset(self: &mut Self) {//Must be called after loading is complete (does not care if channels are sent yet)
         debug_assert!(!self.thread_running());
         log_ansi!(0, "\x1b[1;97m", "Resetting emulated system");
-        self.peripherals.as_mut().unwrap().reset();//Must come before the CPU so that it can fetch the reset vector, etc
-        self.cpu.as_mut().unwrap().reset(self.peripherals.as_mut().unwrap());
+        self.state.as_mut().unwrap().reset();
         log!(0, "Reset complete");
     }
 
     //TODO these will be valid across launches and stops of the emulation thread, but can be called whenever we're stopped to recreate them if needed
     pub fn get_render_reciever(self: &mut Self) -> RenderReciever {
         debug_assert!(!self.thread_running());
-        return self.peripherals.as_mut().unwrap().get_render_reciever();
+        return self.state.as_mut().unwrap().get_render_reciever();
         todo!();
     }
 
     pub fn get_sound_reciever(self: &mut Self) -> SoundReciever {
         debug_assert!(!self.thread_running());
-        return self.peripherals.as_mut().unwrap().get_sound_reciever();
+        return self.state.as_mut().unwrap().get_sound_reciever();
         todo!();
     }
 
     pub fn get_input_sender(self: &mut Self) -> InputSender {
         debug_assert!(!self.thread_running());
-        return self.peripherals.as_mut().unwrap().get_input_sender();
+        return self.state.as_mut().unwrap().get_input_sender();
         todo!();
     }
 
@@ -131,7 +127,7 @@ impl Emulator {
     ///Returns `Result::Ok(())` if the load was sucessful, or otherwise `Result::Err(())` if it was not.
     pub fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
-        return self.peripherals.as_mut().unwrap().load_bios_file(path);
+        return self.state.as_mut().unwrap().load_bios_file(path);
     }
 
     ///Loads a VSmile BIOS from the memory contained within the given slice.
@@ -143,7 +139,7 @@ impl Emulator {
     ///Returns `Result::Ok(())` if the load was sucessful, or otherwise `Result::Err(())` if it was not.
     pub fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
-        return self.peripherals.as_mut().unwrap().load_bios_mem(bios_mem);
+        return self.state.as_mut().unwrap().load_bios_mem(bios_mem);
     }
 
     ///Loads a VSmile rom file from disk at the path specified.
@@ -155,7 +151,7 @@ impl Emulator {
     ///Returns `Result::Ok(())` if the load was sucessful, or otherwise `Result::Err(())` if it was not.
     pub fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
-        return self.peripherals.as_mut().unwrap().load_rom_file(path);
+        return self.state.as_mut().unwrap().load_rom_file(path);
     }
 
     ///Loads a VSmile rom from the memory contained within the given slice.
@@ -167,7 +163,7 @@ impl Emulator {
     ///Returns `Result::Ok(())` if the load was sucessful, or otherwise `Result::Err(())` if it was not.
     pub fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ()> {
         debug_assert!(!self.thread_running());
-        return self.peripherals.as_mut().unwrap().load_rom_mem(rom_mem);
+        return self.state.as_mut().unwrap().load_rom_mem(rom_mem);
     }
 
     ///Launches a new emulation thread and associates it with this Emulator
@@ -191,8 +187,7 @@ impl Emulator {
         self.stop_request_sender.replace(tx);
 
         //Get the state to give to the thread (the state in our struct becomes None due to take())
-        let cpu_for_thread = self.cpu.take().unwrap();
-        let peripherals_for_thread = self.peripherals.take().unwrap();
+        let state_for_thread = self.state.take().unwrap();
         //debug_assert!(state_for_thread.ready());//TODO
 
         //Launch the thread
@@ -200,8 +195,8 @@ impl Emulator {
             thread::Builder::new()
                 .name("VSEMUR emulation thread".to_string())
                 .spawn(
-                    move || -> (CPUState, Peripherals) {
-                        return emulation_thread(cpu_for_thread, peripherals_for_thread, rx);
+                    move || -> State {
+                        return emulation_thread(state_for_thread, rx);
                     }
                 )
                 .expect("Failed to launch VSEMUR emulation thread")
@@ -224,13 +219,12 @@ impl Emulator {
         }
 
         let old_join_handle = self.emulation_thread_join_handle.take().unwrap();
-        let (cpu_from_thread, peripherals_from_thread) = old_join_handle.join().expect("VSEMUR emulation thread panicked");
+        let state_from_thread = old_join_handle.join().expect("VSEMUR emulation thread panicked");
 
         drop(moved_stop_request_sender);
 
         //Replace the state in our Emulator struct so we can restart it again later
-        self.cpu.replace(cpu_from_thread);
-        self.peripherals.replace(peripherals_from_thread);
+        self.state.replace(state_from_thread);
 
         log_ansi!(0, "\x1b[1;97m", "Emulation thread stopped");
     }
@@ -238,7 +232,7 @@ impl Emulator {
 
 /* Functions */
 
-fn emulation_thread(mut cpu: CPUState, mut peripherals: Peripherals, stop_request_reciever: Receiver<()>) -> (CPUState, Peripherals) {
+fn emulation_thread(mut state: State, stop_request_reciever: Receiver<()>) -> State {
     log_ansi!(0, "\x1b[1;97m", "Emulation thread started");
 
     //The frame loop
@@ -258,31 +252,17 @@ fn emulation_thread(mut cpu: CPUState, mut peripherals: Peripherals, stop_reques
             log_ansi!(0, "\x1b[1;97m", "Tick begins");
 
             //TODO redefine what a "tick" is since it is no longer a clock cycle (perhaps switch to instruction count instead)
-
-            //Try to keep the CPU and peripherals in sync as much as possible
-            let cpu_cycles_executed = cpu.tick(&mut peripherals);
-            for _ in 0..cpu_cycles_executed {
-                peripherals.tick();
-            }
-
-            if peripherals.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
-                break;
-            }
-
-            //TODO switch to this
-            /*
-            let cycles_executed_by_instruction_emulation = unsp::emulate_inst(state);
-            for _ in 0..executed_by_instruction_emulation {
+            let cycles_executed = unsp::emulate_inst(&mut state);
+            for _ in 0..cycles_executed {
                 state.tick();
             }
             if state.frame_ended() {//We want to sync the number of ticks we perform with actual frames, not just use frames as a measure of rate-limiting
                 break;
             }
-            */
 
             log!(0, "Tick ends");
 
-            i += cpu_cycles_executed as usize;
+            i += cycles_executed as usize;
         }
 
         let frame_time = start_of_frame.elapsed();
@@ -316,5 +296,5 @@ fn emulation_thread(mut cpu: CPUState, mut peripherals: Peripherals, stop_reques
         eprintln!("rate-limited: {}ns, ", rate_limited_frame_time.as_nanos());
     }
 
-    return (cpu, peripherals);//Give the state back when we're finished with it
+    return state;//Give the state back when we're finished with it
 }

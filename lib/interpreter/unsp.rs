@@ -40,11 +40,11 @@ use crate::interpreter::common::InterruptReadable;
 
 /* Functions */
 
-fn emulate_inst(state: &mut (impl CPU + InstructionMemory + ReadableMemory + WritableMemory + InterruptClearable)) -> u8 {//Return the number of cycles the instruction would take to execute
+pub(super) fn emulate_inst(state: &mut (impl CPU + InstructionMemory + ReadableMemory + WritableMemory + InterruptClearable)) -> u8 {//Return the number of cycles the instruction would take to execute
     todo!();
 }
 
-fn handle_interrupts(state: &mut (impl CPU + ReadableMemory + InterruptReadable)) {
+pub(super) fn handle_interrupts(state: &mut (impl CPU + ReadableMemory + InterruptReadable)) {
     //Check the state for new interrupts (using InterruptReadable), and if there is, push the current PC/SR/etc to the stack, read from the interrupt vector, and switch the PC to that location
     todo!();
 }

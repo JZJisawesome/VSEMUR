@@ -7,21 +7,36 @@
 
 /* Imports */
 
+mod memory_map;
+mod cpu_regs;
+mod interrupts;
+
+use cpu_regs::CPURegs;
+
 use crate::debug_panic;
 
 use crate::logging::log;
 
-use super::common::Interrupt;
 use super::common::CPU;
-use super::common::InstructionMemory;
-use super::common::ReadableMemory;
-use super::common::WritableMemory;
+use crate::interpreter::common::InstructionMemory;
+use crate::interpreter::common::ReadableMemory;
+use crate::interpreter::common::WritableMemory;
 use super::common::InterruptReadable;
 use super::common::InterruptClearable;
 
+use super::common::MEM_SIZE_WORDS;
+
+use super::render_reciever::RenderReciever;
+use super::sound_reciever::SoundReciever;
+use super::input_sender::InputSender;
+
 /* Constants */
 
-//TODO
+//Page 47 is useful :)
+const BREAK_INT_VECTOR_ADDR: usize = 0xFFF5;
+const FIQ_INT_VECTOR_ADDR: usize = 0xFFF6;
+const RESET_INT_VECTOR_ADDR: usize = 0xFFF7;
+const IRQ_INT_VECTOR_ADDR: [usize;8] = [0xFFF8, 0xFFF9, 0xFFFA, 0xFFFB, 0xFFFC, 0xFFFD, 0xFFFE, 0xFFFF];//0 thru 7
 
 /* Macros */
 
@@ -34,18 +49,7 @@ use super::common::InterruptClearable;
 /* Types */
 
 #[derive(Default)]
-pub(super) struct CPURegs {
-    sp: u16,
-    r: [u16;4],
-    sec_r: [u16;4],
-    bp: u16,
-    sr: u16,
-    pc: u16,
-    fr: u16,
-}
-
-#[derive(Default)]
-struct State {
+pub(super) struct State {
     cpu_regs: CPURegs,
 }
 
@@ -57,83 +61,68 @@ impl State {
         return State::default();
     }
 
-}
+    pub(super) fn reset(self: &mut Self) {
+        log!(1, "Resetting state");
 
-impl CPU for State {
-    fn reg_sp(self: &Self) -> &u16 {
-        return &self.cpu_regs.sp;
-    }
-    fn reg_r(self: &Self) -> &[u16;4] {
-        return if self.get_bnk() { &self.cpu_regs.sec_r } else { &self.cpu_regs.r };
-    }
-    fn reg_bp(self: &Self) -> &u16 {
-        return &self.cpu_regs.bp;
-    }
-    fn reg_sr(self: &Self) -> &u16 {
-        return &self.cpu_regs.sr;
-    }
-    fn reg_pc(self: &Self) -> &u16 {
-        return &self.cpu_regs.pc;
-    }
-    fn reg_fr(self: &Self) -> &u16 {
-        return &self.cpu_regs.fr;
-    }
-    fn reg_sp_mut(self: &mut Self) -> &mut u16 {
-        return &mut self.cpu_regs.sp;
-    }
-    fn reg_r_mut(self: &mut Self) -> &mut [u16;4] {
-        return if self.get_bnk() { &mut self.cpu_regs.sec_r } else { &mut self.cpu_regs.r };
-    }
-    fn reg_bp_mut(self: &mut Self) -> &mut u16 {
-        return &mut self.cpu_regs.bp;
-    }
-    fn reg_sr_mut(self: &mut Self) -> &mut u16 {
-        return &mut self.cpu_regs.sr;
-    }
-    fn reg_pc_mut(self: &mut Self) -> &mut u16 {
-        return &mut self.cpu_regs.pc;
-    }
-    fn reg_fr_mut(self: &mut Self) -> &mut u16 {
-        return &mut self.cpu_regs.fr;
+        self.reset_cpu();
+        //TODO others
+        //self.render.reset();
+        //self.sound.reset();
+        //self.io.reset();
     }
 
-    fn soft_interrupt_request(self: &mut Self) {
-        todo!();
-    }
-}
+    fn reset_cpu(self: &mut Self) {
+        log!(1, "Resetting CPU");
 
-impl InstructionMemory for State {
-    fn should_invalidate_icache(self: &Self) -> bool {
+        log!(2, "Initialize FR to 0bx_0_0_0_0_0000_0_0_0_1000");
+        self.cpu_regs.fr = 0b0_0_0_0_0_0000_0_0_0_1000;
+
+        log!(2, "Set initial CS page and PC");
+        debug_assert!(RESET_INT_VECTOR_ADDR < MEM_SIZE_WORDS);
+        log!(3, "Read reset vector at address {:#04X}_{:04X}", RESET_INT_VECTOR_ADDR >> 16, RESET_INT_VECTOR_ADDR & 0xFFFF);
+        self.set_cs(0x00);
+        self.cpu_regs.pc = self.read_addr(RESET_INT_VECTOR_ADDR as u32);
+        log!(3, "Initial CS page, PC is {:#04X}_{:04X}", self.get_cs(), self.cpu_regs.pc);
+    }
+
+    pub(super) fn tick(self: &mut Self) {
+        //log!(1, "Peripherals: Tick begins");
+        //todo!();//TODO
+        //log!(1, "Peripherals: Tick ends");
+    }
+
+    pub(super) fn frame_ended(self: &mut Self) -> bool {
+        return false;//TODO
+    }
+
+    pub(super) fn get_render_reciever(self: &mut Self) -> RenderReciever {
         todo!();
     }
 
-    fn fetch_addr(self: &Self, addr: u32) -> u16 {//For instruction fetching only (faster)
+    pub(super) fn get_sound_reciever(self: &mut Self) -> SoundReciever {
         todo!();
     }
-}
 
-impl ReadableMemory for State {
-    fn read_addr(self: &Self, addr: u32) -> u16 {
+    pub(super) fn get_input_sender(self: &mut Self) -> InputSender {
         todo!();
     }
-}
 
-impl WritableMemory for State {
-    fn write_addr(self: &mut Self, addr: u32, data: u16) {
+    pub(super) fn load_bios_file(self: &mut Self, path: &str) -> Result<(), ()> {
         todo!();
     }
-}
 
-impl InterruptReadable for State {
-    fn get_interrupt(self: &Self) -> Option<Interrupt> {
+    pub(super) fn load_bios_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ()> {
         todo!();
     }
-}
 
-impl InterruptClearable for State {
-    fn clear_current_interrupt(self: &mut Self) {
+    pub(super) fn load_rom_file(self: &mut Self, path: &str) -> Result<(), ()> {
         todo!();
     }
+
+    pub(super) fn load_rom_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ()> {
+        todo!();
+    }
+
 }
 
 /* Functions */
