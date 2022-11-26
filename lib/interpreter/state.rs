@@ -68,7 +68,12 @@ impl State {
             render: render::RenderState::new(),
             sound: sound::SoundState::new(),
             io: io::IOState::new(),
+
+            #[cfg(not(feature = "nightly-features"))]
             work_ram: vec![0u16; PHYSICAL_MEM_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
+            #[cfg(feature = "nightly-features")]
+            work_ram: box [0u16; PHYSICAL_MEM_SIZE_WORDS],
+
             bios: bios::Bios::new(),
             cartridge: cartridge::Cartridge::new(),
             int_ctrl_reg: 0,

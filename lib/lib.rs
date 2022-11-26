@@ -15,8 +15,10 @@
 //!
 //!Library for the VSmile EMUlator in Rust
 
-//The only unstable feature we use is for benchmarking
+//Enable nightly features if the feature nightly-features is enabled
+//Bit of a tounge-twister there :)
 #![cfg_attr(feature = "nightly-features", feature(test))]
+#![cfg_attr(feature = "nightly-features", feature(box_syntax))]
 
 /* Imports */
 

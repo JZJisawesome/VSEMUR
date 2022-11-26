@@ -48,7 +48,10 @@ impl Bios {
         log!(2, "Initializing BIOS-related state");
         return Bios {
             bios_loaded: false,
+            #[cfg(not(feature = "nightly-features"))]
             bios: vec![0u16; MAX_BIOS_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed//TODO perhaps only allocate the memory necessary?
+            #[cfg(feature = "nightly-features")]
+            bios: box [0u16; MAX_BIOS_SIZE_WORDS],//TODO avoid zero-initializing for speed//TODO perhaps only allocate the memory necessary?
         };
     }
 

@@ -59,10 +59,12 @@ impl Cartridge {
         //Allocate space for the ROM if we haven't yet
         //By waiting to do this until now we save memory if the user wants to start the VSmile without a ROM
         if matches!(self.rom, None) {
-            //TODO avoid vector for speed
             //TODO avoid zero-initializing for speed
             //TODO perhaps only allocate the memory necessary?
-            self.rom.replace(vec![0u16; MAX_ROM_SIZE_WORDS].into_boxed_slice());
+            #[cfg(not(feature = "nightly-features"))]
+            self.rom.replace(vec![0u16; MAX_ROM_SIZE_WORDS].into_boxed_slice());//TODO avoid vector for speed
+            #[cfg(feature = "nightly-features")]
+            self.rom.replace(box [0u16; MAX_ROM_SIZE_WORDS]);
         }
         let result = load_file_u16(path, self.rom.as_mut().unwrap());
         if matches!(result, Ok(())) {
@@ -76,10 +78,12 @@ impl Cartridge {
         //Allocate space for the ROM if we haven't yet
         //By waiting to do this until now we save memory if the user wants to start the VSmile without a ROM
         if matches!(self.rom, None) {
-            //TODO avoid vector for speed
             //TODO avoid zero-initializing for speed
             //TODO perhaps only allocate the memory necessary?
-            self.rom.replace(vec![0u16; MAX_ROM_SIZE_WORDS].into_boxed_slice());
+            #[cfg(not(feature = "nightly-features"))]
+            self.rom.replace(vec![0u16; MAX_ROM_SIZE_WORDS].into_boxed_slice());//TODO avoid vector for speed
+            #[cfg(feature = "nightly-features")]
+            self.rom.replace(box [0u16; MAX_ROM_SIZE_WORDS]);
         }
         for i in 0..rom_mem.len() {
             self.rom.as_mut().unwrap()[i] = rom_mem[i];
