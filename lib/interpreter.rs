@@ -16,7 +16,7 @@
 //!
 //!TODO redo this using Emulator instead
 //!
-//!```no_run
+//!```ignore
 //!use vsemur::interpreter;
 //!
 //!//Initialize state

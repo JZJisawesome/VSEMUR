@@ -42,10 +42,6 @@ const BUSY_WAIT_TIME_PER_FRAME: std::time::Duration = std::time::Duration::from_
 
 //TODO (also pub(crate) use the_macro statements here too)
 
-/* Static Variables */
-
-//TODO
-
 /* Types */
 
 ///VSEMUR Interpreter primary emulation struct

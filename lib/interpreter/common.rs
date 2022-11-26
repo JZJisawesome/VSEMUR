@@ -27,10 +27,6 @@ pub(super) const PHYSICAL_MEM_SIZE_WORDS: usize = 1024 * 10;//10 kilowords of me
 
 //TODO (also pub(crate) use the_macro statements here too)
 
-/* Static Variables */
-
-//TODO
-
 /* Types */
 
 pub(super) enum Interrupt {
@@ -411,15 +407,37 @@ pub(super) fn load_file_u16(path: &str, buffer: &mut [u16]) -> Result<(), ()> {
 }
 
 pub(super) fn inc_page_addr_by(page: u8, addr: u16, increment_amount: u32) -> (u8, u16) {
-    //TODO we should just use Wrapping types here
+    //TODO we should just use Wrapping types here (but need to wrap when page reaches 0x3f)
     let mut combined_addr: u64 = ((page as u64) << 16) | (addr as u64);//64 bit so we don't need to worry about overflow if increment_amount is large
     combined_addr += increment_amount as u64;
     return (((combined_addr >> 16) & 0b111111) as u8, (combined_addr & 0xFFFF) as u16);
 }
 
 pub(super) fn dec_page_addr_by(page: u8, addr: u16, decrement_amount: u32) -> (u8, u16) {
-    //TODO we should just use Wrapping types here
+    //TODO we should just use Wrapping types here (but need to wrap when page reaches 0x3f)
     let mut combined_addr: u64 = ((page as u64) << 16) | (addr as u64);//64 bit so we don't need to worry about overflow if increment_amount is large
     combined_addr -= decrement_amount as u64;//FIXME what about underflow?
     return (((combined_addr >> 16) & 0b111111) as u8, (combined_addr & 0xFFFF) as u16);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn sanity_inc_dec_page_addr() {
+        assert_eq!(inc_page_addr_by(0, 0, 123), (0, 123));
+        assert_eq!(dec_page_addr_by(0, 500, 250), (0, 250));
+    }
+
+    #[test]
+    fn inc_dec_page_addr_wrap() {
+        assert_eq!(inc_page_addr_by(0, 0xFFFF, 1), (1, 0));
+        assert_eq!(dec_page_addr_by(1, 0, 1), (0, 0xFFFF));
+    }
+
+    #[test]
+    fn inc_dec_page_addr_overflow_underflow() {
+        assert_eq!(inc_page_addr_by(0x3F, 0xFFFF, 1), (0, 0));
+        assert_eq!(dec_page_addr_by(0, 0, 1), (0x3F, 0xFFFF));
+    }
 }

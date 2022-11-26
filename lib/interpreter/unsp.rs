@@ -46,10 +46,6 @@ use super::common::inc_page_addr_by;
 
 //TODO (also pub(crate) use the_macro statements here too)
 
-/* Static Variables */
-
-//TODO
-
 /* Types */
 
 //TODO

@@ -720,3 +720,18 @@ fn dec_Register(inst_word: u16) -> DecodedInstruction {
         rs: dec_reg_from_index(rs_index!(inst_word)),
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn sanity() {
+        let mut result: DecodedInstruction = DecodedInstruction::Invalid;
+        decode_wg1(0x0000, &mut result);
+        assert!(matches!(result, DecodedInstruction::Invalid));
+        decode_wg1(0xFFFF, &mut result);
+        assert!(matches!(result, DecodedInstruction::Invalid));
+        //TODO more
+    }
+}

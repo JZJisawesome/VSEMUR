@@ -43,10 +43,6 @@ use super::input_sender::InputSender;
 
 //TODO (also pub(crate) use the_macro statements here too)
 
-/* Static Variables */
-
-//TODO
-
 /* Types */
 
 
