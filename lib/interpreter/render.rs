@@ -72,7 +72,7 @@ impl RenderState {
 impl ReadableMemory for RenderState {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         log!(2, "Render Access");
-        //todo!();
+        todo!();
         return 0;//TODO implement sound (at least the registers so that the CPU gets the values it expects)
     }
 }
@@ -81,7 +81,7 @@ impl ReadableMemory for RenderState {
 impl WritableMemory for RenderState {
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
         log!(2, "Render Access");
-        //todo!();//TODO implement sound
+        todo!();//TODO implement sound
     }
 }
 

@@ -15,6 +15,9 @@
 //!
 //!Library for the VSmile EMUlator in Rust
 
+//The only unstable feature we use is for benchmarking
+#![cfg_attr(feature = "nightly-features", feature(test))]
+
 /* Imports */
 
 pub mod about;//We want to export the module itself, into the root namespace, not it's contents directly, so we don't use ::*

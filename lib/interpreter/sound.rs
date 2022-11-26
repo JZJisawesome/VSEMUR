@@ -66,8 +66,7 @@ impl SoundState {
 impl ReadableMemory for SoundState {
     fn read_addr(self: &Self, addr: u32) -> u16 {
         log!(2, "Sound Access");
-        //todo!();
-        return 0;//TODO implement sound (at least the registers so that the CPU gets the values it expects)
+        todo!();//TODO implement sound (at least the registers so that the CPU gets the values it expects)
     }
 }
 
@@ -75,7 +74,7 @@ impl ReadableMemory for SoundState {
 impl WritableMemory for SoundState {
     fn write_addr(self: &mut Self, addr: u32, data: u16) {
         log!(2, "Sound Access");
-        //todo!();//TODO implement sound
+        todo!();//TODO implement sound
     }
 }
 

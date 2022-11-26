@@ -47,3 +47,7 @@ overflow-checks = false
 panic = "abort"
 lto = false
 debug = true
+
+[features]
+default = []
+nightly-features = []
