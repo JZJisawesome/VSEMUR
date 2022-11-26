@@ -5,6 +5,11 @@
  * VSmile system, in addition to data to manage threading and message-passing
 */
 
+//TODO remove this once everything is implemented
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 /* Imports */
 
 use super::unsp;
@@ -103,19 +108,16 @@ impl Emulator {
     pub fn get_render_reciever(self: &mut Self) -> RenderReciever {
         debug_assert!(!self.thread_running());
         return self.state.as_mut().unwrap().get_render_reciever();
-        todo!();
     }
 
     pub fn get_sound_reciever(self: &mut Self) -> SoundReciever {
         debug_assert!(!self.thread_running());
         return self.state.as_mut().unwrap().get_sound_reciever();
-        todo!();
     }
 
     pub fn get_input_sender(self: &mut Self) -> InputSender {
         debug_assert!(!self.thread_running());
         return self.state.as_mut().unwrap().get_input_sender();
-        todo!();
     }
 
     ///Loads a VSmile BIOS file from disk at the path specified.

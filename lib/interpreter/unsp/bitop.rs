@@ -6,9 +6,9 @@
 */
 
 //TODO remove this once everything is implemented
+#![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
-#[allow(unused_imports)]
 
 /* Imports */
 
@@ -45,7 +45,6 @@ use crate::decode::DecodedInstruction::*;
 /* Functions */
 
 pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), inst: &DecodedInstruction) -> u8 {
-    unimplemented!();//TODO
     match inst {
         //TODO others
         _ => { return debug_panic!(0); }//We should not have recieved this type of instruction

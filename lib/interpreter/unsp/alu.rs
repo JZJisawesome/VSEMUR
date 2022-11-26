@@ -7,9 +7,9 @@
 */
 
 //TODO remove this once everything is implemented
+#![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
-#[allow(unused_imports)]
 
 /* Imports */
 
@@ -93,7 +93,7 @@ pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), 
         },
         Direct6{..} => {
             todo!();
-            state.inc_pc();
+            //state.inc_pc();
         },
         IMM6{rd, imm6, ..} => {
             operand1 = state.get_reg(*rd);
@@ -166,7 +166,7 @@ pub(super) fn execute(state: &mut (impl CPU + ReadableMemory + WritableMemory), 
         (CMP, _) | (TEST, _) => { write_to_pc = false; },//CMP and TEST write to flags like other instructions, but the result is not stored
         (STORE, Direct6{..}) => {
             todo!();//Store to [A6]
-            write_to_pc = false;
+            //write_to_pc = false;
         },
         (STORE, Base_plus_Disp6{imm6, ..}) => {
             //TODO logging

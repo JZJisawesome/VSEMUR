@@ -6,6 +6,7 @@
 */
 
 //TODO remove this once everything is implemented
+#![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
 
@@ -102,7 +103,7 @@ pub(super) fn handle_interrupts(state: &mut (impl CPU + ReadableMemory + Interru
         None => { log!(2, "No new interrupts to deal with"); return; },//No interrupt to handle
     }
 
-    todo!();
+    //todo!();
 }
 
 fn execute_inst(state: &mut (impl CPU + ReadableMemory + WritableMemory + InterruptClearable), inst: &DecodedInstruction) -> u8 {
@@ -175,14 +176,14 @@ fn execute_inst(state: &mut (impl CPU + ReadableMemory + WritableMemory + Interr
             return 2;
         },
         DS_Access{w, rs} => {
-            unimplemented!();//TODO do here
-            state.inc_pc();
-            return 2;
+            todo!();//TODO do here
+            //state.inc_pc();
+            //return 2;
         },
         FR_Access{w, rs} => {
-            unimplemented!();//TODO do here
-            state.inc_pc();
-            return 2;
+            todo!();//TODO do here
+            //state.inc_pc();
+            //return 2;
         },
 
         Invalid => { return debug_panic!(0); }//TODO proper error handling?

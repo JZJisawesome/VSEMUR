@@ -5,6 +5,11 @@
  *
 */
 
+//TODO remove this once everything is implemented
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 /* Imports */
 
 use crate::debug_panic;
