@@ -52,6 +52,7 @@ pub(super) struct State {
     work_ram: Box<[u16]>,
     bios: bios::Bios,
     cartridge: cartridge::Cartridge,
+    int_ctrl_reg: u16,//Used for interrupt handling
     //TODO "peripherals" won't go into the state directory, but will rather be "peers" of state and unsp in the interpreter directory
 }
 
@@ -68,6 +69,7 @@ impl State {
             work_ram: vec![0u16; PHYSICAL_MEM_SIZE_WORDS].into_boxed_slice(),//TODO avoid vector for speed//TODO avoid zero-initializing for speed
             bios: bios::Bios::new(),
             cartridge: cartridge::Cartridge::new(),
+            int_ctrl_reg: 0,
         };
     }
 
@@ -78,6 +80,7 @@ impl State {
         self.render.reset();
         self.sound.reset();
         self.io.reset();
+        //TODO what to reset int_ctrl_reg to?
     }
 
     pub(super) fn tick(self: &mut Self) {

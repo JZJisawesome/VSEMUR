@@ -14,6 +14,9 @@
 
 use crate::logging::log;
 
+use crate::interpreter::common::ReadableMemory;
+use crate::interpreter::common::WritableMemory;
+
 /* Constants */
 
 //TODO
@@ -56,6 +59,22 @@ impl RenderState {
         //for i in 0x002800..=0x0028FF {
         //    log!(2, "{:#08X}: {:#06X}", i, mem.read_addr(i));
         //}
+    }
+}
+
+impl ReadableMemory for RenderState {
+    fn read_addr(self: &Self, addr: u32) -> u16 {
+        log!(2, "Render Access");
+        //todo!();
+        return 0;//TODO implement sound (at least the registers so that the CPU gets the values it expects)
+    }
+}
+
+
+impl WritableMemory for RenderState {
+    fn write_addr(self: &mut Self, addr: u32, data: u16) {
+        log!(2, "Render Access");
+        //todo!();//TODO implement sound
     }
 }
 
