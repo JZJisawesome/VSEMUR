@@ -52,7 +52,7 @@ pub struct Emulator {
     state: Option<State>,
 
     //TODO other fields
-    emulation_thread_join_handle: Option<thread::JoinHandle<(State)>>,
+    emulation_thread_join_handle: Option<thread::JoinHandle<State>>,
     stop_request_sender: Option<SyncSender<()>>//NOTE: All other channels are part of Peripherals, except for this one which is just used internally to request the thread to stop
 }
 
