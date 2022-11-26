@@ -721,6 +721,7 @@ fn dec_Register(inst_word: u16) -> DecodedInstruction {
     }
 }
 
+/* Tests */
 
 #[cfg(test)]
 mod tests {
@@ -732,6 +733,23 @@ mod tests {
         assert!(matches!(result, DecodedInstruction::Invalid));
         decode_wg1(0xFFFF, &mut result);
         assert!(matches!(result, DecodedInstruction::Invalid));
-        //TODO more
+        decode_wg1(0b1001101010010000, &mut result);
+        assert!(matches!(result, DecodedInstruction::RETF));
+        decode_wg1(0b1111000101100101, &mut result);
+        assert!(matches!(result, DecodedInstruction::NOP));
+    }
+
+    #[test]
+    fn decode_all_possible_without_panic() {
+        for wg1 in 0..=0xFFFF {
+            let mut result_wg1: DecodedInstruction = DecodedInstruction::Invalid;
+            decode_wg1(wg1, &mut result_wg1);
+            if needs_decode_wg2(&result_wg1) {
+                for wg2 in 0..=0xFFFF {
+                    let mut result_wg2 = result_wg1.clone();
+                    decode_wg2(&mut result_wg2, wg2);
+                }
+            }
+        }
     }
 }

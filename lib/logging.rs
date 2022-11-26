@@ -69,7 +69,7 @@ pub(crate) use internal_log_ticks;
 
 macro_rules! log_reset_ticks {
     () => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             unsafe { crate::logging::CYCLE_BLOCK_NUM = 0; }
         }
     };
@@ -77,7 +77,7 @@ macro_rules! log_reset_ticks {
 pub(crate) use log_reset_ticks;
 macro_rules! log_increment_ticks {
     () => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             unsafe { crate::logging::CYCLE_BLOCK_NUM += 1; }
         }
     };
@@ -87,7 +87,7 @@ pub(crate) use log_increment_ticks;
 macro_rules! log_noln {
     //Case where there are no extra arguments
     ($indent:expr, $string:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             crate::logging::internal_log_prompt!($indent);
             eprint!($string);
@@ -107,7 +107,7 @@ macro_rules! log_noln {
     */
     //HACK Support up to three extra arguments (the most we'll likely need; add more if necessary)
     ($indent:expr, $string:expr, $extra_arg_1:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             crate::logging::internal_log_prompt!($indent);
             eprint!($string, $extra_arg_1);
@@ -120,7 +120,7 @@ macro_rules! log_noln {
         }
     };
     ($indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             crate::logging::internal_log_prompt!($indent);
             eprint!($string, $extra_arg_1, $extra_arg_2);
@@ -133,7 +133,7 @@ macro_rules! log_noln {
         }
     };
     ($indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             crate::logging::internal_log_prompt!($indent);
             eprint!($string, $extra_arg_1, $extra_arg_2, $extra_arg_3);
@@ -151,7 +151,7 @@ pub(crate) use log_noln;
 macro_rules! log_midln {
     //Case where there are no extra arguments
     ($string:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             eprint!($string);
 
@@ -170,7 +170,7 @@ macro_rules! log_midln {
     */
     //HACK Support up to three extra arguments (the most we'll likely need; add more if necessary)
     ($string:expr, $extra_arg_1:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             eprint!($string, $extra_arg_1);
 
@@ -182,7 +182,7 @@ macro_rules! log_midln {
         }
     };
     ($string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             eprint!($string, $extra_arg_1, $extra_arg_2);
 
@@ -194,7 +194,7 @@ macro_rules! log_midln {
         }
     };
     ($string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             eprint!($string, $extra_arg_1, $extra_arg_2, $extra_arg_3);
 
@@ -211,7 +211,7 @@ pub(crate) use log_midln;
 macro_rules! log_finln {
     //Case where there are no arguments at all
     () => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             eprint!("\n");
 
@@ -225,7 +225,7 @@ macro_rules! log_finln {
 
     //Case where there are no extra arguments
     ($string:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             eprintln!($string);
 
@@ -244,7 +244,7 @@ macro_rules! log_finln {
     */
     //HACK Support up to three extra arguments (the most we'll likely need; add more if necessary)
     ($string:expr, $extra_arg_1:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             eprintln!($string, $extra_arg_1);
 
@@ -256,7 +256,7 @@ macro_rules! log_finln {
         }
     };
     ($string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             eprintln!($string, $extra_arg_1, $extra_arg_2);
 
@@ -268,7 +268,7 @@ macro_rules! log_finln {
         }
     };
     ($string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             //Log to stderr
             eprintln!($string, $extra_arg_1, $extra_arg_2, $extra_arg_3);
 
@@ -285,7 +285,7 @@ pub(crate) use log_finln;
 macro_rules! log {
     //Case where there are no extra arguments
     ($indent:expr, $string:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             crate::logging::log_noln!($indent, $string);
             crate::logging::log_finln!();
         }
@@ -298,19 +298,19 @@ macro_rules! log {
     */
     //HACK Support up to three extra arguments (the most we'll likely need; add more if necessary)
     ($indent:expr, $string:expr, $extra_arg_1:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             crate::logging::log_noln!($indent, $string, $extra_arg_1);
             crate::logging::log_finln!();
         }
     };
     ($indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             crate::logging::log_noln!($indent, $string, $extra_arg_1, $extra_arg_2);
             crate::logging::log_finln!();
         }
     };
     ($indent:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             crate::logging::log_noln!($indent, $string, $extra_arg_1, $extra_arg_2, $extra_arg_3);
             crate::logging::log_finln!();
         }
@@ -321,7 +321,7 @@ pub(crate) use log;
 macro_rules! log_ansi {
     //Case where there are no extra arguments
     ($indent:expr, $ansi:expr, $string:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             crate::logging::log_noln!($indent, "");
             eprint!($ansi);//Only output ansi to the terminal, not to the log file
             crate::logging::log_finln!($string);
@@ -336,7 +336,7 @@ macro_rules! log_ansi {
     */
     //HACK Support up to three extra arguments (the most we'll likely need; add more if necessary)
     ($indent:expr, $ansi:expr, $string:expr, $extra_arg_1:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             crate::logging::log_noln!($indent, "");
             eprint!($ansi);//Only output ansi to the terminal, not to the log file
             crate::logging::log_finln!($string, $extra_arg_1);
@@ -344,7 +344,7 @@ macro_rules! log_ansi {
         }
     };
     ($indent:expr, $ansi:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             crate::logging::log_noln!($indent, "");
             eprint!($ansi);//Only output ansi to the terminal, not to the log file
             crate::logging::log_finln!($string, $extra_arg_1, $extra_arg_2);
@@ -352,7 +352,7 @@ macro_rules! log_ansi {
         }
     };
     ($indent:expr, $ansi:expr, $string:expr, $extra_arg_1:expr, $extra_arg_2:expr, $extra_arg_3:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             crate::logging::log_noln!($indent, "");
             eprint!($ansi);//Only output ansi to the terminal, not to the log file
             crate::logging::log_finln!($string, $extra_arg_1, $extra_arg_2, $extra_arg_3);
@@ -364,7 +364,7 @@ pub(crate) use log_ansi;
 
 macro_rules! log_reset_file {
     () => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) && !cfg!(test) {
             match std::fs::remove_file(crate::logging::LOG_FILE_PATH) {
                 Ok(_) => {
                     crate::logging::log_ansi!(0, "\x1b[36m", "Overwriting existing log file \"{}\"", crate::logging::LOG_FILE_PATH);

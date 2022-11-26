@@ -125,3 +125,60 @@ impl WritableMemory for State {
 /* Functions */
 
 //TODO
+
+/* Tests */
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use super::super::State;
+
+    #[test]
+    fn read_valid_non_register_addresses_without_panic() {
+        use crate::interpreter::common::ReadableMemory;
+        let state = init_new_random_state();
+        for addr in 0..=0x27FF {
+            state.read_addr(addr);
+        }
+        for addr in 0x4000..=0xFFFFFF {
+            state.read_addr(addr);
+        }
+    }
+
+    #[test]
+    fn write_all_of_work_ram_without_panic() {
+        use crate::interpreter::common::WritableMemory;
+        let mut state = init_new_random_state();
+        for addr in 0..=0x27FF {
+            state.write_addr(addr, addr as u16);
+        }
+    }
+
+    #[test]
+    fn write_validate_all_of_work_ram() {
+        use crate::interpreter::common::WritableMemory;
+        let mut state = init_new_random_state();
+        for addr in 0..=0x27FF {
+            state.write_addr(addr, (0xFFFF - addr) as u16);
+        }
+        for addr in 0..=0x27FF {
+            assert_eq!(state.read_addr(addr), (0xFFFF - addr) as u16);
+        }
+    }
+
+    fn init_new_random_state() -> State {
+        let mut state = State::new();
+        state.load_bios_mem(&get_random_u16_slice(crate::interpreter::common::MAX_BIOS_SIZE_WORDS));
+        state.load_rom_mem(&get_random_u16_slice(crate::interpreter::common::MAX_ROM_SIZE_WORDS));
+        state.reset();
+        return state;
+    }
+
+    fn get_random_u16_slice(size: usize) -> Box<[u16]> {
+        let mut the_box = vec![0u16; size].into_boxed_slice();
+        for i in 0..size {
+            the_box[i] = i as u16;//TODO make actually random
+        }
+        return the_box;
+    }
+}

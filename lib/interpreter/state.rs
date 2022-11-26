@@ -128,3 +128,37 @@ impl State {
 /* Functions */
 
 //TODO
+
+/* Tests */
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn sanity() {
+        let mut state = init_new_random_state();
+        assert!(!state.frame_ended());//We haven't executed any instructions, so it couldn't have possibly have ended already
+        let render_reciever = state.get_render_reciever();
+        let sound_reciever = state.get_sound_reciever();
+        let input_sender = state.get_input_sender();
+        for _ in 0..10000 {//Even though we aren't executing instructions, we should be able to survive some ticks without panicking
+            state.tick();
+        }
+    }
+
+    fn init_new_random_state() -> State {
+        let mut state = State::new();
+        state.load_bios_mem(&get_random_u16_slice(crate::interpreter::common::MAX_BIOS_SIZE_WORDS));
+        state.load_rom_mem(&get_random_u16_slice(crate::interpreter::common::MAX_ROM_SIZE_WORDS));
+        state.reset();
+        return state;
+    }
+
+    fn get_random_u16_slice(size: usize) -> Box<[u16]> {
+        let mut the_box = vec![0u16; size].into_boxed_slice();
+        for i in 0..size {
+            the_box[i] = i as u16;//TODO make actually random
+        }
+        return the_box;
+    }
+}

@@ -420,6 +420,8 @@ pub(super) fn dec_page_addr_by(page: u8, addr: u16, decrement_amount: u32) -> (u
     return (((combined_addr >> 16) & 0b111111) as u8, (combined_addr & 0xFFFF) as u16);
 }
 
+/* Tests */
+
 #[cfg(test)]
 mod tests {
     use super::*;
