@@ -72,7 +72,20 @@ impl Cartridge {
     }
 
     pub(super) fn load_mem(self: &mut Self, rom_mem: &[u16]) -> Result<(), ()> {
-        todo!();
+        debug_assert!(rom_mem.len() <= MAX_ROM_SIZE_WORDS);
+        //Allocate space for the ROM if we haven't yet
+        //By waiting to do this until now we save memory if the user wants to start the VSmile without a ROM
+        if matches!(self.rom, None) {
+            //TODO avoid vector for speed
+            //TODO avoid zero-initializing for speed
+            //TODO perhaps only allocate the memory necessary?
+            self.rom.replace(vec![0u16; MAX_ROM_SIZE_WORDS].into_boxed_slice());
+        }
+        for i in 0..rom_mem.len() {
+            self.rom.as_mut().unwrap()[i] = rom_mem[i];
+        }
+        self.rom_loaded = true;
+        return Ok(());
     }
 
     //TODO functions to save the NVRAM to disk

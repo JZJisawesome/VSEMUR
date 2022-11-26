@@ -61,7 +61,12 @@ impl Bios {
     }
 
     pub(super) fn load_mem(self: &mut Self, bios_mem: &[u16]) -> Result<(), ()> {
-        todo!();
+        debug_assert!(bios_mem.len() <= MAX_BIOS_SIZE_WORDS);
+        for i in 0..bios_mem.len() {
+            self.bios[i] = bios_mem[i];
+        }
+        self.bios_loaded = true;
+        return Ok(());
     }
 }
 
