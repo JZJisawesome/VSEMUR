@@ -1,5 +1,6 @@
 /* sound_reciever.rs
- * By: John Jekel
+ * Copyright (C) 2022 John Jekel
+ * See the LICENSE file at the root of the project for licensing info.
  *
  * Recieves SoundMessages from the emulation thread and processes sound in the user's thread for their code to consume
  *

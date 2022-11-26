@@ -1,5 +1,6 @@
 /* render_reciever.rs
- * By: John Jekel
+ * Copyright (C) 2022 John Jekel
+ * See the LICENSE file at the root of the project for licensing info.
  *
  * Recieves RenderMessages from the emulation thread and renders frames in the user's thread for their code to consume
  *

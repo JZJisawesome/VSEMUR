@@ -1,5 +1,6 @@
 /* io.rs
- * By: John Jekel
+ * Copyright (C) 2022 John Jekel
+ * See the LICENSE file at the root of the project for licensing info.
  *
  * Handles I/O registers and emulates the peripherals they're attached to
  * NOTE: Since unlike unSP there is limited documentation avaliable for SPG240 peripherals, I may be leaning slighly more on MAME's code for this.

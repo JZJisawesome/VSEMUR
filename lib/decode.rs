@@ -1,5 +1,6 @@
 /* decode.rs
- * By: John Jekel
+ * Copyright (C) 2022 John Jekel
+ * See the LICENSE file at the root of the project for licensing info.
  *
  * Decodes unSP instructions. See README.md for how this is done (it is black magic).
  *

@@ -1,5 +1,6 @@
 /* input_sender.rs
- * By: John Jekel
+ * Copyright (C) 2022 John Jekel
+ * See the LICENSE file at the root of the project for licensing info.
  *
  * Per the user's code's wishes, sends InputMessages to the emulation thread to be processed (ex. buttons, the joystick, etc.)
  *

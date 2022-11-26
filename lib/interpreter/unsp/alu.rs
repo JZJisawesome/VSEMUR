@@ -1,5 +1,6 @@
 /* alu.rs
- * By: John Jekel
+ * Copyright (C) 2022 John Jekel
+ * See the LICENSE file at the root of the project for licensing info.
  *
  * Emulates the normal (with an ALU op field) data processing instructions of the CPU (including load and store)
  * Also handles shifting (so 16 bits Shift is handled too)

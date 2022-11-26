@@ -1,5 +1,6 @@
 /* state.rs
- * By: John Jekel
+ * Copyright (C) 2022 John Jekel
+ * See the LICENSE file at the root of the project for licensing info.
  *
  * Wrapper struct for memories, MMIO peripherals, interrupt sources, and CPU registers
  *

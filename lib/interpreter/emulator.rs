@@ -1,5 +1,6 @@
 /* emulator.rs
- * By: John Jekel
+ * Copyright (C) 2022 John Jekel
+ * See the LICENSE file at the root of the project for licensing info.
  *
  * The Emulator struct holds all information needed to store the state of an emulated
  * VSmile system, in addition to data to manage threading and message-passing
