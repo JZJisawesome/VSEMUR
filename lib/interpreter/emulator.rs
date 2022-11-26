@@ -305,3 +305,23 @@ fn emulation_thread(mut state: State, stop_request_reciever: Receiver<()>) -> St
 
     return state;//Give the state back when we're finished with it
 }
+
+
+/* Benches */
+
+#[cfg_attr(feature = "nightly-features", cfg(test))]
+#[cfg(feature = "nightly-features")]
+mod benches {
+    extern crate test;
+    use super::*;
+    use test::Bencher;
+
+    #[bench]
+    fn create_new_emulator(b: &mut Bencher) {
+        b.iter(|| -> Emulator {
+            return Emulator::new();
+        });
+    }
+
+    //TODO add a bench to estimate frametimes
+}

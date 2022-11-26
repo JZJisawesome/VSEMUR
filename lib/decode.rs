@@ -754,20 +754,43 @@ mod tests {
     }
 }
 
-//TESTING
-pub fn add_two(a: i32) -> i32 {
-    a + 2
-}
-
+/* Benches */
 
 #[cfg_attr(feature = "nightly-features", cfg(test))]
 #[cfg(feature = "nightly-features")]
 mod benches {
+    extern crate test;
     use super::*;
     use test::Bencher;
 
     #[bench]
-    fn bench_add_two(b: &mut Bencher) {
-        b.iter(|| add_two(2));
+    fn decode_450000_random_instructions(b: &mut Bencher) {
+        let mut seed: u16 = 0xABCD;
+        let mut random_array: [u16; 450000] = [0; 450000];
+        for i in 0..450000 {
+            random_array[i] = seed;
+            xorshift32(&mut seed);
+        }
+
+        b.iter(|| {
+            let array_reference: &[u16; 450000] = test::black_box(&random_array);
+            for i in 0..450000 {
+                let mut result_wg1: DecodedInstruction = DecodedInstruction::Invalid;
+                decode_wg1(array_reference[i], &mut result_wg1);
+                if needs_decode_wg2(&result_wg1) {
+                    decode_wg2(&mut result_wg1, array_reference[i]);
+                }
+            }
+        });
+    }
+
+    //Thanks https://en.wikipedia.org/wiki/Xorshift
+    fn xorshift32(seed: &mut u16) {
+        let mut seed32 = *seed as u32;
+        /* Algorithm "xor" from p. 4 of Marsaglia, "Xorshift RNGs" */
+        seed32 ^= seed32 << 13;
+        seed32 ^= seed32 >> 17;
+        seed32 ^= seed32 << 5;
+        *seed = seed32 as u16;
     }
 }

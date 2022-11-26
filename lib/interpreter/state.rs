@@ -167,3 +167,45 @@ mod tests {
         return the_box;
     }
 }
+
+/* Benches */
+
+#[cfg_attr(feature = "nightly-features", cfg(test))]
+#[cfg(feature = "nightly-features")]
+mod benches {
+    extern crate test;
+    use super::*;
+    use test::Bencher;
+
+    #[bench]
+    fn create_new_state(b: &mut Bencher) {
+        b.iter(|| -> State {
+            return State::new();
+        });
+    }
+
+    #[bench]
+    fn tick(b: &mut Bencher) {
+        let mut state = init_new_random_state();
+        b.iter(|| {
+            let mut state_reference = test::black_box(&mut state);
+            state_reference.tick();
+        });
+    }
+
+    fn init_new_random_state() -> State {
+        let mut state = State::new();
+        state.load_bios_mem(&get_random_u16_slice(crate::interpreter::common::MAX_BIOS_SIZE_WORDS));
+        state.load_rom_mem(&get_random_u16_slice(crate::interpreter::common::MAX_ROM_SIZE_WORDS));
+        state.reset();
+        return state;
+    }
+
+    fn get_random_u16_slice(size: usize) -> Box<[u16]> {
+        let mut the_box = vec![0u16; size].into_boxed_slice();
+        for i in 0..size {
+            the_box[i] = i as u16;//TODO make actually random
+        }
+        return the_box;
+    }
+}
